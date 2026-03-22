@@ -1,0 +1,258 @@
+.attendance-page {
+  animation: fadeIn 0.3s ease;
+}
+
+.page-header {
+  margin-bottom: 32px;
+}
+
+.page-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+}
+
+.page-header p {
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.attendance-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 40px;
+}
+
+.column-header {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 16px;
+}
+
+.attendance-card {
+  background-color: var(--bg-card);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-dark);
+  margin-bottom: 16px;
+}
+
+.generate-btn {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  width: fit-content;
+  margin-bottom: 24px;
+  transition: all 0.2s;
+}
+
+.generate-btn:hover, .action-btn:hover {
+  background-color: var(--primary-hover);
+}
+
+.qr-display-box {
+  background: linear-gradient(135deg, #eef4ff 0%, #e3edfe 100%);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+  min-height: 220px;
+}
+
+/* Subtle glow effect behind QR */
+.qr-display-box::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 25%;
+  transform: translate(-50%, -50%);
+  width: 150px;
+  height: 150px;
+  background: rgba(255, 255, 255, 0.5);
+  filter: blur(20px);
+  border-radius: 50%;
+  z-index: 0;
+}
+
+.qr-code-img {
+  width: 140px;
+  height: 140px;
+  background-color: white;
+  padding: 12px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  z-index: 1;
+}
+
+.qr-mascot {
+  width: 150px;
+  height: auto;
+  z-index: 1;
+  transform: translateY(10px);
+}
+
+.status-indicators {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.status-item.present .count {
+  color: var(--success);
+}
+
+.status-item.absent .count {
+  color: var(--danger);
+}
+
+.action-btn {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s;
+}
+
+.scan-btn {
+  width: fit-content;
+  margin-top: -8px;
+  margin-bottom: 24px;
+}
+
+.attendance-status-block h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 16px;
+}
+
+.status-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.status-card {
+  padding: 16px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-card.present-card {
+  background-color: rgba(1, 181, 116, 0.08); /* light success */
+}
+
+.status-card.absent-card {
+  background-color: rgba(238, 93, 80, 0.08); /* light danger */
+}
+
+.status-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.present-card .status-card-header { color: var(--success); }
+.absent-card .status-card-header { color: var(--danger); }
+
+.status-card-value {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* User List Bottom Section */
+.user-list-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.user-list-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 8px;
+}
+
+.user-list-header h3 {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.user-list-header .role-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.user-row {
+  background-color: var(--bg-card);
+  padding: 16px 24px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 32px;
+  box-shadow: var(--shadow-card);
+}
+
+.user-info-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.user-info-group.fade {
+  color: var(--text-secondary);
+}
+
+@media (max-width: 1024px) {
+  .attendance-grid {
+    grid-template-columns: 1fr;
+  }
+}
