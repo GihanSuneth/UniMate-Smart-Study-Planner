@@ -383,3 +383,97 @@ strong {
     justify-content: flex-end;
   }
 }
+
+/* New Dynamic Styles */
+.error-message {
+  color: #e74c3c;
+  font-size: 14px;
+  margin-top: 12px;
+  background-color: #fdeceb;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #fad2d0;
+  text-align: center;
+}
+
+.file-info-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.file-name {
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 14px;
+  text-align: center;
+  word-break: break-all;
+  padding: 0 16px;
+}
+
+.remove-file-btn {
+  color: #e74c3c;
+  font-size: 13px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.remove-file-btn:hover {
+  background-color: #fdeceb;
+}
+
+.dropzone.has-file {
+  background-color: #f1f8ff;
+  border-color: var(--primary);
+  border-style: solid;
+}
+
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  flex-direction: column;
+  color: var(--text-secondary);
+  gap: 16px;
+  font-size: 15px;
+}
+
+.loader {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid var(--primary);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.success-text {
+  color: #27ae60;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--text-secondary);
+  text-align: center;
+  font-size: 15px;
+  padding: 0 40px;
+}

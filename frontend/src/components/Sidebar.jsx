@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   IconLayoutDashboard, IconNotes, IconCalendarStats, 
-  IconPencilCheck, IconChartBar, IconSettings, IconLogout
+  IconPencilCheck, IconChartBar, IconSettings, IconLogout, IconShieldLock
 } from '@tabler/icons-react';
 import logoImg from '../images/logo.png';
 
@@ -15,6 +15,7 @@ function Sidebar() {
     { path: '/attendance', label: 'Attendance', icon: IconCalendarStats },
     { path: '/quiz-validator', label: 'Quiz Validator', icon: IconPencilCheck },
     { path: '/analytics', label: 'Analytics', icon: IconChartBar },
+    { path: '/admin', label: 'Admin Panel', icon: IconShieldLock },
     { path: '/settings', label: 'Settings', icon: IconSettings }
   ];
 

@@ -1,0 +1,210 @@
+.admin-panel-page {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.admin-header {
+  margin-bottom: 24px;
+}
+
+.admin-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
+
+.admin-header p {
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.admin-card {
+  background-color: var(--bg-card);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-card.full-width {
+  grid-column: 1 / -1;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.card-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.users-table-container,
+.attendance-table-container {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.admin-table th {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.admin-table td {
+  color: var(--text-dark);
+  font-size: 14px;
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-cell img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+}
+
+.role-select {
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-dark);
+  background-color: var(--bg-main);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.role-select:focus {
+  border-color: var(--primary);
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.role-badge.admin {
+  background-color: #ffeaea;
+  color: var(--danger);
+}
+
+.role-badge.teacher {
+  background-color: #e3edfe;
+  color: var(--primary);
+}
+
+.role-badge.student {
+  background-color: #eaf8f1;
+  color: var(--success);
+}
+
+.attendance-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.attendance-badge.present {
+  background-color: #eaf8f1;
+  color: var(--success);
+}
+
+.attendance-badge.absent {
+  background-color: #ffeaea;
+  color: var(--danger);
+}
+
+.analytics-overview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.stat-box {
+  background-color: var(--bg-main);
+  padding: 20px;
+  border-radius: var(--border-radius-md);
+  text-align: center;
+  border: 1px solid var(--border-color);
+}
+
+.stat-box h4 {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.stat-box .stat-number {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
+
+.stat-box .stat-change {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.stat-change.up {
+  color: var(--success);
+}
+
+.stat-change.down {
+  color: var(--warning);
+}
+
+@media (max-width: 1024px) {
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -8,6 +8,7 @@ import Attendance from './pages/Attendance';
 import QuizValidator from './pages/QuizValidator';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
+import AdminPanel from './pages/AdminPanel';
 import './index.css';
 
 function AppLayout() {
@@ -24,6 +25,7 @@ function AppLayout() {
             <Route path="/quiz-validator" element={<QuizValidator />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/admin" element={<AdminPanel />} />
           </Routes>
         </section>
       </main>
