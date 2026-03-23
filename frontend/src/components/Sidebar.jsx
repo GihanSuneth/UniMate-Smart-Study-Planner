@@ -1,22 +1,37 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   IconLayoutDashboard, IconNotes, IconCalendarStats, 
-  IconPencilCheck, IconChartBar, IconSettings, IconLogout
+  IconPencilCheck, IconChartBar, IconSettings, IconLogout, IconShieldLock
 } from '@tabler/icons-react';
 import logoImg from '../images/logo.png';
 
-function Sidebar() {
+function Sidebar({ role }) {
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const navItems = [
-    { path: '/', label: 'Dashboard', icon: IconLayoutDashboard },
-    { path: '/notes-ai', label: 'Notes AI', icon: IconNotes },
-    { path: '/attendance', label: 'Attendance', icon: IconCalendarStats },
-    { path: '/quiz-validator', label: 'Quiz Validator', icon: IconPencilCheck },
-    { path: '/analytics', label: 'Analytics', icon: IconChartBar },
-    { path: '/settings', label: 'Settings', icon: IconSettings }
-  ];
+  const handleLogout = () => {
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userName');
+    window.dispatchEvent(new Event('auth-change'));
+    navigate('/');
+  };
+
+  const getNavItems = () => {
+    const items = [
+      { path: '/', label: 'Dashboard', icon: IconLayoutDashboard, roles: ['student', 'teacher'] },
+      { path: '/admin', label: 'Admin Panel', icon: IconShieldLock, roles: ['admin'] },
+      { path: '/notes-ai', label: 'Notes AI', icon: IconNotes, roles: ['student', 'teacher'] },
+      { path: '/attendance', label: role === 'student' ? 'Scan QR' : role === 'admin' ? 'Attendance Check' : 'QR Generator', icon: IconCalendarStats, roles: ['student', 'teacher', 'admin'] },
+      { path: '/quiz-validator', label: 'Quiz Validator', icon: IconPencilCheck, roles: ['student', 'teacher', 'admin'] },
+      { path: '/analytics', label: 'Analytics', icon: IconChartBar, roles: ['student', 'teacher', 'admin'] },
+      { path: '/settings', label: role === 'admin' ? 'Admin Settings' : 'Profile Settings', icon: IconSettings, roles: ['student', 'teacher', 'admin'] }
+    ];
+    return items.filter(item => item.roles.includes(role));
+  };
+
+  const navItems = getNavItems();
+  const userName = localStorage.getItem('userName') || 'User';
 
   return (
     <aside className="sidebar">
@@ -40,13 +55,13 @@ function Sidebar() {
 
       <div className="sidebar-bottom">
         <div className="user-profile">
-          <img src="https://i.pravatar.cc/150?img=11" alt="John Doe" className="user-avatar" />
+          <img src={`https://i.pravatar.cc/150?u=${userName}`} alt={userName} className="user-avatar" />
           <div className="user-info">
-            <div className="user-name">John Doe</div>
-            <div className="user-role">Student</div>
+            <div className="user-name" style={{textTransform: 'capitalize'}}>{userName}</div>
+            <div className="user-role" style={{textTransform: 'capitalize'}}>{role}</div>
           </div>
         </div>
-        <button className="logout-btn">
+        <button className="logout-btn" onClick={handleLogout}>
           <IconLogout size={20} stroke={2} />
           <span>Logout</span>
         </button>
