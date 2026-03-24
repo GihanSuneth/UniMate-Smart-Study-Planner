@@ -9,7 +9,7 @@ import actionFigureImg from '../images/action-figure-1.png';
 function TeacherDashboard() {
   return (
     <>
-       <div className="welcome-banner" style={{background: 'linear-gradient(290deg, #ffb547 0%, #ff8c00 100%)'}}>
+       <div className="welcome-banner" >
          <h1>Welcome Back, Teacher <span role="img" aria-label="wave">👋</span></h1>
          <p>Here's your teaching overview for the week.</p>
        </div>
