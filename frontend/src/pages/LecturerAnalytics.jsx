@@ -4,7 +4,7 @@ import {
 } from '@tabler/icons-react';
 import './Analytics.css';
 
-function TeacherAnalytics() {
+function LecturerAnalytics() {
   return (
     <div className="analytics-page">
       <div className="page-header">
@@ -103,4 +103,4 @@ function TeacherAnalytics() {
   );
 }
 
-export default TeacherAnalytics;
+export default LecturerAnalytics;

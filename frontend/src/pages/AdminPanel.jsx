@@ -5,7 +5,7 @@ import './AdminPanel.css';
 function AdminPanel() {
   const [users, setUsers] = useState([
     { id: 1, name: 'John Doe', email: 'john@student.unimate.edu', role: 'Student', avatar: 'https://i.pravatar.cc/150?img=11' },
-    { id: 2, name: 'Dr. Jane Smith', email: 'jane.smith@faculty.unimate.edu', role: 'Teacher', avatar: 'https://i.pravatar.cc/150?img=5' },
+    { id: 2, name: 'Dr. Jane Smith', email: 'jane.smith@faculty.unimate.edu', role: 'Lecturer', avatar: 'https://i.pravatar.cc/150?img=5' },
     { id: 3, name: 'Admin User', email: 'admin@unimate.edu', role: 'Admin', avatar: 'https://i.pravatar.cc/150?img=8' },
     { id: 4, name: 'Alice Johnson', email: 'alice@student.unimate.edu', role: 'Student', avatar: 'https://i.pravatar.cc/150?img=9' },
   ]);
@@ -68,7 +68,7 @@ function AdminPanel() {
                         onChange={(e) => handleRoleChange(user.id, e.target.value)}
                       >
                         <option value="Student">Student</option>
-                        <option value="Teacher">Teacher</option>
+                        <option value="Lecturer">Lecturer</option>
                         <option value="Admin">Admin</option>
                       </select>
                     </td>

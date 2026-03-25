@@ -17,7 +17,7 @@ function Login() {
   // Determine configuration based on URL param
   const config = {
     student: { title: 'Student Login', mascot: mascot1, bg: 'bg-student', credUsername: 'student' },
-    teacher: { title: 'Teacher Login', mascot: mascot2, bg: 'bg-teacher', credUsername: 'teacher' },
+    Lecturer: { title: 'Lecturer Login', mascot: mascot2, bg: 'bg-Lecturer', credUsername: 'Lecturer' },
     admin: { title: 'Admin Login', mascot: mascot3, bg: 'bg-admin', credUsername: 'admin' },
   };
 
@@ -37,7 +37,7 @@ function Login() {
       // Validating fixed credentials exactly as per requirement
       if (
         (role === 'student' && username === 'student' && password === '12345') ||
-        (role === 'teacher' && username === 'teacher' && password === '12345') ||
+        (role === 'Lecturer' && username === 'Lecturer' && password === '12345') ||
         (role === 'admin' && username === 'admin' && password === '12345')
       ) {
         // Success

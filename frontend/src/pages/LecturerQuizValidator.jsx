@@ -3,12 +3,12 @@ import { IconCheck, IconChevronDown, IconBulb, IconArrowRight, IconPlus } from '
 import './QuizValidator.css';
 import actionFigure3Img from '../images/action-figure-3.png';
 
-function TeacherQuizValidator() {
+function LecturerQuizValidator() {
   return (
     <div className="quiz-validator-page">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1>Teacher Quiz Management</h1>
+          <h1>Lecturer Quiz Management</h1>
           <p>Create and validate scenario-based questions for your classes.</p>
         </div>
         <button className="submit-btn" style={{ width: 'auto', padding: '10px 20px', display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -73,4 +73,4 @@ function TeacherQuizValidator() {
   );
 }
 
-export default TeacherQuizValidator;
+export default LecturerQuizValidator;

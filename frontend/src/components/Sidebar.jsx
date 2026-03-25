@@ -19,13 +19,13 @@ function Sidebar({ role }) {
 
   const getNavItems = () => {
     const items = [
-      { path: '/', label: 'Dashboard', icon: IconLayoutDashboard, roles: ['student', 'teacher'] },
+      { path: '/', label: 'Dashboard', icon: IconLayoutDashboard, roles: ['student', 'Lecturer'] },
       { path: '/admin', label: 'Admin Panel', icon: IconShieldLock, roles: ['admin'] },
-      { path: '/notes-ai', label: 'Notes AI', icon: IconNotes, roles: ['student', 'teacher'] },
-      { path: '/attendance', label: role === 'student' ? 'Scan QR' : role === 'admin' ? 'Attendance Check' : 'QR Generator', icon: IconCalendarStats, roles: ['student', 'teacher', 'admin'] },
-      { path: '/quiz-validator', label: 'Quiz Validator', icon: IconPencilCheck, roles: ['student', 'teacher', 'admin'] },
-      { path: '/analytics', label: 'Analytics', icon: IconChartBar, roles: ['student', 'teacher', 'admin'] },
-      { path: '/settings', label: role === 'admin' ? 'Admin Settings' : 'Profile Settings', icon: IconSettings, roles: ['student', 'teacher', 'admin'] }
+      { path: '/notes-ai', label: 'Notes AI', icon: IconNotes, roles: ['student', 'Lecturer'] },
+      { path: '/attendance', label: role === 'student' ? 'Scan QR' : role === 'admin' ? 'Attendance Check' : 'QR Generator', icon: IconCalendarStats, roles: ['student', 'Lecturer', 'admin'] },
+      { path: '/quiz-validator', label: 'Quiz Validator', icon: IconPencilCheck, roles: ['student', 'Lecturer', 'admin'] },
+      { path: '/analytics', label: 'Analytics', icon: IconChartBar, roles: ['student', 'Lecturer', 'admin'] },
+      { path: '/settings', label: role === 'admin' ? 'Admin Settings' : 'Profile Settings', icon: IconSettings, roles: ['student', 'Lecturer', 'admin'] }
     ];
     return items.filter(item => item.roles.includes(role));
   };

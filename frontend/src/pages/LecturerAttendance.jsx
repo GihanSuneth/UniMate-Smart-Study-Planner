@@ -5,7 +5,7 @@ import './Attendance.css';
 import actionFigure2Img from '../images/action-figure-2.png';
 import qrSvg from '../images/qr.svg';
 
-function TeacherAttendance() {
+function LecturerAttendance() {
   return (
     <div className="attendance-page">
       <div className="page-header">
@@ -69,4 +69,4 @@ function TeacherAttendance() {
   );
 }
 
-export default TeacherAttendance;
+export default LecturerAttendance;

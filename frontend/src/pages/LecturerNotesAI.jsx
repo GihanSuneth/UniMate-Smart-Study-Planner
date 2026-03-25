@@ -3,7 +3,7 @@ import { IconCloudUpload, IconPlus, IconDeviceFloppy, IconDotsVertical, IconDown
 import './NotesAI.css';
 import actionFigureImg from '../images/action-figure-1.png';
 
-function TeacherNotesAI() {
+function LecturerNotesAI() {
   const [file, setFile] = useState(null);
   const [textNotes, setTextNotes] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -91,7 +91,7 @@ function TeacherNotesAI() {
   return (
     <div className="notes-ai-page">
       <div className="page-header">
-        <h1>Teacher Reference AI</h1>
+        <h1>Lecturer Reference AI</h1>
         <p>Generate lesson plans, teaching points, and quiz ideas from your reference notes.</p>
       </div>
 
@@ -235,4 +235,4 @@ function TeacherNotesAI() {
   );
 }
 
-export default TeacherNotesAI;
+export default LecturerNotesAI;

@@ -51,7 +51,7 @@
 }
 
 .bg-student { background: linear-gradient(135deg, #e3edfe 0%, #b8d0f8 100%); }
-.bg-teacher { background: linear-gradient(135deg, #fff3e2 0%, #fde4ba 100%); }
+.bg-Lecturer { background: linear-gradient(135deg, #fff3e2 0%, #fde4ba 100%); }
 .bg-admin { background: linear-gradient(135deg, #eaf8f1 0%, #afead2 100%); }
 
 .login-form-container {
