@@ -5,7 +5,6 @@ import {
   IconUser
 } from '@tabler/icons-react';
 import './Analytics.css';
-import actionFigure4Img from '../images/action-figure-4.png';
 
 function Analytics() {
   return (
@@ -145,18 +144,6 @@ function Analytics() {
         {/* Sidebar Column */}
         <div className="analytics-side-col">
           
-          <div className="mascot-area">
-             <div className="tip-bubble">
-               <div className="tip-header">
-                 <IconBulb size={16} /> Tip:
-               </div>
-               Review your weak topics and quizzes again to improve your understanding
-             </div>
-             <div className="mascot-image-wrapper">
-               <img src={actionFigure4Img} alt="Mascot Helper" className="mascot-image-4" />
-             </div>
-          </div>
-
           <div className="lecturer-analytics-card">
             <h3 className="la-header">Lecturer Analytics</h3>
             <p className="la-subheader">Student Engagement this Week</p>

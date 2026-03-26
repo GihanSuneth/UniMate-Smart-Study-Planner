@@ -28,7 +28,7 @@ function Settings() {
   return (
     <div className="settings-page">
       <div className="page-header">
-        <h1>Settings</h1>
+        <h1>Profile Activity</h1>
         <p>Here are your general profile configuration and preferences.</p>
       </div>
 
@@ -123,8 +123,36 @@ function Settings() {
         {/* Right Column */}
         <div className="settings-side">
           
-          <div className="settings-mascot-area">
-             <img src={actionFigure4Img} alt="Mascot Helper" className="mascot-image-settings" />
+          <div className="profile-summary-card" style={{ background: 'linear-gradient(135deg, #eef4ff 0%, #e3edfe 100%)', borderRadius: 'var(--border-radius-lg)', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px', boxShadow: '0 4px 16px rgba(18, 28, 56, 0.04)', position: 'relative', overflow: 'hidden' }}>
+             <div style={{ flex: 1, zIndex: 2 }}>
+               <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '16px' }}>Profile Summary</h3>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                   <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>Name:</span>
+                   <span style={{ color: 'var(--text-dark)', fontSize: '14px', fontWeight: '600' }}>John Doe</span>
+                 </div>
+                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                   <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>Year:</span>
+                   <span style={{ color: 'var(--text-dark)', fontSize: '14px', fontWeight: '600' }}>Year 3</span>
+                 </div>
+                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                   <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>Semester:</span>
+                   <span style={{ color: 'var(--text-dark)', fontSize: '14px', fontWeight: '600' }}>Semester 2</span>
+                 </div>
+                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                   <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>Program:</span>
+                   <span style={{ color: 'var(--text-dark)', fontSize: '14px', fontWeight: '600' }}>BSc. IT</span>
+                 </div>
+               </div>
+             </div>
+             
+             <div style={{ zIndex: 2, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+               <img src={actionFigure4Img} alt="Mascot Helper" style={{ width: '110px', height: 'auto' }} />
+             </div>
+             
+             {/* Decorative background circles */}
+             <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.4)', zIndex: 1 }}></div>
+             <div style={{ position: 'absolute', bottom: '-30px', left: '-30px', width: '120px', height: '120px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.4)', zIndex: 1 }}></div>
           </div>
 
           <div className="settings-card settings-sidebar-card">

@@ -25,7 +25,7 @@ function Sidebar({ role }) {
       { path: '/attendance', label: role === 'student' ? 'Scan QR' : role === 'admin' ? 'Attendance Check' : 'QR Generator', icon: IconCalendarStats, roles: ['student', 'Lecturer', 'admin'] },
       { path: '/quiz-validator', label: 'Quiz Validator', icon: IconPencilCheck, roles: ['student', 'Lecturer', 'admin'] },
       { path: '/analytics', label: 'Analytics', icon: IconChartBar, roles: ['student', 'Lecturer', 'admin'] },
-      { path: '/settings', label: role === 'admin' ? 'Admin Settings' : 'Profile Settings', icon: IconSettings, roles: ['student', 'Lecturer', 'admin'] }
+      { path: '/settings', label: role === 'admin' ? 'Admin Settings' : 'Profile Activity', icon: IconSettings, roles: ['student', 'Lecturer', 'admin'] }
     ];
     return items.filter(item => item.roles.includes(role));
   };

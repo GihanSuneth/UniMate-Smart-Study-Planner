@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconCheck, IconX, IconUser, IconMailOpened, IconEdit } from '@tabler/icons-react';
+import { IconCheck, IconX, IconUser, IconMailOpened, IconEdit, IconDownload, IconChevronRight } from '@tabler/icons-react';
 import './Attendance.css';
 
 import actionFigure2Img from '../images/action-figure-2.png';
@@ -38,31 +38,46 @@ function LecturerAttendance() {
             <button className="action-btn">End Session</button>
           </div>
         </div>
-      </div>
 
-      <div className="user-list-section" style={{ maxWidth: '600px', margin: '30px auto 0' }}>
-        <h3 className="card-title" style={{marginBottom: 16}}>Recent Submissions</h3>
-        <div className="user-list-header">
-           <h3>John Doe</h3>
-           <div className="role-badge"><IconUser size={18} /> Student</div>
-        </div>
-
-        <div className="user-row">
-           <div className="user-info-group">
-             <IconMailOpened size={20} color="var(--text-secondary)" />
-             John Doe
-           </div>
-        </div>
-
-        <div className="user-row">
-           <div className="user-info-group">
-             <IconEdit size={20} color="var(--text-secondary)" />
-             John Doe
-           </div>
-           
-           <div className="user-info-group fade" style={{marginLeft: 'auto'}}>
-             John Doe
-           </div>
+        {/* Right side: Who submitted the QR */}
+        <div className="role-column" style={{ margin: '0 auto', maxWidth: '600px', width: '100%' }}>
+          <div className="attendance-card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 className="card-title" style={{ margin: 0 }}>Who submitted the QR</h3>
+              <button style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#e6f0ff', color: '#266df1', border: 'none', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' }}>
+                <IconDownload size={18} />
+                <span style={{ fontSize: '13px' }}>CSV</span>
+              </button>
+            </div>
+            
+            <div className="submissions-list" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto' }}>
+              {[
+                { id: 'IT23288126', name: 'Gajanayaka D G S', module: 'IT3030', ys: 'Year 3 Semester 2' },
+                { id: 'IT23288127', name: 'Perera A M', module: 'IT3030', ys: 'Year 3 Semester 2' },
+                { id: 'IT23288128', name: 'Silva K L', module: 'IT3030', ys: 'Year 3 Semester 2' },
+                { id: 'IT23288129', name: 'Fernando P Q', module: 'IT3030', ys: 'Year 3 Semester 2' },
+                { id: 'IT23288130', name: 'Rajapaksha T R', module: 'IT3030', ys: 'Year 3 Semester 2' },
+                { id: 'IT23288131', name: 'Kumara V W', module: 'IT3030', ys: 'Year 3 Semester 2' },
+                { id: 'IT23288132', name: 'Bandara S T', module: 'IT3030', ys: 'Year 3 Semester 2' },
+                { id: 'IT23288133', name: 'Jayasooriya N M', module: 'IT3030', ys: 'Year 3 Semester 2' },
+              ].map((student, idx) => (
+                <div key={idx} style={{ display: 'flex', flexDirection: 'column', padding: '12px', borderRadius: '10px', backgroundColor: 'var(--bg-main)', border: '1px solid var(--border-color)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <strong style={{ color: 'var(--text-dark)', fontSize: '15px' }}>{student.name}</strong>
+                    <span style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: '600', backgroundColor: '#e6f0ff', padding: '2px 8px', borderRadius: '12px' }}>{student.id}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    <span>{student.module}</span>
+                    <span>{student.ys}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <button style={{ width: '100%', marginTop: '20px', padding: '12px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'var(--text-secondary)', fontWeight: '600', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-main)'; e.currentTarget.style.color = 'var(--text-dark)'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
+              See all students <IconChevronRight size={18} />
+            </button>
+          </div>
         </div>
       </div>
     </div>

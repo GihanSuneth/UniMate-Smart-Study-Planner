@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   IconCalendarStats, IconPencilCheck, IconTrendingUp, 
-  IconTrendingDown, IconRefresh, IconBulb, IconUsers, IconListCheck
+  IconTrendingDown, IconRefresh, IconBulb, IconUsers, IconListCheck, IconReportAnalytics
 } from '@tabler/icons-react';
 
 import actionFigureImg from '../images/action-figure-1.png';
@@ -71,16 +71,15 @@ function LecturerDashboard() {
 
           {/* Row 2 */}
           <div className="ai-card card-feedback">
-             <img src={actionFigureImg} alt="AI Mascot" className="ai-mascot" />
-             <div className="ai-content">
+             <div className="ai-content" style={{marginLeft: 0}}>
                <div className="ai-header">
-                 <h3>AI Class Insights</h3>
-                 <div className="bulb-icon"><IconBulb size={18}/></div>
+                 <h3>Weekly Class Learning Report</h3>
+                 <div className="bulb-icon" style={{backgroundColor: '#e6f0ff', color: '#266df1'}}><IconReportAnalytics size={18}/></div>
                </div>
-               <p>Your class is struggling with <strong>Normalization</strong>. I recommend creating a focused quiz or review session on this topic!</p>
+               <p><strong>Class Pattern:</strong> Interactive sessions show 30% higher engagement. Students struggle most with <strong>Normalization</strong> concepts. We recommend adding more practical database design exercises to the curriculum.</p>
                <div className="ai-actions">
-                 <button className="btn-primary">Create Quiz</button>
-                 <button className="btn-secondary">View Analytics</button>
+                 <button className="btn-primary">View Full Report</button>
+                 <button className="btn-secondary">Adjust Curriculum</button>
                </div>
              </div>
           </div>

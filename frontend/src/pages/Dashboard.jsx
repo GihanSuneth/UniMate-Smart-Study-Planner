@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   IconCalendarStats, IconPencilCheck, IconTrendingUp, 
-  IconTrendingDown, IconRefresh, IconBulb
+  IconTrendingDown, IconRefresh, IconBulb, IconBook
 } from '@tabler/icons-react';
 
 import actionFigureImg from '../images/action-figure-1.png';
@@ -69,19 +69,27 @@ function Dashboard() {
              <img src={actionFigureImg} alt="Big Mascot" className="main-mascot" />
           </div>
 
-          {/* Row 2 */}
-          <div className="ai-card card-feedback">
-             <img src={actionFigureImg} alt="AI Mascot" className="ai-mascot" />
-             <div className="ai-content">
-               <div className="ai-header">
-                 <h3>AI Feedback</h3>
-                 <div className="bulb-icon"><IconBulb size={18}/></div>
+          {/* Row 2: Enrolled Modules */}
+          <div className="ai-card card-feedback" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '24px' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', width: '100%' }}>
+               <div className="bulb-icon" style={{ backgroundColor: '#e6f0ff', color: '#266df1', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                 <IconBook size={18} />
                </div>
-               <p>You're struggling with <strong>Normalization</strong> and <strong>ER Diagrams</strong>. I recommend revising these topics and taking a quick quiz to test your understanding!</p>
-               <div className="ai-actions">
-                 <button className="btn-primary">Take a Quiz</button>
-                 <button className="btn-secondary">View Notes</button>
-               </div>
+               <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-dark)', margin: 0 }}>Enrolled Modules</h3>
+             </div>
+             
+             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', width: '100%' }}>
+               {[
+                 { name: 'ITPM', code: 'IT3040', color: '#eef4ff', textColor: '#266df1', border: '#d1e3ff' },
+                 { name: 'DS', code: 'IT3020', color: '#fff5eb', textColor: '#f5a623', border: '#ffe4c4' },
+                 { name: 'PAF', code: 'IT3030', color: '#e6f8f1', textColor: '#01b574', border: '#ccebe1' },
+                 { name: 'NDM', code: 'IT3010', color: '#ffefef', textColor: '#ee5d50', border: '#ffd6d6' }
+               ].map(mod => (
+                 <div key={mod.code} style={{ backgroundColor: mod.color, border: `1px solid ${mod.border}`, padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.2s', cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                    <span style={{ fontSize: '18px', fontWeight: '700', color: mod.textColor, marginBottom: '4px' }}>{mod.name}</span>
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>{mod.code}</span>
+                 </div>
+               ))}
              </div>
           </div>
 

@@ -4,7 +4,6 @@ import {
   IconUser
 } from '@tabler/icons-react';
 import './Analytics.css';
-import actionFigure4Img from '../images/action-figure-4.png';
 
 function StudentAnalytics() {
   return (
@@ -118,16 +117,20 @@ function StudentAnalytics() {
           </div>
         </div>
 
-        <div className="analytics-side-col" style={{ marginTop: '20px' }}>
-          <div className="mascot-area">
-             <div className="tip-bubble">
-               <div className="tip-header">
-                 <IconBulb size={16} /> Tip:
+        <div className="analytics-side-col" style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="weekly-report-card" style={{ backgroundColor: 'var(--bg-card)', padding: '24px', borderRadius: 'var(--border-radius-lg)', boxShadow: 'var(--shadow-card)' }}>
+             <div className="ai-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+               <div className="bulb-icon" style={{ backgroundColor: '#e6f0ff', color: '#266df1', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                 <IconBulb size={18} />
                </div>
-               Review your weak topics and quizzes again to improve your understanding
+               <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-dark)', margin: 0 }}>Weekly Learning Report</h3>
              </div>
-             <div className="mascot-image-wrapper">
-               <img src={actionFigure4Img} alt="Mascot Helper" className="mascot-image-4" />
+             <p style={{ fontSize: '14px', lineHeight: '1.6', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+               <strong style={{ color: 'var(--text-dark)' }}>Learning Pattern:</strong> Highly active during evening hours. Excellent retention in visual topics. We recommend focusing on practical exercises for <strong style={{ color: 'var(--text-dark)' }}>Normalization</strong> to improve your weak areas.
+             </p>
+             <div className="ai-actions" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+               <button className="btn-primary" style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '16px', border: 'none', background: 'var(--primary)', color: 'white', cursor: 'pointer' }}>View Full Report</button>
+               <button className="btn-secondary" style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'white', color: 'var(--text-dark)', cursor: 'pointer' }}>My Study Plan</button>
              </div>
           </div>
         </div>

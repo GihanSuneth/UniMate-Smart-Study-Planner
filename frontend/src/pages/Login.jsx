@@ -122,10 +122,6 @@ function Login() {
             </button>
           </form>
 
-          <div className="mongodb-notice">
-            <p><strong>DB Connection Integration Note:</strong></p>
-            <p>To connect standard MongoDB instances, install <code>mongoose</code> and paste your cluster connection string (e.g., <code>mongodb+srv://&lt;username&gt;:&lt;password&gt;@cluster0...</code>) in your environmental variables (<code>.env</code> file) using a variable like <code>MONGO_URI</code>.</p>
-          </div>
         </div>
       </div>
     </div>
