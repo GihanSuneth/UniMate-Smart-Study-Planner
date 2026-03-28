@@ -42,6 +42,10 @@ function LecturerQuizValidator() {
   });
 
   const handleGenerate = () => {
+    if (!genState.year || !genState.semester || !genState.module || !genState.topic.trim()) {
+      alert("Please fill in all generate form fields (Year, Semester, Module, Topic).");
+      return;
+    }
     setIsGenerating(true);
     setTimeout(() => {
       setGeneratedQuestions([
@@ -102,8 +106,17 @@ function LecturerQuizValidator() {
   };
 
   const handleManualPublish = () => {
-    if (!modalForm.questionText || !modalForm.module) {
-      alert("Please fill in module and question text.");
+    if (!modalForm.module) {
+      alert("Please carefully select a Module.");
+      return;
+    }
+    if (!modalForm.questionText.trim()) {
+      alert("Please enter the question text.");
+      return;
+    }
+    const hasEmptyOption = modalForm.options.some(o => !o.text.trim());
+    if (hasEmptyOption) {
+      alert("Please provide text for all answer options.");
       return;
     }
     setPreviewQuestion({
