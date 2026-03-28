@@ -3,6 +3,10 @@ import { IconShieldLock, IconUsers, IconCalendarStats, IconChartPie } from '@tab
 import './AdminPanel.css';
 
 function AdminPanel() {
+  const [pendingReqs, setPendingReqs] = useState(() => {
+    return JSON.parse(localStorage.getItem('pendingLecturerReqs')) || [];
+  });
+
   const [users, setUsers] = useState([
     { id: 1, name: 'John Doe', email: 'john@student.unimate.edu', role: 'Student', avatar: 'https://i.pravatar.cc/150?img=11' },
     { id: 2, name: 'Dr. Jane Smith', email: 'jane.smith@faculty.unimate.edu', role: 'Lecturer', avatar: 'https://i.pravatar.cc/150?img=5' },
@@ -23,6 +27,28 @@ function AdminPanel() {
     ));
   };
 
+  const removePendingReq = (id) => {
+    const updated = pendingReqs.filter(r => r.id !== id);
+    setPendingReqs(updated);
+    localStorage.setItem('pendingLecturerReqs', JSON.stringify(updated));
+  };
+
+  const handleApprove = (req) => {
+    const newUser = {
+      id: Date.now(),
+      name: req.name,
+      email: req.email,
+      role: 'Lecturer',
+      avatar: `https://i.pravatar.cc/150?u=${req.name}`
+    };
+    setUsers([...users, newUser]);
+    removePendingReq(req.id);
+  };
+
+  const handleDecline = (reqId) => {
+    removePendingReq(reqId);
+  };
+
   return (
     <div className="admin-panel-page">
       <div className="admin-header">
@@ -31,6 +57,42 @@ function AdminPanel() {
       </div>
 
       <div className="admin-grid">
+        {/* Pending Lecturer Requests */}
+        {pendingReqs.length > 0 && (
+          <div className="admin-card full-width" style={{ border: '1px solid #eab308', backgroundColor: '#fefce8' }}>
+            <div className="card-header" style={{ borderBottomColor: '#fef08a' }}>
+              <h3 style={{ color: '#854d0e' }}><IconUsers size={20} className="header-icon" /> Pending Lecturer Signups</h3>
+            </div>
+            <div className="users-table-container">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Lecturer ID</th>
+                    <th>Email</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingReqs.map(req => (
+                    <tr key={req.id}>
+                      <td><strong>{req.name}</strong></td>
+                      <td>{req.lecturerId}</td>
+                      <td>{req.email}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => handleApprove(req)} style={{ padding: '6px 12px', background: 'var(--success)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Approve</button>
+                          <button onClick={() => handleDecline(req.id)} style={{ padding: '6px 12px', background: 'var(--danger)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Decline</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* User Role Assignment Section */}
         <div className="admin-card full-width">
           <div className="card-header">
