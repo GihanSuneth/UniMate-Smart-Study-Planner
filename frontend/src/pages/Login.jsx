@@ -37,7 +37,7 @@ function Login() {
       // Validating fixed credentials exactly as per requirement
       if (
         (role === 'student' && username === 'student' && password === '12345') ||
-        (role === 'Lecturer' && username === 'Lecturer' && password === '12345') ||
+        (role === 'Lecturer' && username === 'lecturer' && password === '12345') ||
         (role === 'admin' && username === 'admin' && password === '12345')
       ) {
         // Success
@@ -120,6 +120,12 @@ function Login() {
             <button type="submit" className="login-submit-btn" disabled={loading}>
               {loading ? <div className="spinner"></div> : "Sign In"}
             </button>
+            
+            {role === 'student' && (
+              <div style={{textAlign: 'center', marginTop: '1rem', fontSize: '0.9rem', color: '#64748b'}}>
+                Don't have an account? <span onClick={() => navigate('/signup')} style={{color: '#6366f1', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline'}}>Sign up here</span>
+              </div>
+            )}
           </form>
 
         </div>

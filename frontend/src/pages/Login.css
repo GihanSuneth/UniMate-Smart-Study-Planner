@@ -19,29 +19,31 @@
   position: absolute;
   top: 40px;
   left: 40px;
-  background: rgba(255, 255, 255, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   padding: 10px 16px;
   border-radius: 8px;
   font-family: var(--font-family);
-  font-weight: 500;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
 }
 
 .back-btn:hover {
-  background: #fff;
-  transform: translateX(-4px);
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
 }
 
 .mascot-showcase img {
   max-width: 400px;
   max-height: 80vh;
   object-fit: contain;
-  animation: float 6s ease-in-out infinite;
 }
 
 @keyframes float {

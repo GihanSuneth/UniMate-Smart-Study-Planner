@@ -16,6 +16,7 @@ import Settings from './pages/Settings';
 import AdminPanel from './pages/AdminPanel';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
+import StudentSignup from './pages/StudentSignup';
 import './index.css';
 
 function AppLayout() {
@@ -34,6 +35,7 @@ function AppLayout() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login/:role" element={<Login />} />
+        <Route path="/signup" element={<StudentSignup />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     );
