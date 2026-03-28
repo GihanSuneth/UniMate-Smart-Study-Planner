@@ -119,7 +119,7 @@ function Login() {
               <label className="remember-me">
                 <input type="checkbox" /> Remember me
               </label>
-              <a href="#" className="forgot-pass">Forgot password?</a>
+              <span onClick={() => navigate('/forgot-password')} className="forgot-pass" style={{cursor: 'pointer', textDecoration: 'none'}}>Forgot password?</span>
             </div>
 
             <button type="submit" className="login-submit-btn" disabled={loading}>

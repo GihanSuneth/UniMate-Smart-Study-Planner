@@ -1,141 +1,328 @@
-import React from 'react';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from 'react-router-dom';
 import { 
-  IconCalendarStats, IconPencilCheck, IconAlertTriangle, IconBulb, 
-  IconUser
+  IconCalendarStats, IconPencilCheck, IconAlertTriangle, IconCheck, IconX 
 } from '@tabler/icons-react';
-import './Analytics.css';
+import "./Analytics.css";
 
 function StudentAnalytics() {
+  const navigate = useNavigate();
+  const [attThreshold, setAttThreshold] = useState(75);
+  const [quizThreshold, setQuizThreshold] = useState(80);
+
+  // 🔒 NEW: locked thresholds
+  const [locked, setLocked] = useState(null);
+  const [confirmStep, setConfirmStep] = useState(false);
+
+  // MOCK DATA: Last Week
+  const lastWeek = {
+    att: 85,
+    quiz: 70,
+    attTarget: 80,
+    quizTarget: 75
+  };
+
+  // MOCK DATA: Current Week
+  const currentWeek = {
+    att: 88,
+    quiz: 74,
+  };
+
+  const [toast, setToast] = useState(null);
+
+  // ✅ USE CURRENT LOCKED VALUES IF AVAILABLE for current week validation
+  const activeAtt = locked ? locked.att : attThreshold;
+  const activeQuiz = locked ? locked.quiz : quizThreshold;
+
+  const getAttendanceState = (val, target) => {
+    return val >= target ? "ok" : "error";
+  };
+
+  const getQuizState = (val, target) => {
+    if (val >= target) return "ok";
+    if (val >= target - 10) return "warn";
+    return "error";
+  };
+
+  const runValidation = () => {
+    // 🚨 REQUIRE LOCK FIRST
+    if (!locked) {
+      showToast("error", "No Targets Set", "Please set and lock your targets for the week first 🔒");
+      return;
+    }
+
+    const issues = [];
+    if (currentWeek.att < activeAtt)
+      issues.push(`Attendance (${currentWeek.att}%) is below your target (${activeAtt}%)`);
+    if (currentWeek.quiz < activeQuiz)
+      issues.push(`Quiz performance (${currentWeek.quiz}%) is below your target (${activeQuiz}%)`);
+
+    // Track Last Week's Criteria
+    const lastWeekAttPassed = lastWeek.att >= lastWeek.attTarget;
+    const lastWeekQuizPassed = lastWeek.quiz >= lastWeek.quizTarget;
+    const lastWeekStatus = (lastWeekAttPassed && lastWeekQuizPassed) ? "Passed all criteria last week." : "Missed some targets last week.";
+
+    // Calculate Deviation from Last Week's performance
+    const attDev = activeAtt - lastWeek.att;
+    const quizDev = activeQuiz - lastWeek.quiz;
+    const deviationStr = `Deviations: Attendance Target is ${attDev > 0 ? '+' : ''}${attDev}% vs last week, Quiz Target is ${quizDev > 0 ? '+' : ''}${quizDev}% vs last week.`;
+
+    // Construct detailed message using newline characters formatting
+    let validationFeedback = `${lastWeekStatus}\n${deviationStr}\n\n`;
+
+    if (issues.length === 0) {
+      validationFeedback += "Current Week: Great work! You are currently meeting all your active targets.";
+      showToast("ok", "On Track! 🎉", validationFeedback);
+    } else {
+      validationFeedback += `Issues:\n- ${issues.join("\n- ")}`;
+      showToast("warn", "Action Required ⚠️", validationFeedback);
+    }
+  };
+
+  // 🔒 2-step lock
+  const handleLock = () => {
+    if (locked) {
+      setLocked(null);
+      setConfirmStep(false);
+      showToast("ok", "Unlocked", "Targets unlocked. You can set new goals for the upcoming week 🔓");
+      return;
+    }
+    if (!confirmStep) {
+      setConfirmStep(true);
+      showToast("warn", "Confirm Targets", "Click again to confirm and lock your targets for the week");
+    } else {
+      setLocked({ att: attThreshold, quiz: quizThreshold });
+      setConfirmStep(false);
+      showToast("ok", "Targets Locked ✅", "Your goals are set! Click Run Live Validation to check your current progress.");
+    }
+  };
+
+  const showToast = (type, title, msg) => {
+    setToast({ type, title, msg });
+    setTimeout(() => setToast(null), 5000);
+  };
+
+  useEffect(() => {
+    setTimeout(() => {
+      showToast("ok", "Dashboard Ready", "Review your prior performance and set your upcoming goals.");
+    }, 800);
+  }, []);
+
   return (
     <div className="analytics-page">
+
+      {/* HEADER */}
       <div className="page-header">
-        <h1>Welcome Back, Student <span role="img" aria-label="wave">👋</span></h1>
-        <p>Here are your academic performance insights.</p>
+        <h1>Welcome Back, Student 👋</h1>
+        <p>Track your academic progress and set achievable goals.</p>
       </div>
 
       <div className="analytics-dashboard-grid" style={{ gridTemplateColumns: '1fr' }}>
         <div className="analytics-main-col">
-          
-          <div className="overview-card">
-            <h3 className="overview-card-header">Your Overview</h3>
+
+          {/* HISTORICAL PERFORMANCE (Last Week) */}
+          <div className="overview-card" style={{ marginBottom: '24px', backgroundColor: '#fafbfc' }}>
+            <h3 className="overview-card-header" style={{ color: '#444' }}>Last Week's Performance</h3>
+            
             <div className="overview-stats-grid">
               
+              {/* Last Week Attendance */}
               <div className="analytics-stat-box">
                 <div className="stat-box-top">
-                  <div className="icon blue"><IconCalendarStats size={14}/></div>
+                  <div className={`icon ${getAttendanceState(lastWeek.att, lastWeek.attTarget) === 'ok' ? 'blue' : 'orange'}`}><IconCalendarStats size={14}/></div>
                   <span>Attendance</span>
                 </div>
                 <div className="stat-box-value">
-                  <h2>88%</h2>
-                  <span className="trend up">+2% from last week</span>
+                  <h2>{lastWeek.att}%</h2>
+                  <span className={`trend ${getAttendanceState(lastWeek.att, lastWeek.attTarget) === 'ok' ? 'up' : 'down'}`}>
+                    {lastWeek.att >= lastWeek.attTarget ? "Target Hit ✓" : "Target Missed ⛔"} 
+                  </span>
                 </div>
-                <div className="mini-progress-track">
-                  <div className="mini-progress-fill blue" style={{width: '88%'}}></div>
+                <div style={{fontSize: 12, color: 'var(--text-secondary)'}}>
+                  Your Target: {lastWeek.attTarget}%
                 </div>
-                <span style={{fontSize: 10, color: '#a3aed1'}}>To this text - sample</span>
               </div>
 
+              {/* Last Week Quiz */}
               <div className="analytics-stat-box">
                 <div className="stat-box-top">
-                  <div className="icon orange"><IconPencilCheck size={14}/></div>
+                  <div className={`icon ${getQuizState(lastWeek.quiz, lastWeek.quizTarget) === 'ok' ? 'blue' : 'orange'}`}><IconPencilCheck size={14}/></div>
                   <span>Quiz Performance</span>
                 </div>
                 <div className="stat-box-value">
-                  <h2>74%</h2>
-                  <span className="trend down">-5% for last week</span>
+                  <h2>{lastWeek.quiz}%</h2>
+                  <span className={`trend ${getQuizState(lastWeek.quiz, lastWeek.quizTarget) === 'ok' ? 'up' : 'down'}`}>
+                    {lastWeek.quiz >= lastWeek.quizTarget ? "Target Hit ✓" : "Target Missed ⛔"}
+                  </span>
                 </div>
-                <div className="mini-progress-track">
-                  <div className="mini-progress-fill orange" style={{width: '74%'}}></div>
+                <div style={{fontSize: 12, color: 'var(--text-secondary)'}}>
+                  Your Target: {lastWeek.quizTarget}%
                 </div>
               </div>
 
+              {/* Last Week Status Summary */}
+              <div className="analytics-stat-box weak-topics-box" style={{ justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+                <div className="stat-box-value" style={{ marginBottom: 8, justifyContent: 'center' }}>
+                  {(lastWeek.att >= lastWeek.attTarget && lastWeek.quiz >= lastWeek.quizTarget) ? 
+                    <><IconCheck color="var(--success)" size={32} /> <h2 style={{color: 'var(--success)'}}>Great Job!</h2></> :
+                    <><IconAlertTriangle color="var(--warning)" size={32} /> <h2 style={{color: 'var(--warning)'}}>Needs Work</h2></>
+                  }
+                </div>
+                <p style={{fontSize: 13, color: 'var(--text-secondary)', margin: 0}}>
+                  Review your past performance before locking new targets.
+                </p>
+              </div>
+
+            </div>
+          </div>
+
+          {/* TARGET SETTING (Upcoming Week) */}
+          <div className="overview-card" style={{ marginBottom: '24px' }}>
+            <h3 className="overview-card-header">Set Targets (Upcoming Week)</h3>
+            <div style={{ display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: '200px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
+                  Attendance Target: {attThreshold}%
+                </label>
+                <input
+                  type="range"
+                  min="50"
+                  max="100"
+                  value={attThreshold}
+                  disabled={!!locked}
+                  onChange={(e) => setAttThreshold(+e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div style={{ flex: 1, minWidth: '200px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
+                  Quiz Score Target: {quizThreshold}%
+                </label>
+                <input
+                  type="range"
+                  min="50"
+                  max="100"
+                  value={quizThreshold}
+                  disabled={!!locked}
+                  onChange={(e) => setQuizThreshold(+e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', alignSelf: 'flex-end', paddingTop: '10px' }}>
+                <button className="review-btn" onClick={handleLock} style={{ padding: '10px 20px', fontSize: '14px', backgroundColor: locked ? '#f44336' : confirmStep ? '#ff9800' : '#01b574', color: '#fff', border: 'none', borderRadius: '20px', cursor: 'pointer', fontWeight: 600 }}>
+                  {locked ? "Unlock Targets 🔓" : confirmStep ? "Confirm Lock 🔒" : "Lock Targets"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* CURRENT WEEK PROGRESS */}
+          <div className="overview-card">
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+               <h3 className="overview-card-header" style={{marginBottom: 0}}>Current Week Progress</h3>
+               <button className="review-btn" onClick={runValidation} style={{ padding: '8px 16px', fontSize: '13px', backgroundColor: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '20px', cursor: 'pointer', fontWeight: 600 }}>
+                 Run Live Validation
+               </button>
+            </div>
+
+            <div className="overview-stats-grid">
+
+              {/* Attendance */}
+              <div className="analytics-stat-box">
+                <div className="stat-box-top">
+                  <div className={`icon ${getAttendanceState(currentWeek.att, activeAtt) === 'ok' ? 'blue' : 'orange'}`}><IconCalendarStats size={14}/></div>
+                  <span>Current Attendance</span>
+                </div>
+                <div className="stat-box-value">
+                  <h2>{currentWeek.att}%</h2>
+                  <span className={`trend ${getAttendanceState(currentWeek.att, activeAtt) === 'ok' ? 'up' : 'down'}`}>
+                    {currentWeek.att >= activeAtt ? "On Track ✓" : "Falling Behind ⛔"}
+                  </span>
+                </div>
+                <div className="mini-progress-track">
+                  <div className={`mini-progress-fill ${getAttendanceState(currentWeek.att, activeAtt) === 'ok' ? 'blue' : 'orange'}`} style={{width: `${currentWeek.att}%`}}></div>
+                </div>
+                <div style={{fontSize: 11, color: 'var(--text-secondary)', marginTop: '8px'}}>
+                  Active Target: {activeAtt}%
+                </div>
+              </div>
+
+              {/* Quiz */}
+              <div className="analytics-stat-box">
+                <div className="stat-box-top">
+                  <div className={`icon ${getQuizState(currentWeek.quiz, activeQuiz) === 'ok' ? 'blue' : 'orange'}`}><IconPencilCheck size={14}/></div>
+                  <span>Current Quiz Avg</span>
+                </div>
+                <div className="stat-box-value">
+                  <h2>{currentWeek.quiz}%</h2>
+                  <span className={`trend ${getQuizState(currentWeek.quiz, activeQuiz) === 'ok' ? 'up' : 'down'}`}>
+                     {currentWeek.quiz >= activeQuiz ? "On Track ✓" : `${activeQuiz - currentWeek.quiz}% below goal`}
+                  </span>
+                </div>
+                <div className="mini-progress-track">
+                  <div className={`mini-progress-fill ${getQuizState(currentWeek.quiz, activeQuiz) === 'ok' ? 'blue' : 'orange'}`} style={{width: `${currentWeek.quiz}%`}}></div>
+                </div>
+                <div style={{fontSize: 11, color: 'var(--text-secondary)', marginTop: '8px'}}>
+                  Active Target: {activeQuiz}%
+                </div>
+              </div>
+
+              {/* Weak Topics */}
               <div className="analytics-stat-box weak-topics-box">
                 <div className="stat-box-top">
                   <div className="icon light-blue" style={{backgroundColor: '#e3f2fd', color: '#42a5f5'}}><IconAlertTriangle size={14}/></div>
-                  <span>Weak Topics</span>
+                  <span>Current Weak Topics</span>
                 </div>
                 <ul className="topic-bullet-list">
                   <li>Database Joins</li>
                   <li>API Authentication</li>
                 </ul>
-                <button className="review-btn">Review</button>
-              </div>
-
-            </div>
-          </div>
-
-          <div className="charts-row">
-            <div className="chart-widget">
-              <div className="chart-header" style={{display: 'flex', justifyContent: 'space-between', marginBottom: 16}}>
-                <h3 style={{fontSize: 16, fontWeight: 600}}>Attendance Trends</h3>
-                <select className="date-select"><option>This Week</option></select>
-              </div>
-              <div className="chart-body" style={{flex: 1, display: 'flex', flexDirection: 'column'}}>
-                 <svg className="fake-chart-svg" viewBox="0 0 500 150" preserveAspectRatio="none" style={{width: '100%', height: '100%'}}>
-                  <line x1="0" y1="30" x2="500" y2="30" className="grid-line" />
-                  <line x1="0" y1="70" x2="500" y2="70" className="grid-line" />
-                  <line x1="0" y1="110" x2="500" y2="110" className="grid-line" />
-                  
-                  <path fill="rgba(1, 181, 116, 0.1)" d="M0,130 L100,90 L200,60 L300,70 L400,30 L500,40 L500,150 L0,150 Z" />
-                  <polyline fill="none" stroke="#01b574" strokeWidth="3" points="0,130 100,90 200,60 300,70 400,30 500,40" />
-                  
-                  <polyline fill="none" stroke="#266df1" strokeWidth="2" opacity="0.3" points="0,140 100,120 200,105 300,110 400,90 500,80" />
-                  
-                  <circle cx="200" cy="60" r="4" fill="#01b574"/>
-                  <circle cx="400" cy="30" r="4" fill="#01b574"/>
-                 </svg>
-                 <div className="chart-x-axis" style={{display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-secondary)', marginTop: 8}}>
-                  <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span>
-                 </div>
-              </div>
-            </div>
-
-            <div className="chart-widget">
-              <div className="chart-header" style={{display: 'flex', justifyContent: 'space-between', marginBottom: 16}}>
-                <h3 style={{fontSize: 16, fontWeight: 600}}>Quiz Performance</h3>
-                <select className="date-select"><option>Last Week</option></select>
-              </div>
-              <div className="chart-body" style={{flex: 1, display: 'flex', flexDirection: 'column'}}>
-                 <svg className="fake-chart-svg" viewBox="0 0 500 150" preserveAspectRatio="none" style={{width: '100%', height: '100%'}}>
-                  <line x1="0" y1="30" x2="500" y2="30" className="grid-line" />
-                  <line x1="0" y1="70" x2="500" y2="70" className="grid-line" />
-                  <line x1="0" y1="110" x2="500" y2="110" className="grid-line" />
-                  
-                  <path fill="rgba(255, 181, 71, 0.2)" d="M0,130 L100,100 L200,80 L300,110 L400,50 L500,40 L500,150 L0,150 Z" />
-                  <polyline fill="none" stroke="#ffb547" strokeWidth="3" points="0,130 100,100 200,80 300,110 400,50 500,40" />
-                  
-                  <polyline fill="none" stroke="#266df1" strokeWidth="2" opacity="0.2" points="0,140 100,125 200,115 300,120 400,85 500,70" />
-                  
-                  <circle cx="200" cy="80" r="4" fill="#ffb547"/>
-                  <circle cx="300" cy="110" r="4" fill="#ffb547"/>
-                 </svg>
-                 <div className="chart-x-axis" style={{display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-secondary)', marginTop: 8}}>
-                  <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span>
-                 </div>
+                <button className="review-btn" onClick={() => navigate('/quiz-validator')}>
+                  Start Review
+                </button>
               </div>
             </div>
           </div>
+
         </div>
-
-        <div className="analytics-side-col" style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <div className="weekly-report-card" style={{ backgroundColor: 'var(--bg-card)', padding: '24px', borderRadius: 'var(--border-radius-lg)', boxShadow: 'var(--shadow-card)' }}>
-             <div className="ai-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-               <div className="bulb-icon" style={{ backgroundColor: '#e6f0ff', color: '#266df1', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                 <IconBulb size={18} />
-               </div>
-               <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-dark)', margin: 0 }}>Weekly Learning Report</h3>
-             </div>
-             <p style={{ fontSize: '14px', lineHeight: '1.6', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-               <strong style={{ color: 'var(--text-dark)' }}>Learning Pattern:</strong> Highly active during evening hours. Excellent retention in visual topics. We recommend focusing on practical exercises for <strong style={{ color: 'var(--text-dark)' }}>Normalization</strong> to improve your weak areas.
-             </p>
-             <div className="ai-actions" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-               <button className="btn-primary" style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '16px', border: 'none', background: 'var(--primary)', color: 'white', cursor: 'pointer' }}>View Full Report</button>
-               <button className="btn-secondary" style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'white', color: 'var(--text-dark)', cursor: 'pointer' }}>My Study Plan</button>
-             </div>
-          </div>
-        </div>
-
       </div>
+
+      {/* TOAST (POPS UP AT THE TOP NOW) */}
+      {toast && (
+        <div className={`toast ${toast.type}`} style={{
+          position: 'fixed',
+          top: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          minWidth: '350px',
+          padding: '16px 20px',
+          backgroundColor: toast.type === 'error' ? '#ffeeee' : toast.type === 'warn' ? '#fff4e5' : '#e6f4ea',
+          borderLeft: `5px solid ${toast.type === 'error' ? '#f44336' : toast.type === 'warn' ? '#ff9800' : '#4caf50'}`,
+          borderRadius: '8px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+          zIndex: 1000,
+          animation: 'slideDown 0.3s ease-out forwards'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+            {toast.type === 'error' && <IconAlertTriangle size={18} color="#f44336" />}
+            {toast.type === 'warn' && <IconAlertTriangle size={18} color="#ff9800" />}
+            {toast.type === 'ok' && <IconCheck size={18} color="#4caf50" />}
+            <strong style={{ color: '#333', fontSize: '15px' }}>{toast.title}</strong>
+          </div>
+          <div style={{ margin: 0, fontSize: '14px', color: '#555', lineHeight: 1.4, whiteSpace: 'pre-line' }}>{toast.msg}</div>
+        </div>
+      )}
+      
+      {/* Dynamic Keyframes for Toast Animation */}
+      <style>{`
+        @keyframes slideDown {
+          from { top: -50px; opacity: 0; }
+          to { top: 24px; opacity: 1; }
+        }
+      `}</style>
+
     </div>
   );
 }
