@@ -27,6 +27,7 @@ function Settings() {
 
   const userRoleStr = localStorage.getItem('userRole') || 'student';
   const isLecturer = userRoleStr.toLowerCase() === 'lecturer';
+  const isAdmin = userRoleStr.toLowerCase() === 'admin';
 
   return (
     <div className="settings-page">
@@ -59,17 +60,18 @@ function Settings() {
             <div className="profile-form-grid">
               <div className="form-group">
                 <label>Full Name</label>
-                <input type="text" name="fullName" className="form-input" defaultValue={isLecturer ? "Dr. Smith" : "John Doe"} />
+                <input type="text" name="fullName" className="form-input" defaultValue={isAdmin ? "System Admin" : isLecturer ? "Dr. Smith" : "John Doe"} />
               </div>
               <div className="form-group">
                 <label>Email</label>
-                <input type="email" name="email" className="form-input" defaultValue={isLecturer ? "smith@example.com" : "john.doe@example.com"} />
+                <input type="email" name="email" className="form-input" defaultValue={isAdmin ? "admin@unimate.com" : isLecturer ? "smith@example.com" : "john.doe@example.com"} />
               </div>
               <div className="form-group" style={{gridColumn: '1 / -1'}}>
                 <label>Role</label>
-                <select className="form-input form-select" name="role" defaultValue={isLecturer ? "Lecturer" : "Student"}>
+                <select className="form-input form-select" name="role" defaultValue={isAdmin ? "Admin" : isLecturer ? "Lecturer" : "Student"} disabled={true}>
                   <option value="Student">Student</option>
                   <option value="Lecturer">Lecturer</option>
+                  <option value="Admin">Admin</option>
                 </select>
               </div>
             </div>
@@ -108,7 +110,7 @@ function Settings() {
 
             <div className="settings-card">
               <h3 className="card-title">Notifications</h3>
-              <h4 className="sub-title">{isLecturer ? 'Lecturer Settings' : 'Student Settings'}</h4>
+              <h4 className="sub-title">{isAdmin ? 'Admin Settings' : isLecturer ? 'Lecturer Settings' : 'Student Settings'}</h4>
               
               <div className="toggle-row">
                 <div className="toggle-header">
@@ -134,7 +136,7 @@ function Settings() {
           <div className="settings-card" style={{padding: '24px'}}>
              <div className="user-list-header" style={{borderBottom: '1px solid var(--border-color)', paddingBottom: 16, marginBottom: 16}}>
                <div className="details-tab active" style={{display: 'flex', gap: 8, fontSize: 16, fontWeight: 600}}>
-                 {isLecturer ? 'Dr. Smith' : 'John Doe'} <div style={{color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4}}><IconUser size={16}/> {isLecturer ? 'Lecturer' : 'Student'}</div>
+                 {isAdmin ? 'System Admin' : isLecturer ? 'Dr. Smith' : 'John Doe'} <div style={{color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4}}><IconUser size={16}/> {isAdmin ? 'Admin' : isLecturer ? 'Lecturer' : 'Student'}</div>
                </div>
              </div>
              <div style={{color: 'var(--text-secondary)', fontSize: 14}}>General account information view.</div>
@@ -145,26 +147,26 @@ function Settings() {
         {/* Right Column */}
         <div className="settings-side">
           
-          {!isLecturer ? (
-            <div className="profile-summary-card" style={{ background: 'linear-gradient(135deg, #eef4ff 0%, #e3edfe 100%)', borderRadius: 'var(--border-radius-lg)', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px', boxShadow: '0 4px 16px rgba(18, 28, 56, 0.04)', position: 'relative', overflow: 'hidden' }}>
+          {isAdmin ? (
+            <div className="profile-summary-card" style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: 'var(--border-radius-lg)', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px', boxShadow: '0 4px 16px rgba(18, 28, 56, 0.04)', position: 'relative', overflow: 'hidden' }}>
                <div style={{ flex: 1, zIndex: 2 }}>
-                 <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '16px' }}>Profile Summary</h3>
+                 <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '16px' }}>Admin Profile</h3>
                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                      <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>Name:</span>
-                     <span style={{ color: 'var(--text-dark)', fontSize: '14px', fontWeight: '600' }}>John Doe</span>
+                     <span style={{ color: 'var(--text-dark)', fontSize: '14px', fontWeight: '600' }}>System Admin</span>
                    </div>
                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                     <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>Year:</span>
-                     <span style={{ color: 'var(--text-dark)', fontSize: '14px', fontWeight: '600' }}>Year 3</span>
+                     <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>Role:</span>
+                     <span style={{ color: 'var(--text-dark)', fontSize: '14px', fontWeight: '600' }}>Super Administrator</span>
                    </div>
                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                     <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>Semester:</span>
-                     <span style={{ color: 'var(--text-dark)', fontSize: '14px', fontWeight: '600' }}>Semester 2</span>
+                     <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>Access Level:</span>
+                     <span style={{ color: 'var(--text-dark)', fontSize: '14px', fontWeight: '600' }}>Full System Access</span>
                    </div>
                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                     <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>Program:</span>
-                     <span style={{ color: 'var(--text-dark)', fontSize: '14px', fontWeight: '600' }}>BSc. IT</span>
+                     <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>Last Login:</span>
+                     <span style={{ color: 'var(--text-dark)', fontSize: '14px', fontWeight: '600' }}>Just Now</span>
                    </div>
                  </div>
                </div>
@@ -173,11 +175,10 @@ function Settings() {
                  <img src={actionFigure4Img} alt="Mascot Helper" style={{ width: '110px', height: 'auto' }} />
                </div>
                
-               {/* Decorative background circles */}
                <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.4)', zIndex: 1 }}></div>
                <div style={{ position: 'absolute', bottom: '-30px', left: '-30px', width: '120px', height: '120px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.4)', zIndex: 1 }}></div>
             </div>
-          ) : (
+          ) : isLecturer ? (
             <div className="profile-summary-card" style={{ background: 'linear-gradient(135deg, #fff0f5 0%, #ffe4e1 100%)', borderRadius: 'var(--border-radius-lg)', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px', boxShadow: '0 4px 16px rgba(18, 28, 56, 0.04)', position: 'relative', overflow: 'hidden' }}>
                <div style={{ flex: 1, zIndex: 2 }}>
                  <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '16px' }}>Lecturer Profile</h3>
@@ -205,7 +206,37 @@ function Settings() {
                  <img src={actionFigure4Img} alt="Mascot Helper" style={{ width: '110px', height: 'auto' }} />
                </div>
                
-               {/* Decorative background circles */}
+               <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.4)', zIndex: 1 }}></div>
+               <div style={{ position: 'absolute', bottom: '-30px', left: '-30px', width: '120px', height: '120px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.4)', zIndex: 1 }}></div>
+            </div>
+          ) : (
+            <div className="profile-summary-card" style={{ background: 'linear-gradient(135deg, #eef4ff 0%, #e3edfe 100%)', borderRadius: 'var(--border-radius-lg)', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px', boxShadow: '0 4px 16px rgba(18, 28, 56, 0.04)', position: 'relative', overflow: 'hidden' }}>
+               <div style={{ flex: 1, zIndex: 2 }}>
+                 <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '16px' }}>Profile Summary</h3>
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                     <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>Name:</span>
+                     <span style={{ color: 'var(--text-dark)', fontSize: '14px', fontWeight: '600' }}>John Doe</span>
+                   </div>
+                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                     <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>Year:</span>
+                     <span style={{ color: 'var(--text-dark)', fontSize: '14px', fontWeight: '600' }}>Year 3</span>
+                   </div>
+                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                     <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>Semester:</span>
+                     <span style={{ color: 'var(--text-dark)', fontSize: '14px', fontWeight: '600' }}>Semester 2</span>
+                   </div>
+                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                     <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>Program:</span>
+                     <span style={{ color: 'var(--text-dark)', fontSize: '14px', fontWeight: '600' }}>BSc. IT</span>
+                   </div>
+                 </div>
+               </div>
+               
+               <div style={{ zIndex: 2, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                 <img src={actionFigure4Img} alt="Mascot Helper" style={{ width: '110px', height: 'auto' }} />
+               </div>
+               
                <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.4)', zIndex: 1 }}></div>
                <div style={{ position: 'absolute', bottom: '-30px', left: '-30px', width: '120px', height: '120px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.4)', zIndex: 1 }}></div>
             </div>

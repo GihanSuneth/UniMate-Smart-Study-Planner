@@ -25,7 +25,7 @@ function LecturerSignup() {
 
     if (!formData.email.trim()) {
       newErrors.email = "Lecturer mail is required";
-    } else if (!/\\S+@\\S+\\.\\S+/.test(formData.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Email format is invalid";
     }
 
@@ -128,7 +128,7 @@ function LecturerSignup() {
                 <input 
                   type="email" 
                   name="email"
-                  placeholder="Enter email address..."
+                  placeholder="e.g., smith@unimate.edu"
                   value={formData.email}
                   onChange={handleChange}
                 />
