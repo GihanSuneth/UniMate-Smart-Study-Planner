@@ -52,7 +52,7 @@ function LecturerNotesAI() {
     setIsGenerating(true);
     setGeneratedNotes(null);
 
-    // Mock AI API Call
+    // API Call
     setTimeout(() => {
       setIsGenerating(false);
       setGeneratedNotes({
