@@ -18,6 +18,7 @@ import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import StudentSignup from './pages/StudentSignup';
 import LecturerSignup from './pages/LecturerSignup';
+import ForgotPassword from './pages/ForgotPassword';
 import './index.css';
 
 function AppLayout() {
@@ -38,6 +39,7 @@ function AppLayout() {
         <Route path="/login/:role" element={<Login />} />
         <Route path="/signup" element={<StudentSignup />} />
         <Route path="/signup/lecturer" element={<LecturerSignup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     );
