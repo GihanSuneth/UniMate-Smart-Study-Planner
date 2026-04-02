@@ -2,15 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-import Dashboard from './pages/Dashboard';
-import NotesAI from './pages/NotesAI';
-import Attendance from './pages/Attendance';
-import QuizValidator from './pages/QuizValidator';
-import Analytics from './pages/Analytics';
+import StudentDashboard from './pages/StudentDashboard';
+import LecturerDashboard from './pages/LecturerDashboard';
+import StudentNotesAI from './pages/StudentNotesAI';
+import LecturerNotesAI from './pages/LecturerNotesAI';
+import StudentAttendance from './pages/StudentAttendance';
+import LecturerAttendance from './pages/LecturerAttendance';
+import StudentQuizValidator from './pages/StudentQuizValidator';
+import LecturerQuizValidator from './pages/LecturerQuizValidator';
+import StudentAnalytics from './pages/StudentAnalytics';
+import LecturerAnalytics from './pages/LecturerAnalytics';
 import Settings from './pages/Settings';
 import AdminPanel from './pages/AdminPanel';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
+import StudentSignup from './pages/StudentSignup';
+import LecturerSignup from './pages/LecturerSignup';
 import './index.css';
 
 function AppLayout() {
@@ -29,6 +36,8 @@ function AppLayout() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login/:role" element={<Login />} />
+        <Route path="/signup" element={<StudentSignup />} />
+        <Route path="/signup/lecturer" element={<LecturerSignup />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     );
@@ -41,14 +50,28 @@ function AppLayout() {
         <Header />
         <section className="content-area">
           <Routes>
-            {(role === 'student' || role === 'teacher') && <Route path="/" element={<Dashboard />} />}
+            {/* Student Routes */}
+            {role === 'student' && <Route path="/" element={<StudentDashboard />} />}
+            {role === 'student' && <Route path="/notes-ai" element={<StudentNotesAI />} />}
+            {role === 'student' && <Route path="/attendance" element={<StudentAttendance />} />}
+            {role === 'student' && <Route path="/quiz-validator" element={<StudentQuizValidator />} />}
+            {role === 'student' && <Route path="/analytics" element={<StudentAnalytics />} />}
+
+            {/* Lecturer Routes */}
+            {role === 'Lecturer' && <Route path="/" element={<LecturerDashboard />} />}
+            {role === 'Lecturer' && <Route path="/notes-ai" element={<LecturerNotesAI />} />}
+            {role === 'Lecturer' && <Route path="/attendance" element={<LecturerAttendance />} />}
+            {role === 'Lecturer' && <Route path="/quiz-validator" element={<LecturerQuizValidator />} />}
+            {role === 'Lecturer' && <Route path="/analytics" element={<LecturerAnalytics />} />}
+
+            {/* Admin Routes */}
             {role === 'admin' && <Route path="/admin" element={<AdminPanel />} />}
             {role === 'admin' && <Route path="/" element={<Navigate to="/admin" />} />}
+            {role === 'admin' && <Route path="/attendance" element={<LecturerAttendance />} />}
+            {role === 'admin' && <Route path="/quiz-validator" element={<LecturerQuizValidator />} />}
+            {role === 'admin' && <Route path="/analytics" element={<LecturerAnalytics />} />}
             
-            {(role === 'student' || role === 'teacher') && <Route path="/notes-ai" element={<NotesAI />} />}
-            <Route path="/attendance" element={<Attendance />} />
-            <Route path="/quiz-validator" element={<QuizValidator />} />
-            <Route path="/analytics" element={<Analytics />} />
+            {/* Shared Routes */}
             <Route path="/settings" element={<Settings />} />
             
             <Route path="*" element={<Navigate to="/" />} />

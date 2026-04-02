@@ -6,11 +6,11 @@ import {
 
 import actionFigureImg from '../images/action-figure-1.png';
 
-function Dashboard() {
+function StudentDashboard() {
   return (
     <>
        <div className="welcome-banner">
-         <h1>Welcome Back, John <span role="img" aria-label="wave">👋</span></h1>
+         <h1>Welcome Back, Student <span role="img" aria-label="wave">👋</span></h1>
          <p>Here's your academic overview for the week.</p>
        </div>
 
@@ -154,4 +154,4 @@ function Dashboard() {
   );
 }
 
-export default Dashboard;
+export default StudentDashboard;

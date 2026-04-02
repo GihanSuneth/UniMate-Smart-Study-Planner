@@ -132,7 +132,7 @@
   color: var(--danger);
 }
 
-.role-badge.teacher {
+.role-badge.Lecturer {
   background-color: #e3edfe;
   color: var(--primary);
 }

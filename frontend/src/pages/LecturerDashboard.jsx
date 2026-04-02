@@ -1,17 +1,17 @@
 import React from 'react';
 import { 
   IconCalendarStats, IconPencilCheck, IconTrendingUp, 
-  IconTrendingDown, IconRefresh, IconBulb, IconBook
+  IconTrendingDown, IconRefresh, IconBulb, IconUsers, IconListCheck, IconReportAnalytics
 } from '@tabler/icons-react';
 
 import actionFigureImg from '../images/action-figure-1.png';
 
-function Dashboard() {
+function LecturerDashboard() {
   return (
     <>
-       <div className="welcome-banner">
-         <h1>Welcome Back, John <span role="img" aria-label="wave">👋</span></h1>
-         <p>Here's your academic overview for the week.</p>
+       <div className="welcome-banner" >
+         <h1>Welcome Back, Lecturer <span role="img" aria-label="wave">👋</span></h1>
+         <p>Here's your teaching overview for the week.</p>
        </div>
 
        <div className="dashboard-grid">
@@ -20,46 +20,46 @@ function Dashboard() {
           <div className="stat-card card-attendance">
              <div className="stat-header">
                <div className="stat-title">
-                 <div className="icon-wrapper blue-bg"><IconCalendarStats size={16}/></div>
-                 <h3>Attendance</h3>
+                 <div className="icon-wrapper blue-bg"><IconUsers size={16}/></div>
+                 <h3>Class Attendance</h3>
                </div>
                <IconTrendingUp size={20} className="trend-icon up" />
              </div>
              <div className="stat-value">
-               <h2>82%</h2>
-               <span className="trend-text up">+5% this week</span>
+               <h2>92%</h2>
+               <span className="trend-text up">+2% this week</span>
              </div>
-             <div className="progress-track"><div className="progress-fill blue-fill" style={{ width: '82%' }}></div></div>
+             <div className="progress-track"><div className="progress-fill blue-fill" style={{ width: '92%' }}></div></div>
           </div>
 
           <div className="stat-card card-quiz">
              <div className="stat-header">
                <div className="stat-title">
-                 <div className="icon-wrapper blue-bg"><IconPencilCheck size={16}/></div>
-                 <h3>Quiz Performance</h3>
+                 <div className="icon-wrapper blue-bg"><IconListCheck size={16}/></div>
+                 <h3>Avg Quiz Score</h3>
                </div>
-               <IconTrendingDown size={20} className="trend-icon down" />
+               <IconTrendingUp size={20} className="trend-icon up" />
              </div>
              <div className="stat-value">
-               <h2>76%</h2>
-               <span className="trend-text down">-4% this week</span>
+               <h2>85%</h2>
+               <span className="trend-text up">+3% this week</span>
              </div>
-             <div className="progress-track"><div className="progress-fill yellow-fill" style={{ width: '76%' }}></div></div>
+             <div className="progress-track"><div className="progress-fill yellow-fill" style={{ width: '85%' }}></div></div>
           </div>
 
           <div className="stat-card card-weak weak-topics">
              <div className="weak-topics-header" style={{display: 'flex', justifyContent: 'space-between', marginBottom: '16px'}}>
                <div className="stat-title">
                  <div className="icon-wrapper red-bg" style={{backgroundColor: '#ee5d50', opacity: 0.9}}><IconBulb size={16}/></div>
-                 <h3>Weak Topics</h3>
+                 <h3>Class Weak Topics</h3>
                </div>
                <button className="refresh-btn"><IconRefresh size={16}/></button>
              </div>
              <ul className="topic-list">
                <li><span className="dot red"></span> Normalization</li>
-               <li><span className="dot red"></span> ER Diagrams</li>
+               <li><span className="dot red"></span> API Authentication</li>
              </ul>
-             <button className="btn-primary small-btn">Review</button>
+             <button className="btn-primary small-btn">View Details</button>
           </div>
 
           {/* Big Mascot Card */}
@@ -69,27 +69,18 @@ function Dashboard() {
              <img src={actionFigureImg} alt="Big Mascot" className="main-mascot" />
           </div>
 
-          {/* Row 2: Enrolled Modules */}
-          <div className="ai-card card-feedback" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '24px' }}>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', width: '100%' }}>
-               <div className="bulb-icon" style={{ backgroundColor: '#e6f0ff', color: '#266df1', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                 <IconBook size={18} />
+          {/* Row 2 */}
+          <div className="ai-card card-feedback">
+             <div className="ai-content" style={{marginLeft: 0}}>
+               <div className="ai-header">
+                 <h3>Weekly Class Learning Report</h3>
+                 <div className="bulb-icon" style={{backgroundColor: '#e6f0ff', color: '#266df1'}}><IconReportAnalytics size={18}/></div>
                </div>
-               <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-dark)', margin: 0 }}>Enrolled Modules</h3>
-             </div>
-             
-             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', width: '100%' }}>
-               {[
-                 { name: 'ITPM', code: 'IT3040', color: '#eef4ff', textColor: '#266df1', border: '#d1e3ff' },
-                 { name: 'DS', code: 'IT3020', color: '#fff5eb', textColor: '#f5a623', border: '#ffe4c4' },
-                 { name: 'PAF', code: 'IT3030', color: '#e6f8f1', textColor: '#01b574', border: '#ccebe1' },
-                 { name: 'NDM', code: 'IT3010', color: '#ffefef', textColor: '#ee5d50', border: '#ffd6d6' }
-               ].map(mod => (
-                 <div key={mod.code} style={{ backgroundColor: mod.color, border: `1px solid ${mod.border}`, padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.2s', cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                    <span style={{ fontSize: '18px', fontWeight: '700', color: mod.textColor, marginBottom: '4px' }}>{mod.name}</span>
-                    <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>{mod.code}</span>
-                 </div>
-               ))}
+               <p><strong>Class Pattern:</strong> Interactive sessions show 30% higher engagement. Students struggle most with <strong>Normalization</strong> concepts. We recommend adding more practical database design exercises to the curriculum.</p>
+               <div className="ai-actions">
+                 <button className="btn-primary">View Full Report</button>
+                 <button className="btn-secondary">Adjust Curriculum</button>
+               </div>
              </div>
           </div>
 
@@ -98,7 +89,7 @@ function Dashboard() {
             <div className="chart-header">
               <div className="chart-title">
                 <IconTrendingUp size={20} className="chart-icon blue-icon" />
-                <h3>Attendance Trends</h3>
+                <h3>Class Attendance Trends</h3>
               </div>
               <select className="date-select"><option>This Week</option><option>Last Week</option></select>
             </div>
@@ -126,7 +117,7 @@ function Dashboard() {
             <div className="chart-header">
               <div className="chart-title">
                 <div className="icon-wrapper yellow-bg" style={{width: 24, height: 24}}><IconPencilCheck size={14}/></div>
-                <h3>Quiz Performance</h3>
+                <h3>Class Avg Quiz Performance</h3>
               </div>
               <select className="date-select"><option>This Week</option><option>Last Week</option></select>
             </div>
@@ -154,4 +145,4 @@ function Dashboard() {
   );
 }
 
-export default Dashboard;
+export default LecturerDashboard;

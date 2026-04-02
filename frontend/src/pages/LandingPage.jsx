@@ -32,15 +32,15 @@ function LandingPage() {
           </div>
         </div>
 
-        {/* Teacher Role */}
-        <div className="role-card" onClick={() => handleRoleSelect('teacher')}>
-          <div className="role-mascot-wrapper bg-teacher">
-            <img src={mascot2} alt="Teacher Mascot" className="role-mascot" />
+        {/* Lecturer Role */}
+        <div className="role-card" onClick={() => handleRoleSelect('Lecturer')}>
+          <div className="role-mascot-wrapper bg-Lecturer">
+            <img src={mascot2} alt="Lecturer Mascot" className="role-mascot" />
           </div>
           <div className="role-content">
-            <h2>Teacher</h2>
+            <h2>Lecturer</h2>
             <p>Generate QR attendance, manage classes, validate quizzes, and review analytics.</p>
-            <button className="btn-role btn-teacher">Login as Teacher</button>
+            <button className="btn-role btn-Lecturer">Login as Lecturer</button>
           </div>
         </div>
 
@@ -50,7 +50,7 @@ function LandingPage() {
             <img src={mascot3} alt="Admin Mascot" className="role-mascot mascot-large" />
           </div>
           <div className="role-content">
-            <h2>System Admin</h2>
+            <h2>Portal Admin</h2>
             <p>Assign user roles, audit overall attendance, and oversee system health.</p>
             <button className="btn-role btn-admin">Login as Admin</button>
           </div>

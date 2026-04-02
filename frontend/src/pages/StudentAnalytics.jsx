@@ -1,25 +1,23 @@
 import React from 'react';
 import { 
   IconCalendarStats, IconPencilCheck, IconAlertTriangle, IconBulb, 
-  IconFlame, IconUserOff, IconCheck, IconX, IconTrendingUp, IconTrendingDown,
   IconUser
 } from '@tabler/icons-react';
 import './Analytics.css';
 
-function Analytics() {
+function StudentAnalytics() {
   return (
     <div className="analytics-page">
       <div className="page-header">
-        <h1>Welcome Back, John <span role="img" aria-label="wave">👋</span></h1>
+        <h1>Welcome Back, Student <span role="img" aria-label="wave">👋</span></h1>
         <p>Here are your academic performance insights.</p>
       </div>
 
-      <div className="analytics-dashboard-grid">
-        {/* Main Content Column */}
+      <div className="analytics-dashboard-grid" style={{ gridTemplateColumns: '1fr' }}>
         <div className="analytics-main-col">
           
           <div className="overview-card">
-            <h3 className="overview-card-header">Student Overview</h3>
+            <h3 className="overview-card-header">Your Overview</h3>
             <div className="overview-stats-grid">
               
               <div className="analytics-stat-box">
@@ -74,16 +72,13 @@ function Analytics() {
               </div>
               <div className="chart-body" style={{flex: 1, display: 'flex', flexDirection: 'column'}}>
                  <svg className="fake-chart-svg" viewBox="0 0 500 150" preserveAspectRatio="none" style={{width: '100%', height: '100%'}}>
-                  {/* Grid Lines */}
                   <line x1="0" y1="30" x2="500" y2="30" className="grid-line" />
                   <line x1="0" y1="70" x2="500" y2="70" className="grid-line" />
                   <line x1="0" y1="110" x2="500" y2="110" className="grid-line" />
                   
-                  {/* Attendance Area */}
                   <path fill="rgba(1, 181, 116, 0.1)" d="M0,130 L100,90 L200,60 L300,70 L400,30 L500,40 L500,150 L0,150 Z" />
                   <polyline fill="none" stroke="#01b574" strokeWidth="3" points="0,130 100,90 200,60 300,70 400,30 500,40" />
                   
-                  {/* Secondary Line */}
                   <polyline fill="none" stroke="#266df1" strokeWidth="2" opacity="0.3" points="0,140 100,120 200,105 300,110 400,90 500,80" />
                   
                   <circle cx="200" cy="60" r="4" fill="#01b574"/>
@@ -120,95 +115,29 @@ function Analytics() {
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="details-row">
-             <div className="details-header">
-               <div className="details-tab active">Profiles</div>
-               <div className="details-tab"><IconUser size={16}/> Student</div>
-             </div>
-             <div className="user-row-placeholder">
-               <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
-                  <div style={{width: 24, height: 24, borderRadius: '50%', backgroundColor: 'var(--border-color)'}}></div>
-                  <strong>John Doe</strong>
+        <div className="analytics-side-col" style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="weekly-report-card" style={{ backgroundColor: 'var(--bg-card)', padding: '24px', borderRadius: 'var(--border-radius-lg)', boxShadow: 'var(--shadow-card)' }}>
+             <div className="ai-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+               <div className="bulb-icon" style={{ backgroundColor: '#e6f0ff', color: '#266df1', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                 <IconBulb size={18} />
                </div>
+               <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-dark)', margin: 0 }}>Weekly Learning Report</h3>
              </div>
-             <div className="user-row-placeholder">
-               <span>Sales: Past Week</span>
-               <span>7% Students</span>
-               <span>Font: www.google.com/fonts</span>
+             <p style={{ fontSize: '14px', lineHeight: '1.6', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+               <strong style={{ color: 'var(--text-dark)' }}>Learning Pattern:</strong> Highly active during evening hours. Excellent retention in visual topics. We recommend focusing on practical exercises for <strong style={{ color: 'var(--text-dark)' }}>Normalization</strong> to improve your weak areas.
+             </p>
+             <div className="ai-actions" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+               <button className="btn-primary" style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '16px', border: 'none', background: 'var(--primary)', color: 'white', cursor: 'pointer' }}>View Full Report</button>
+               <button className="btn-secondary" style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '16px', border: '1px solid var(--border-color)', background: 'white', color: 'var(--text-dark)', cursor: 'pointer' }}>My Study Plan</button>
              </div>
           </div>
-
         </div>
 
-        {/* Sidebar Column */}
-        <div className="analytics-side-col">
-          
-          <div className="lecturer-analytics-card">
-            <h3 className="la-header">Lecturer Analytics</h3>
-            <p className="la-subheader">Student Engagement this Week</p>
-
-            <div className="donut-chart-container">
-              <div className="donut-svg-wrapper">
-                <svg viewBox="0 0 36 36">
-                  {/* Background Track */}
-                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e9edf7" strokeWidth="6" />
-                  {/* Primary Blue segment */}
-                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#266df1" strokeWidth="6" strokeDasharray="65, 100" />
-                  {/* Orange segment */}
-                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ffb547" strokeWidth="6" strokeDasharray="15, 100" strokeDashoffset="-65" />
-                  {/* Green segment */}
-                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#01b574" strokeWidth="6" strokeDasharray="20, 100" strokeDashoffset="-80" />
-                </svg>
-              </div>
-              <div className="donut-legend">
-                <div className="legend-item">
-                   <div className="legend-label legend-color-active"><IconFlame size={14} /> Active</div>
-                   <div className="legend-sub">64 Students</div>
-                </div>
-                <div className="legend-item">
-                   <div className="legend-label legend-color-inactive"><IconUserOff size={14} /> Inactive</div>
-                   <div className="legend-sub">1 Students</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="student-activity-box">
-              <div className="activity-box-title">Student Activity</div>
-              <div className="activity-stats-row">
-                 <div className="astat">
-                    <div className="astat-val green"><IconCheck size={14} stroke={3} /> Active</div>
-                    <div className="astat-sub">64 Students</div>
-                 </div>
-                 <div className="astat">
-                    <div className="astat-val orange"><IconX size={14} stroke={3} /> Inactive</div>
-                    <div className="astat-sub">11 Students</div>
-                 </div>
-              </div>
-            </div>
-
-            <div className="lecturer-insights">
-              <div className="insight-title">Lecturer Insights:</div>
-              <ul className="insight-list">
-                <li><strong>Most Active Courses</strong></li>
-                <li>COMP200 - 88% Engagement</li>
-                <li>CS101 - 81% Engagement</li>
-              </ul>
-            </div>
-
-            <div className="key-observation">
-              <div className="key-title">Key Observation:</div>
-              <div className="key-text">
-                Low quiz participation in CS101. Consider including motivating factors or rewards.
-              </div>
-            </div>
-            
-          </div>
-
-        </div>
       </div>
     </div>
   );
 }
 
-export default Analytics;
+export default StudentAnalytics;

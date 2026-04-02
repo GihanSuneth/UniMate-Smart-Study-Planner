@@ -4,6 +4,8 @@ import { IconArrowLeft, IconUser, IconLock } from '@tabler/icons-react';
 import mascot1 from '../images/action-figure-1.png';
 import mascot2 from '../images/action-figure-2.png';
 import mascot3 from '../images/action-figure-3.png';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './Login.css';
 
 function Login() {
@@ -17,7 +19,7 @@ function Login() {
   // Determine configuration based on URL param
   const config = {
     student: { title: 'Student Login', mascot: mascot1, bg: 'bg-student', credUsername: 'student' },
-    teacher: { title: 'Teacher Login', mascot: mascot2, bg: 'bg-teacher', credUsername: 'teacher' },
+    Lecturer: { title: 'Lecturer Login', mascot: mascot2, bg: 'bg-Lecturer', credUsername: 'Lecturer' },
     admin: { title: 'Admin Login', mascot: mascot3, bg: 'bg-admin', credUsername: 'admin' },
   };
 
@@ -27,6 +29,7 @@ function Login() {
     e.preventDefault();
     if (!username || !password) {
       setError('Please fill out both username and password.');
+      toast.error('Please fill out both username and password.');
       return;
     }
 
@@ -36,9 +39,9 @@ function Login() {
       setLoading(false);
       // Validating fixed credentials exactly as per requirement
       if (
-        (role === 'student' && username === 'student' && password === '12345') ||
-        (role === 'teacher' && username === 'teacher' && password === '12345') ||
-        (role === 'admin' && username === 'admin' && password === '12345')
+        (role === 'student' && username === 'student' && password === 'Pass@word1') ||
+        (role === 'Lecturer' && username === 'Lecturer' && password === 'Pass@word1') ||
+        (role === 'admin' && username === 'admin' && password === 'Pass@word1')
       ) {
         // Success
         localStorage.setItem('userRole', role);
@@ -55,6 +58,7 @@ function Login() {
       } else {
         // Failure
         setError('Invalid username or password. Please try again.');
+        toast.error('Invalid username or password. Please try again.');
       }
     }, 1200);
   };
@@ -65,6 +69,7 @@ function Login() {
 
   return (
     <div className="login-page">
+      <ToastContainer position="top-right" autoClose={3000} />
       <div className={`login-split ${currentConfig.bg}`}>
         <button className="back-btn" onClick={handleBack}>
           <IconArrowLeft size={20} /> Back to roles
@@ -103,7 +108,7 @@ function Login() {
                 <IconLock size={20} className="input-icon" />
                 <input 
                   type="password" 
-                  placeholder="Enter 12345..."
+                  placeholder="Enter Pass@word1..."
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setError(''); }}
                 />
@@ -120,12 +125,19 @@ function Login() {
             <button type="submit" className="login-submit-btn" disabled={loading}>
               {loading ? <div className="spinner"></div> : "Sign In"}
             </button>
+            
+            {role === 'student' && (
+              <div style={{textAlign: 'center', marginTop: '1rem', fontSize: '0.9rem', color: '#64748b'}}>
+                Don't have an account? <span onClick={() => navigate('/signup')} style={{color: '#6366f1', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline'}}>Sign up here</span>
+              </div>
+            )}
+            {role === 'Lecturer' && (
+              <div style={{textAlign: 'center', marginTop: '1rem', fontSize: '0.9rem', color: '#64748b'}}>
+                Don't have an account? <span onClick={() => navigate('/signup/lecturer')} style={{color: '#6366f1', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline'}}>Request Account</span>
+              </div>
+            )}
           </form>
 
-          <div className="mongodb-notice">
-            <p><strong>DB Connection Integration Note:</strong></p>
-            <p>To connect standard MongoDB instances, install <code>mongoose</code> and paste your cluster connection string (e.g., <code>mongodb+srv://&lt;username&gt;:&lt;password&gt;@cluster0...</code>) in your environmental variables (<code>.env</code> file) using a variable like <code>MONGO_URI</code>.</p>
-          </div>
         </div>
       </div>
     </div>

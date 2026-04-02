@@ -256,3 +256,13 @@
     grid-template-columns: 1fr;
   }
 }
+
+@keyframes fillChart {
+  from {
+    stroke-dasharray: 0, 100;
+  }
+  to {
+    stroke-dasharray: 82, 100;
+  }
+}
+
