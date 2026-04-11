@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@tabler/icons-react": "^3.40.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.0",
