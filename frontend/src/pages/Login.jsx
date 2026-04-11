@@ -6,6 +6,7 @@ import mascot2 from '../images/action-figure-2.png';
 import mascot3 from '../images/action-figure-3.png';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { BASE_URL } from '../api';
 import './Login.css';
 
 function Login() {
@@ -25,7 +26,7 @@ function Login() {
 
   const currentConfig = config[role] || config['student'];
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     if (!username || !password) {
       setError('Please fill out both username and password.');
@@ -34,33 +35,42 @@ function Login() {
     }
 
     setLoading(true);
-    // Mock DB Validation logic
-    setTimeout(() => {
+    setError('');
+
+    try {
+      const response = await fetch(`${BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
       setLoading(false);
-      // Validating fixed credentials exactly as per requirement
-      if (
-        (role === 'student' && username === 'student' && password === 'Pass@word1') ||
-        (role === 'Lecturer' && username === 'Lecturer' && password === 'Pass@word1') ||
-        (role === 'admin' && username === 'admin' && password === 'Pass@word1')
-      ) {
-        // Success
-        localStorage.setItem('userRole', role);
-        localStorage.setItem('userName', username);
-        // Dispatch event so layout can update if needed, or simply navigate
+
+      if (response.ok) {
+        localStorage.setItem('userRole', data.role);
+        localStorage.setItem('userName', data.username);
+        localStorage.setItem('userId', data._id);
+        localStorage.setItem('token', data.token);
+
         window.dispatchEvent(new Event('auth-change'));
         
-        // Redirect logic to correct landing dashboard index
         if (role === 'admin') {
           navigate('/admin');
         } else {
           navigate('/');
         }
       } else {
-        // Failure
-        setError('Invalid username or password. Please try again.');
-        toast.error('Invalid username or password. Please try again.');
+        // Handle specifically the pending approval message
+        const errorMsg = data.message || 'Invalid username or password';
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
-    }, 1200);
+    } catch (err) {
+      setLoading(false);
+      setError('Connection refused. Please check if backend server is running.');
+      toast.error('Connection refused. Please check if backend server is running.');
+    }
   };
 
   const handleBack = () => {
@@ -119,7 +129,7 @@ function Login() {
               <label className="remember-me">
                 <input type="checkbox" /> Remember me
               </label>
-              <a href="#" className="forgot-pass">Forgot password?</a>
+              <span onClick={() => navigate('/forgot-password')} className="forgot-pass" style={{cursor: 'pointer', textDecoration: 'none'}}>Forgot password?</span>
             </div>
 
             <button type="submit" className="login-submit-btn" disabled={loading}>

@@ -52,26 +52,29 @@ function LecturerNotesAI() {
     setIsGenerating(true);
     setGeneratedNotes(null);
 
-    // Mock AI API Call
+    // Mock API Call using file name
     setTimeout(() => {
       setIsGenerating(false);
+      const sourceName = file ? file.name : 'your pasted text';
+
       setGeneratedNotes({
         'Lesson Plan': [
-          "1. Introduction to the Topic (10 mins): Connect to previous knowledge.",
+          `1. Introduction to the Topic (10 mins): Connect to previous knowledge based on ${sourceName}.`,
           "2. Core Concepts (20 mins): Explain theories using visual aids.",
           "3. Activity (15 mins): Group problem-solving based on the theories."
         ],
         'Key Teaching Points': [
-          "Ensure students understand the difference between regression and classification.",
+          `Ensure students understand the primary concepts from ${sourceName}.`,
           "Emphasize the importance of data preprocessing.",
           "Provide real-world examples (e.g., predicting house prices vs. categorizing emails)."
         ],
         'Quiz Questions': [
-          "Q1: What is the primary purpose of a Decision Tree?",
+          `Q1: What is the primary purpose of the module discussed in ${sourceName}?`,
           "Q2: Explain why Data Preprocessing is a necessary step.",
           "Q3: Give an example of an application that uses Neural Networks."
         ]
       });
+      setActiveTab('Lesson Plan');
     }, 2500);
   };
 

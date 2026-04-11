@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IconArrowLeft, IconId, IconUser, IconLock } from '@tabler/icons-react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import mascot2 from '../images/action-figure-2.png';
+import { BASE_URL } from '../api';
 import './StudentSignup.css';
 
 function LecturerSignup() {
@@ -25,7 +28,7 @@ function LecturerSignup() {
 
     if (!formData.email.trim()) {
       newErrors.email = "Lecturer mail is required";
-    } else if (!/\\S+@\\S+\\.\\S+/.test(formData.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Email format is invalid";
     }
 
@@ -39,24 +42,41 @@ function LecturerSignup() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     
     if (validateForm()) {
       setLoading(true);
-      setTimeout(() => {
-        setLoading(false);
-        const existingReqs = JSON.parse(localStorage.getItem('pendingLecturerReqs')) || [];
-        existingReqs.push({
-          id: Date.now(),
-          name: formData.username,
-          lecturerId: formData.lecturerId,
-          email: formData.email
+      try {
+        const response = await fetch(`${BASE_URL}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: formData.username,
+            email: formData.email,
+            password: formData.password,
+            role: 'Lecturer',
+            // Note: lecturerId is sent but ignored by current backend schema safely
+          }),
         });
-        localStorage.setItem('pendingLecturerReqs', JSON.stringify(existingReqs));
-        
-        navigate('/login/Lecturer');
-      }, 1500);
+
+        const data = await response.json();
+        setLoading(false);
+
+        if (response.ok) {
+          toast.success('Registration request sent! You will receive confirmation shortly.');
+          setTimeout(() => {
+            navigate('/login/Lecturer');
+          }, 3500);
+        } else {
+          setErrors({ general: data.message || 'Signup failed' });
+          toast.error(data.message || 'Signup failed');
+        }
+      } catch (err) {
+        setLoading(false);
+        setErrors({ general: 'Connection refused. Please check if backend server is running.' });
+        toast.error('Connection refused. Please check if backend server is running.');
+      }
     }
   };
 
@@ -74,6 +94,7 @@ function LecturerSignup() {
 
   return (
     <div className="signup-page">
+      <ToastContainer position="top-right" autoClose={3500} />
       <div className="signup-split bg-Lecturer">
         <button className="back-btn" onClick={handleBack}>
           <IconArrowLeft size={20} /> Back to Sign In
@@ -128,7 +149,7 @@ function LecturerSignup() {
                 <input 
                   type="email" 
                   name="email"
-                  placeholder="Enter email address..."
+                  placeholder="e.g., smith@unimate.edu"
                   value={formData.email}
                   onChange={handleChange}
                 />

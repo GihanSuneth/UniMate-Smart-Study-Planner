@@ -31,7 +31,8 @@ function Sidebar({ role }) {
   };
 
   const navItems = getNavItems();
-  const userName = localStorage.getItem('userName') || 'User';
+  const storedUserName = localStorage.getItem('userName') || 'User';
+  const userName = role === 'student' ? 'Student' : (role === 'Lecturer' ? 'Lecturer' : storedUserName);
 
   return (
     <aside className="sidebar">

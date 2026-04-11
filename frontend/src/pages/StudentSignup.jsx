@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IconArrowLeft, IconId, IconUser, IconLock, IconCalendarStats, IconDeviceDesktopAnalytics } from '@tabler/icons-react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import mascot1 from '../images/action-figure-1.png';
+import { BASE_URL } from '../api';
 import './StudentSignup.css';
 
 function StudentSignup() {
@@ -45,17 +48,42 @@ function StudentSignup() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     
     if (validateForm()) {
       setLoading(true);
-      // Simulate API call for signup
-      setTimeout(() => {
+      try {
+        const response = await fetch(`${BASE_URL}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: formData.username,
+            email: formData.email,
+            password: formData.password,
+            role: 'student'
+          }),
+        });
+
+        const data = await response.json();
         setLoading(false);
-        // On successful signup, navigate to student login
-        navigate('/login/student');
-      }, 1500);
+
+        if (response.ok) {
+          // Show toast popup
+          toast.success('Registration request done! You will receive confirmation shortly.');
+          // Delay navigation by 3.5 seconds
+          setTimeout(() => {
+            navigate('/login/student');
+          }, 3500);
+        } else {
+          setErrors({ general: data.message || 'Signup failed' });
+          toast.error(data.message || 'Signup failed');
+        }
+      } catch (err) {
+        setLoading(false);
+        setErrors({ general: 'Connection refused. Please check if backend server is running.' });
+        toast.error('Connection refused. Please check if backend server is running.');
+      }
     }
   };
 
@@ -74,6 +102,7 @@ function StudentSignup() {
 
   return (
     <div className="signup-page">
+      <ToastContainer position="top-right" autoClose={3500} />
       <div className="signup-split bg-student">
         <button className="back-btn" onClick={handleBack}>
           <IconArrowLeft size={20} /> Back to Sign In

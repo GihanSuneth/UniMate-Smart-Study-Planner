@@ -12,12 +12,14 @@ import StudentQuizValidator from './pages/StudentQuizValidator';
 import LecturerQuizValidator from './pages/LecturerQuizValidator';
 import StudentAnalytics from './pages/StudentAnalytics';
 import LecturerAnalytics from './pages/LecturerAnalytics';
+import MarkAttendance from './pages/MarkAttendance';
 import Settings from './pages/Settings';
 import AdminPanel from './pages/AdminPanel';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import StudentSignup from './pages/StudentSignup';
 import LecturerSignup from './pages/LecturerSignup';
+import ForgotPassword from './pages/ForgotPassword';
 import './index.css';
 
 function AppLayout() {
@@ -38,6 +40,7 @@ function AppLayout() {
         <Route path="/login/:role" element={<Login />} />
         <Route path="/signup" element={<StudentSignup />} />
         <Route path="/signup/lecturer" element={<LecturerSignup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     );
@@ -56,6 +59,7 @@ function AppLayout() {
             {role === 'student' && <Route path="/attendance" element={<StudentAttendance />} />}
             {role === 'student' && <Route path="/quiz-validator" element={<StudentQuizValidator />} />}
             {role === 'student' && <Route path="/analytics" element={<StudentAnalytics />} />}
+            {role === 'student' && <Route path="/mark-attendance" element={<MarkAttendance />} />}
 
             {/* Lecturer Routes */}
             {role === 'Lecturer' && <Route path="/" element={<LecturerDashboard />} />}

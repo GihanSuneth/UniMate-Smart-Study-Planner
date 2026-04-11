@@ -56,15 +56,17 @@ function StudentNotesAI() {
     // Mock AI API Call
     setTimeout(() => {
       setIsGenerating(false);
+      const sourceName = file ? file.name : 'your pasted notes';
+
       if (generationMode === 'short_notes') {
         setGeneratedNotes({
           Summary: [
-            "Machine Learning is a subset of AI where computers learn from data and make decisions with minimal human intervention.",
+            `Based on ${sourceName}: Machine Learning is a subset of AI where computers learn from data and make decisions with minimal human intervention.`,
             "It fundamentally relies on using algorithms to parse data, learn from it, and then make a determination or prediction.",
             "Data preprocessing and building pipelines are core components before any model training can begin."
           ],
           'Key Points': [
-            "Linear Regression is used for predicting numerical values.",
+            `According to ${sourceName}, Linear Regression is used for predicting numerical values.`,
             "Decision Trees are primarily for classification.",
             "Neural Networks handle complex pattern recognition.",
             "Data Collection, Preprocessing, and Model Training are the essential phases of ML development."
@@ -79,13 +81,13 @@ function StudentNotesAI() {
       } else {
         setGeneratedNotes({
           'Exam Path': [
-            "Week 1: Review Core AI Concepts and understand the history of Machine Learning.",
+            `Week 1: Review Core AI Concepts directly from ${sourceName} and understand the history of Machine Learning.`,
             "Week 2: Focus on Algorithms - specifically Linear Regression and classification methods.",
             "Week 3: Deep dive into Neural Networks and architecture design.",
             "Week 4: Final project practice and mock examinations."
           ],
           'Referral Sheet': [
-            "Cheatsheet 1: Common ML Formulas and algorithms.",
+            `Cheatsheet 1: Common ML Formulas discussed in ${sourceName}.`,
             "Cheatsheet 2: Definitions of Data Preprocessing techniques.",
             "CheatSheet 3: Quick look at Python libraries (Scikit-Learn, TensorFlow, PyTorch)."
           ]

@@ -34,7 +34,7 @@ function Analytics() {
                 <div className="mini-progress-track">
                   <div className="mini-progress-fill blue" style={{width: '88%'}}></div>
                 </div>
-                <span style={{fontSize: 10, color: '#a3aed1'}}>To this text - sample</span>
+                <span style={{fontSize: 10, color: '#a3aed1'}}>Based on last 30 days</span>
               </div>
 
               <div className="analytics-stat-box">
@@ -128,14 +128,16 @@ function Analytics() {
              </div>
              <div className="user-row-placeholder">
                <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
-                  <div style={{width: 24, height: 24, borderRadius: '50%', backgroundColor: 'var(--border-color)'}}></div>
+                  <div style={{width: 24, height: 24, borderRadius: '50%', backgroundColor: 'var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: 'bold'}}><IconUser size={14}/></div>
                   <strong>John Doe</strong>
                </div>
+               <span>Course: Computer Science</span>
+               <span>Year: 2nd</span>
              </div>
              <div className="user-row-placeholder">
-               <span>Sales: Past Week</span>
-               <span>7% Students</span>
-               <span>Font: www.google.com/fonts</span>
+               <span>Study Group: Alpha</span>
+               <span>Assignments: 5 Pending</span>
+               <span>Overall Grade: A-</span>
              </div>
           </div>
 
