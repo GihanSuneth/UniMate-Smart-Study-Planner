@@ -12,6 +12,7 @@ import StudentQuizValidator from './pages/StudentQuizValidator';
 import LecturerQuizValidator from './pages/LecturerQuizValidator';
 import StudentAnalytics from './pages/StudentAnalytics';
 import LecturerAnalytics from './pages/LecturerAnalytics';
+import MarkAttendance from './pages/MarkAttendance';
 import Settings from './pages/Settings';
 import AdminPanel from './pages/AdminPanel';
 import LandingPage from './pages/LandingPage';
@@ -58,6 +59,7 @@ function AppLayout() {
             {role === 'student' && <Route path="/attendance" element={<StudentAttendance />} />}
             {role === 'student' && <Route path="/quiz-validator" element={<StudentQuizValidator />} />}
             {role === 'student' && <Route path="/analytics" element={<StudentAnalytics />} />}
+            {role === 'student' && <Route path="/mark-attendance" element={<MarkAttendance />} />}
 
             {/* Lecturer Routes */}
             {role === 'Lecturer' && <Route path="/" element={<LecturerDashboard />} />}

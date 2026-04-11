@@ -1,18 +1,12 @@
-import React, { useState } from 'react';
-import { IconShieldLock, IconUsers, IconCalendarStats, IconChartPie } from '@tabler/icons-react';
+import React, { useState, useEffect } from 'react';
+import { IconShieldLock, IconUsers, IconCalendarStats, IconChartPie, IconRefresh } from '@tabler/icons-react';
+import { BASE_URL } from '../api';
 import './AdminPanel.css';
 
 function AdminPanel() {
-  const [pendingReqs, setPendingReqs] = useState(() => {
-    return JSON.parse(localStorage.getItem('pendingLecturerReqs')) || [];
-  });
-
-  const [users, setUsers] = useState([
-    { id: 1, name: 'John Doe', email: 'john@student.unimate.edu', role: 'Student', avatar: 'https://i.pravatar.cc/150?img=11' },
-    { id: 2, name: 'Dr. Jane Smith', email: 'jane.smith@faculty.unimate.edu', role: 'Lecturer', avatar: 'https://i.pravatar.cc/150?img=5' },
-    { id: 3, name: 'Admin User', email: 'admin@unimate.edu', role: 'Admin', avatar: 'https://i.pravatar.cc/150?img=8' },
-    { id: 4, name: 'Alice Johnson', email: 'alice@student.unimate.edu', role: 'Student', avatar: 'https://i.pravatar.cc/150?img=9' },
-  ]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const [attendanceRecords] = useState([
     { id: 1, student: 'John Doe', course: 'Computer Science 101', date: 'Oct 24, 2026', status: 'Present' },
@@ -21,33 +15,79 @@ function AdminPanel() {
     { id: 4, student: 'Sarah Adams', course: 'Web Development', date: 'Oct 23, 2026', status: 'Present' },
   ]);
 
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BASE_URL}/auth/users`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setUsers(data);
+      } else {
+        setError(data.message || 'Failed to fetch users');
+      }
+    } catch (err) {
+      setError('Backend server not reachable');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleApprove = async (id) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BASE_URL}/auth/approve/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        fetchUsers(); // Refresh list
+      }
+    } catch (err) {
+      console.error('Approve failed', err);
+    }
+  };
+
+  const handleReject = async (id) => {
+    if (!window.confirm("Are you sure you want to reject this signup request?")) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BASE_URL}/auth/reject/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        fetchUsers(); // Refresh list
+      }
+    } catch (err) {
+      console.error('Reject failed', err);
+    }
+  };
+
+  const pendingReqs = users.filter(u => u.status === 'pending');
+  const activeUsers = users.filter(u => u.status === 'approved');
+  const rejectedUsers = users.filter(u => u.status === 'rejected');
+
   const handleRoleChange = (id, newRole) => {
-    setUsers(users.map(user => 
-      user.id === id ? { ...user, role: newRole } : user
-    ));
+    // Role change logic could be added here
   };
 
-  const removePendingReq = (id) => {
-    const updated = pendingReqs.filter(r => r.id !== id);
-    setPendingReqs(updated);
-    localStorage.setItem('pendingLecturerReqs', JSON.stringify(updated));
-  };
-
-  const handleApprove = (req) => {
-    const newUser = {
-      id: Date.now(),
-      name: req.name,
-      email: req.email,
-      role: 'Lecturer',
-      avatar: `https://i.pravatar.cc/150?u=${req.name}`
-    };
-    setUsers([...users, newUser]);
-    removePendingReq(req.id);
-  };
-
-  const handleDecline = (reqId) => {
-    removePendingReq(reqId);
-  };
+  if (loading && users.length === 0) {
+    return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading Admin Panel...</div>;
+  }
 
   return (
     <div className="admin-panel-page">
@@ -74,15 +114,15 @@ function AdminPanel() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pendingReqs.map(req => (
-                    <tr key={req.id}>
-                      <td><strong>{req.name}</strong></td>
-                      <td>{req.lecturerId}</td>
+                   {pendingReqs.map(req => (
+                    <tr key={req._id}>
+                      <td><strong>{req.username}</strong></td>
+                      <td>{req.role}</td>
                       <td>{req.email}</td>
                       <td>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={() => handleApprove(req)} style={{ padding: '6px 12px', background: 'var(--success)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Approve</button>
-                          <button onClick={() => handleDecline(req.id)} style={{ padding: '6px 12px', background: 'var(--danger)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Decline</button>
+                          <button onClick={() => handleApprove(req._id)} style={{ padding: '6px 12px', background: 'var(--success)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}>Approve</button>
+                          <button onClick={() => handleReject(req._id)} style={{ padding: '6px 12px', background: 'var(--danger)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}>Reject</button>
                         </div>
                       </td>
                     </tr>
@@ -105,16 +145,16 @@ function AdminPanel() {
                   <th>User</th>
                   <th>Email</th>
                   <th>Current Role</th>
-                  <th>Assign Role</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map(user => (
-                  <tr key={user.id}>
+                {activeUsers.map(user => (
+                  <tr key={user._id}>
                     <td>
                       <div className="user-cell">
-                        <img src={user.avatar} alt={user.name} />
-                        <strong>{user.name}</strong>
+                        <div style={{width: 32, height: 32, borderRadius: '50%', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><IconUsers size={16}/></div>
+                        <strong>{user.username}</strong>
                       </div>
                     </td>
                     <td>{user.email}</td>
@@ -124,15 +164,7 @@ function AdminPanel() {
                       </span>
                     </td>
                     <td>
-                      <select 
-                        className="role-select" 
-                        value={user.role} 
-                        onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                      >
-                        <option value="Student">Student</option>
-                        <option value="Lecturer">Lecturer</option>
-                        <option value="Admin">Admin</option>
-                      </select>
+                      <span style={{ color: 'var(--success)', fontSize: '12px', fontWeight: 600 }}>Approved</span>
                     </td>
                   </tr>
                 ))}
