@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { IconCheck, IconChevronDown, IconPlus, IconX, IconRobot } from '@tabler/icons-react';
+import { IconCheck, IconChevronDown, IconPlus, IconX, IconRobot, IconEdit } from '@tabler/icons-react';
 import './QuizValidator.css';
 
 function LecturerQuizValidator() {
@@ -48,32 +48,33 @@ function LecturerQuizValidator() {
     }
     setIsGenerating(true);
     setTimeout(() => {
+      const t = genState.topic || 'General Topic';
       setGeneratedQuestions([
         {
-          text: 'Which of the following describes the properties of a transaction in a database?',
+          text: `Regarding ${t}, which of the following is considered a best practice?`,
           options: [
-            { letter: 'A', text: 'Atomicity, Consistency, Independence, Durability', isCorrect: false },
-            { letter: 'B', text: 'Atomicity, Consistency, Isolation, Durability', isCorrect: true },
-            { letter: 'C', text: 'Accuracy, Consistency, Isolation, Dependency', isCorrect: false },
-            { letter: 'D', text: 'Atomicity, Continuity, Isolation, Durability', isCorrect: false },
+            { letter: 'A', text: 'Ignoring data integrity to save memory', isCorrect: false },
+            { letter: 'B', text: 'Ensuring strict structured constraints', isCorrect: true },
+            { letter: 'C', text: 'Compiling everything into a single entity', isCorrect: false },
+            { letter: 'D', text: 'Hardcoding variables manually', isCorrect: false },
           ]
         },
         {
-          text: 'What is the primary key typically used for?',
+          text: `What is the primary indicator that a system lacks proper ${t}?`,
           options: [
-            { letter: 'A', text: 'To uniquely identify each record in a table', isCorrect: true },
-            { letter: 'B', text: 'To allow null values across tables', isCorrect: false },
-            { letter: 'C', text: 'To encrypt sensitive data', isCorrect: false },
-            { letter: 'D', text: 'To sort the database by alphabetical order', isCorrect: false },
+            { letter: 'A', text: 'Frequent data anomalies or duplication', isCorrect: true },
+            { letter: 'B', text: 'Excessive available storage space', isCorrect: false },
+            { letter: 'C', text: 'Highly secure API endpoints', isCorrect: false },
+            { letter: 'D', text: 'Instantaneous compilation', isCorrect: false },
           ]
         },
         {
-          text: 'Which SQL statement is used to remove data from a table?',
+          text: `Which mechanism is best utilized when managing scenarios related to ${t}?`,
           options: [
-            { letter: 'A', text: 'REMOVE', isCorrect: false },
-            { letter: 'B', text: 'DROP', isCorrect: false },
-            { letter: 'C', text: 'DELETE', isCorrect: true },
-            { letter: 'D', text: 'TRUNCATE RECORD', isCorrect: false },
+            { letter: 'A', text: 'Graphical manipulations', isCorrect: false },
+            { letter: 'B', text: 'Randomized logic flow', isCorrect: false },
+            { letter: 'C', text: 'Standardized query languages', isCorrect: true },
+            { letter: 'D', text: 'Basic text formatting tools', isCorrect: false },
           ]
         }
       ]);
@@ -87,8 +88,23 @@ function LecturerQuizValidator() {
       topic: genState.topic || 'Generated Topic',
       options: q.options
     });
-    // Remove from generated list if desired, or keep it.
-    alert('Question Published to Quiz Successfully!');
+    setGeneratedQuestions(prev => prev.filter(item => item.text !== q.text));
+    alert('Question Moved to Preview Successfully!');
+  };
+
+  const handleEditPreview = () => {
+    setModalForm({
+      year: 'Year 1',
+      semester: 'Semester 1',
+      module: previewQuestion.topic,
+      questionText: previewQuestion.text,
+      options: previewQuestion.options.map((o, idx) => ({
+        id: o.letter || String.fromCharCode(65 + idx),
+        text: o.text,
+        isCorrect: o.isCorrect
+      }))
+    });
+    setShowModal(true);
   };
 
   const handleOptionTick = (index) => {
@@ -135,7 +151,15 @@ function LecturerQuizValidator() {
           <h1>Lecturer Quiz Management</h1>
           <p>Create and validate scenario-based questions for your classes.</p>
         </div>
-        <button className="submit-btn" onClick={() => setShowModal(true)} style={{ width: 'auto', padding: '10px 20px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <button className="submit-btn" onClick={() => {
+          setModalForm({
+            year: 'Year 1', semester: 'Semester 1', module: '', questionText: '',
+            options: [
+              { id: 'A', text: '', isCorrect: true }, { id: 'B', text: '', isCorrect: false }, { id: 'C', text: '', isCorrect: false }, { id: 'D', text: '', isCorrect: false }
+            ]
+          });
+          setShowModal(true);
+        }} style={{ width: 'auto', padding: '10px 20px', display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>
           <IconPlus size={18} /> Create New Quiz
         </button>
       </div>
@@ -168,7 +192,29 @@ function LecturerQuizValidator() {
               ))}
             </div>
 
-            <button className="submit-btn" style={{ background: 'var(--text-secondary)' }}>Edit Current Question</button>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+              <button 
+                onClick={handleEditPreview} 
+                style={{ flex: 1, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-dark)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                <IconEdit size={18} /> Edit Current Question
+              </button>
+              <button 
+                onClick={() => {
+                  try {
+                    const existingQuizzes = JSON.parse(localStorage.getItem('published_quizzes')) || [];
+                    const updatedQuizzes = [...existingQuizzes, previewQuestion];
+                    localStorage.setItem('published_quizzes', JSON.stringify(updatedQuizzes));
+                    alert("Quiz Published to Course successfully!");
+                  } catch (e) {
+                    console.error("Error saving to localStorage", e);
+                  }
+                }} 
+                style={{ flex: 1.5, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', backgroundColor: 'var(--success)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                <IconCheck size={18} /> Publish to Course
+              </button>
+            </div>
           </div>
 
           {/* Right Column: Generate Quiz in AI */}
