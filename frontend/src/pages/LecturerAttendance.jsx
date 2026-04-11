@@ -1,189 +1,238 @@
-import React, { useState } from 'react';
-import { IconCheck, IconX, IconUser, IconMailOpened, IconEdit, IconDownload, IconChevronRight, IconTrash } from '@tabler/icons-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  IconCheck, IconX, IconUser, IconDownload, IconChevronRight, 
+  IconQrcode, IconUsers 
+} from '@tabler/icons-react';
+import { QRCodeSVG } from 'qrcode.react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { BASE_URL } from '../api';
 import './Attendance.css';
 
-import actionFigure2Img from '../images/action-figure-2.png';
-import qrSvg from '../images/qr.svg';
-
 function LecturerAttendance() {
-  const [showModal, setShowModal] = useState(false);
-  const [moduleCode, setModuleCode] = useState('');
-  const [moduleName, setModuleName] = useState('');
-  const [qrGenerated, setQrGenerated] = useState(false);
-  const [sessionEnded, setSessionEnded] = useState(false);
+  const [selectedModule, setSelectedModule] = useState('Programming Applications');
+  const [selectedWeek, setSelectedWeek] = useState(5);
+  const [qrCode, setQrCode] = useState(null);
+  const [activeSessionId, setActiveSessionId] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [attendanceList, setAttendanceList] = useState([]);
+  
+  const modules = ['Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering'];
 
-  const handleGenerateClick = () => {
-    setShowModal(true);
-    setSessionEnded(false);
-  };
-
-  const handleModalSubmit = (e) => {
-    e.preventDefault();
-    if(moduleCode && moduleName) {
-      setQrGenerated(true);
-      setShowModal(false);
+  // 1. Fetch live attendance for the active session or selected criteria
+  const fetchAttendance = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/attendance/module/${encodeURIComponent(selectedModule)}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Filter by the selected week
+        const weekData = data.filter(r => r.week === selectedWeek);
+        setAttendanceList(weekData);
+      }
+    } catch (error) {
+           console.error('Fetch attendance error', error);
     }
   };
 
-  const handleRemoveQr = () => {
-    setQrGenerated(false);
+  // 2. Create a new live session
+  const generateQRCode = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${BASE_URL}/attendance/session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lecturer: localStorage.getItem('userId'),
+          module: selectedModule,
+          week: selectedWeek
+        })
+      });
+      const data = await response.json();
+      setLoading(false);
+      
+      if (response.ok) {
+        setQrCode(data.uniqueCode);
+        setActiveSessionId(data._id);
+        toast.success(`Session created! Code: ${data.uniqueCode}`);
+        fetchAttendance();
+      } else {
+        toast.error('Failed to create session');
+      }
+    } catch (err) {
+      setLoading(false);
+      toast.error('Server connection error');
+    }
   };
 
-  const handleEndSession = () => {
-    setSessionEnded(true);
-    setQrGenerated(false);
-    setModuleCode('');
-    setModuleName('');
+  // 3. Close the active session
+  const endActiveSession = async () => {
+    if (!activeSessionId) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${BASE_URL}/attendance/session/${activeSessionId}/end`, {
+        method: 'PUT',
+      });
+      setLoading(false);
+      if (response.ok) {
+        setQrCode(null);
+        setActiveSessionId(null);
+        toast.success('Attendance session ended.');
+      } else {
+        toast.error('Failed to end session');
+      }
+    } catch (err) {
+      setLoading(false);
+      toast.error('Server connection error');
+    }
   };
+
+  // Polling for live updates every 5 seconds if a session is active
+  useEffect(() => {
+    fetchAttendance();
+    const interval = setInterval(() => {
+      if (activeSessionId) fetchAttendance();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [selectedModule, selectedWeek, activeSessionId]);
 
   return (
     <div className="attendance-page">
-      {showModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(4px)'
-        }}>
-          <div style={{
-            backgroundColor: 'var(--bg-main, #ffffff)', padding: '24px', borderRadius: '16px', width: '400px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
-          }}>
-            <h3 style={{ marginTop: 0, marginBottom: '20px', color: 'var(--text-dark)' }}>Generate QR Code</h3>
-            <form onSubmit={handleModalSubmit}>
-              <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>Module Code</label>
-                <input 
-                  type="text" 
-                  value={moduleCode}
-                  onChange={(e) => setModuleCode(e.target.value)}
-                  placeholder="e.g. IT3030"
-                  required
-                  style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'transparent', color: 'var(--text-dark)', boxSizing: 'border-box', outline: 'none', transition: 'border-color 0.2s', fontSize: '15px' }}
-                />
-              </div>
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>Module Name</label>
-                <input 
-                  type="text" 
-                  value={moduleName}
-                  onChange={(e) => setModuleName(e.target.value)}
-                  placeholder="e.g. Software Architecture"
-                  required
-                  style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'transparent', color: 'var(--text-dark)', boxSizing: 'border-box', outline: 'none', transition: 'border-color 0.2s', fontSize: '15px' }}
-                />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                <button type="button" onClick={() => setShowModal(false)} style={{ padding: '10px 20px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: '600' }}>
-                  Cancel
-                </button>
-                <button type="submit" style={{ padding: '10px 20px', borderRadius: '10px', border: 'none', backgroundColor: 'var(--primary, #266df1)', color: 'white', cursor: 'pointer', fontWeight: '600' }}>
-                  Submit
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <ToastContainer position="top-right" autoClose={3000} />
+      
       <div className="page-header">
         <h1>Attendance Management</h1>
-        <p>Start an attendance session and share the QR code with your class.</p>
+        <p>Start a live session, share the QR code, and track student check-ins in real-time.</p>
       </div>
 
       <div className="attendance-grid">
-        <div className="role-column" style={{ margin: '0 auto', maxWidth: '600px', width: '100%' }}>
+        <div className="role-column" style={{ maxWidth: '600px', width: '100%' }}>
           <div className="attendance-card">
-            <h3 className="card-title">Start Attendance Session</h3>
+            <h3 className="card-title">Live QR Generator</h3>
             
-            {sessionEnded && (
-              <div style={{ backgroundColor: 'rgba(255, 59, 48, 0.1)', color: 'var(--danger)', padding: '12px', borderRadius: '8px', marginBottom: '15px', textAlign: 'center', fontWeight: 'bold' }}>
-                Session Ended!
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '4px', display: 'block' }}>Module</label>
+                <select 
+                  value={selectedModule} 
+                  onChange={(e) => setSelectedModule(e.target.value)}
+                  disabled={!!activeSessionId}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+                >
+                  {modules.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
               </div>
-            )}
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '4px', display: 'block' }}>Week</label>
+                <select 
+                  value={selectedWeek} 
+                  onChange={(e) => setSelectedWeek(Number(e.target.value))}
+                  disabled={!!activeSessionId}
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+                >
+                  {[1,2,3,4,5,6,7,8,9,10,11,12].map(w => <option key={w} value={w}>Week {w}</option>)}
+                </select>
+              </div>
+            </div>
 
-            <button className="generate-btn" onClick={handleGenerateClick}>Generate QR Code</button>
-            
-            <div className="qr-display-box" style={{ position: 'relative' }}>
-              {qrGenerated ? (
+            <div className="qr-display-box" style={{ padding: '30px', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #cbd5e1', marginBottom: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '220px' }}>
+              {qrCode ? (
                 <>
-                  <img src={qrSvg} alt="QR Code" className="qr-code-img" />
-                  <button 
-                    onClick={handleRemoveQr}
-                    style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(255,255,255,0.9)', border: '1px solid #ffcccc', borderRadius: '50%', padding: '8px', cursor: 'pointer', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', zIndex: 10, transition: 'all 0.2s' }}
-                    title="Remove QR Image"
-                  >
-                    <IconTrash size={20} />
-                  </button>
+                  <QRCodeSVG value={qrCode} size={160} level={"H"} includeMargin={true} />
+                  <div style={{ marginTop: '16px', fontSize: '24px', fontWeight: 'bold', letterSpacing: '4px', color: '#4f46e5' }}>
+                    {qrCode}
+                  </div>
                 </>
               ) : (
-                <div style={{ width: '100%', height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', border: '2px dashed var(--border-color)', borderRadius: '12px', zIndex: 1, backgroundColor: 'rgba(0,0,0,0.02)' }}>
-                  No QR Generated
+                <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+                  <IconQrcode size={64} style={{ opacity: 0.3 }} />
+                  <p style={{ marginTop: '10px' }}>No active session. Select criteria and click generate.</p>
                 </div>
               )}
-              <img src={actionFigure2Img} alt="Mascot" className="qr-mascot" />
             </div>
 
-            {moduleCode && moduleName && qrGenerated && (
-              <div style={{ textAlign: 'center', marginBottom: '20px', padding: '12px', backgroundColor: 'var(--bg-main, #fff)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                <strong style={{ color: 'var(--text-dark)', fontSize: '16px' }}>{moduleCode}</strong>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>{moduleName}</div>
-              </div>
-            )}
-
-            <div className="status-indicators">
+            <div className="status-indicators" style={{ marginBottom: '20px' }}>
               <div className="status-item present">
                  <IconCheck size={20} color="var(--success)" stroke={3} />
-                 <span>Students Present: <span className="count">35</span></span>
-              </div>
-              <div className="status-item absent">
-                 <IconX size={20} color="var(--danger)" stroke={3} />
-                 <span>Absent: <span className="count">4</span></span>
+                 <span>Checked In: <span className="count">{attendanceList.length}</span></span>
               </div>
             </div>
 
-            <button className="action-btn" onClick={handleEndSession}>End Session</button>
+            {activeSessionId ? (
+              <button className="action-btn" onClick={endActiveSession} style={{ backgroundColor: '#dc2626' }}>End Active Session</button>
+            ) : (
+              <button className="generate-btn" onClick={generateQRCode} style={{ width: '100%' }}>Generate QR Code</button>
+            )}
           </div>
         </div>
 
-        {/* Right side: Who submitted the QR */}
-        <div className="role-column" style={{ margin: '0 auto', maxWidth: '600px', width: '100%' }}>
-          <div className="attendance-card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* Right side: Real-time Submissions */}
+        <div className="role-column" style={{ maxWidth: '600px', width: '100%' }}>
+          <div className="attendance-card" style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: '480px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 className="card-title" style={{ margin: 0 }}>Who submitted the QR</h3>
-              <button style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#e6f0ff', color: '#266df1', border: 'none', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' }}>
-                <IconDownload size={18} />
-                <span style={{ fontSize: '13px' }}>CSV</span>
-              </button>
+              <h3 className="card-title" style={{ margin: 0 }}>Real-time Submissions</h3>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#22c55e', background: '#f0fdf4', padding: '4px 8px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div style={{ width: 6, height: 6, background: '#22c55e', borderRadius: '50%', animation: 'pulse 2s infinite' }}></div> LIVE
+                </span>
+                <button style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', padding: '6px 10px', borderRadius: '8px', cursor: 'pointer' }}>
+                  <IconDownload size={16} />
+                  <span style={{ fontSize: '12px' }}>CSV</span>
+                </button>
+              </div>
             </div>
             
-            <div className="submissions-list" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto' }}>
-              {[
-                { id: 'IT23288126', name: 'Gajanayaka D G S', module: 'IT3030', ys: 'Year 3 Semester 2' },
-                { id: 'IT23288127', name: 'Perera A M', module: 'IT3030', ys: 'Year 3 Semester 2' },
-                { id: 'IT23288128', name: 'Silva K L', module: 'IT3030', ys: 'Year 3 Semester 2' },
-                { id: 'IT23288129', name: 'Fernando P Q', module: 'IT3030', ys: 'Year 3 Semester 2' },
-                { id: 'IT23288130', name: 'Rajapaksha T R', module: 'IT3030', ys: 'Year 3 Semester 2' },
-                { id: 'IT23288131', name: 'Kumara V W', module: 'IT3030', ys: 'Year 3 Semester 2' },
-                { id: 'IT23288132', name: 'Bandara S T', module: 'IT3030', ys: 'Year 3 Semester 2' },
-                { id: 'IT23288133', name: 'Jayasooriya N M', module: 'IT3030', ys: 'Year 3 Semester 2' },
-              ].map((student, idx) => (
-                <div key={idx} style={{ display: 'flex', flexDirection: 'column', padding: '12px', borderRadius: '10px', backgroundColor: 'var(--bg-main)', border: '1px solid var(--border-color)' }}>
+            <div className="submissions-list" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto' }}>
+              {attendanceList.length > 0 ? [...attendanceList].reverse().map((rec, idx) => (
+                <div key={idx} style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  padding: '12px', 
+                  borderRadius: '12px', 
+                  backgroundColor: idx === 0 ? '#eff6ff' : 'var(--bg-main)', 
+                  border: '1px solid',
+                  borderColor: idx === 0 ? '#bfdbfe' : 'var(--border-color)',
+                  animation: idx === 0 ? 'slideIn 0.3s ease-out' : 'none'
+                }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <strong style={{ color: 'var(--text-dark)', fontSize: '15px' }}>{student.name}</strong>
-                    <span style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: '600', backgroundColor: '#e6f0ff', padding: '2px 8px', borderRadius: '12px' }}>{student.id}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <IconUser size={16} color="#64748b" />
+                      </div>
+                      <strong style={{ color: 'var(--text-dark)', fontSize: '14px' }}>{rec.student?.username || 'Unknown'}</strong>
+                    </div>
+                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>{new Date(rec.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    <span>{student.module}</span>
-                    <span>{student.ys}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '40px' }}>
+                    <span>{rec.module}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--success)' }}>SUCCESS ✅</span>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', gap: '12px' }}>
+                  <IconUsers size={48} style={{ opacity: 0.2 }} />
+                  <p style={{ fontSize: '14px' }}>Waiting for students to check in...</p>
+                </div>
+              )}
             </div>
             
-            <button style={{ width: '100%', marginTop: '20px', padding: '12px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'var(--text-secondary)', fontWeight: '600', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-main)'; e.currentTarget.style.color = 'var(--text-dark)'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
-              See all students <IconChevronRight size={18} />
+            <button style={{ width: '100%', marginTop: '20px', padding: '12px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'var(--text-secondary)', fontWeight: '600', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
+              View Historical Records <IconChevronRight size={18} />
             </button>
           </div>
         </div>
       </div>
+      
+      <style>{`
+        @keyframes pulse {
+          0% { opacity: 1; }
+          50% { opacity: 0.4; }
+          100% { opacity: 1; }
+        }
+        @keyframes slideIn {
+          from { transform: translateY(-10px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }

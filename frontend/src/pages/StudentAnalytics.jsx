@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import { 
-  IconCalendarStats, IconPencilCheck, IconAlertTriangle, IconCheck, IconX 
+  IconCalendarStats, IconPencilCheck, IconAlertTriangle, IconCheck, IconX, IconBrain 
 } from '@tabler/icons-react';
+import { BASE_URL } from "../api";
 import "./Analytics.css";
 
 function StudentAnalytics() {
@@ -14,21 +15,20 @@ function StudentAnalytics() {
   const [locked, setLocked] = useState(null);
   const [confirmStep, setConfirmStep] = useState(false);
 
-  // MOCK DATA: Last Week
-  const lastWeek = {
-    att: 85,
-    quiz: 70,
-    attTarget: 80,
-    quizTarget: 75
-  };
-
-  // MOCK DATA: Current Week
-  const currentWeek = {
-    att: 88,
-    quiz: 74,
-  };
+  // 🔒 DYNAMIC DATA
+  const [lastWeek, setLastWeek] = useState({ att: 0, quiz: 0, attTarget: 0, quizTarget: 0 });
+  const [currentWeek, setCurrentWeek] = useState({ att: 0, quiz: 0 });
+  const [weeklyHistory, setWeeklyHistory] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [criticalInsight, setCriticalInsight] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [toast, setToast] = useState(null);
+  const rawId = localStorage.getItem('userId');
+  // Check if it's a valid ID (string that is not "null", "undefined" and has length)
+  const studentId = (rawId && rawId !== "null" && rawId !== "undefined") ? rawId : null;
+  const currentWeekNum = 5; 
 
   // ✅ USE CURRENT LOCKED VALUES IF AVAILABLE for current week validation
   const activeAtt = locked ? locked.att : attThreshold;
@@ -44,6 +44,14 @@ function StudentAnalytics() {
     return "error";
   };
 
+  const getAiIndicator = (type) => {
+    switch (type?.toUpperCase()) {
+      case 'WARNING': return <span className="ai-pulse-dot warning"></span>;
+      case 'ACTION': return <span className="ai-pulse-dot action"></span>;
+      default: return <span className="ai-pulse-dot spark"></span>;
+    }
+  };
+
   const runValidation = () => {
     // 🚨 REQUIRE LOCK FIRST
     if (!locked) {
@@ -57,18 +65,14 @@ function StudentAnalytics() {
     if (currentWeek.quiz < activeQuiz)
       issues.push(`Quiz performance (${currentWeek.quiz}%) is below your target (${activeQuiz}%)`);
 
-    // Track Last Week's Criteria
-    const lastWeekAttPassed = lastWeek.att >= lastWeek.attTarget;
-    const lastWeekQuizPassed = lastWeek.quiz >= lastWeek.quizTarget;
-    const lastWeekStatus = (lastWeekAttPassed && lastWeekQuizPassed) ? "Passed all criteria last week." : "Missed some targets last week.";
-
-    // Calculate Deviation from Last Week's performance
-    const attDev = activeAtt - lastWeek.att;
-    const quizDev = activeQuiz - lastWeek.quiz;
-    const deviationStr = `Deviations: Attendance Target is ${attDev > 0 ? '+' : ''}${attDev}% vs last week, Quiz Target is ${quizDev > 0 ? '+' : ''}${quizDev}% vs last week.`;
-
-    // Construct detailed message using newline characters formatting
-    let validationFeedback = `${lastWeekStatus}\n${deviationStr}\n\n`;
+    // Track Last Week's Criteria (Week 4 in our context)
+    // Structure changed: each history item has .attendance.actual
+    const prevWeek = weeklyHistory.find(w => w.week === currentWeekNum - 1);
+    const lastWeekAttPassed = prevWeek ? prevWeek.attendance.actual >= activeAtt : true;
+    
+    // Construct detailed message
+    let validationFeedback = (lastWeekAttPassed) ? "Passed all criteria last week." : "Missed some targets last week.";
+    validationFeedback += "\n\n";
 
     if (issues.length === 0) {
       validationFeedback += "Current Week: Great work! You are currently meeting all your active targets.";
@@ -80,7 +84,7 @@ function StudentAnalytics() {
   };
 
   // 🔒 2-step lock
-  const handleLock = () => {
+  const handleLock = async () => {
     if (locked) {
       setLocked(null);
       setConfirmStep(false);
@@ -91,9 +95,29 @@ function StudentAnalytics() {
       setConfirmStep(true);
       showToast("warn", "Confirm Targets", "Click again to confirm and lock your targets for the week");
     } else {
-      setLocked({ att: attThreshold, quiz: quizThreshold });
-      setConfirmStep(false);
-      showToast("ok", "Targets Locked ✅", "Your goals are set! Click Run Live Validation to check your current progress.");
+      try {
+        const response = await fetch(`${BASE_URL}/analytics/target`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student: studentId,
+            week: currentWeekNum,
+            attendanceTarget: attThreshold,
+            quizTarget: quizThreshold,
+            isLocked: true
+          }),
+        });
+
+        if (response.ok) {
+          setLocked({ att: attThreshold, quiz: quizThreshold });
+          setConfirmStep(false);
+          showToast("ok", "Targets Locked ✅", "Your goals are saved in our systems! Click Run Live Validation to check your current progress.");
+        } else {
+          showToast("error", "Error", "Failed to save targets to backend.");
+        }
+      } catch (err) {
+        showToast("error", "Connection Error", "Could not reach backend to save targets.");
+      }
     }
   };
 
@@ -102,79 +126,139 @@ function StudentAnalytics() {
     setTimeout(() => setToast(null), 5000);
   };
 
-  useEffect(() => {
+  const fetchAnalytics = async () => {
+    if (!studentId) {
+      setLoading(false);
+      setError("Please log in to view your analytics.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased to 15s for better resilience
+
+    try {
+      // 1. Fetch Summary for current week
+      const summaryRes = await fetch(`${BASE_URL}/analytics/summary/${studentId}/${currentWeekNum}`, { signal: controller.signal });
+      if (!summaryRes.ok) throw new Error(`Summary API returned ${summaryRes.status}`);
+      const summaryData = await summaryRes.json();
+      
+      // 2. Fetch Detailed Multi-Week History
+      const historyRes = await fetch(`${BASE_URL}/analytics/history/${studentId}`, { signal: controller.signal });
+      if (!historyRes.ok) throw new Error(`History API returned ${historyRes.status}`);
+      const historyData = await historyRes.json();
+
+      clearTimeout(timeoutId);
+
+      setLastWeek({
+        att: summaryData.lastWeek.attendance,
+        quiz: summaryData.lastWeek.quiz,
+        attTarget: summaryData.lastWeek.target.attendanceTarget,
+        quizTarget: summaryData.lastWeek.target.quizTarget
+      });
+      setCurrentWeek({
+        att: summaryData.currentWeek.attendance,
+        quiz: summaryData.currentWeek.quiz
+      });
+      setWeeklyHistory(historyData || []);
+      setSuggestions(summaryData.suggestions || []);
+      setCriticalInsight(summaryData.criticalInsight);
+      
+      if (summaryData.currentWeek.target && summaryData.currentWeek.target.isLocked) {
+        setLocked({
+          att: summaryData.currentWeek.target.attendanceTarget,
+          quiz: summaryData.currentWeek.target.quizTarget
+        });
+        setAttThreshold(summaryData.currentWeek.target.attendanceTarget);
+        setQuizThreshold(summaryData.currentWeek.target.quizTarget);
+      }
+    } catch (err) {
+      console.error("Failed to fetch analytics", err);
+      if (err.name === 'AbortError') {
+        setError("Request timed out. The server might be busy.");
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadDemoData = () => {
+    setLoading(true);
+    setError(null);
     setTimeout(() => {
-      showToast("ok", "Dashboard Ready", "Review your prior performance and set your upcoming goals.");
+      setLastWeek({ att: 88, quiz: 92, attTarget: 75, quizTarget: 80 });
+      setCurrentWeek({ att: 72, quiz: 68 });
+      setWeeklyHistory([
+        { week: 1, attendance: { actual: 100, target: 75 }, quiz: { actual: 85, target: 80 }, aiInsight: { text: "Perfect start! Keep the momentum.", type: "SPARK", priority: "low" } },
+        { week: 2, attendance: { actual: 80, target: 75 }, quiz: { actual: 78, target: 80 }, aiInsight: { text: "Quiz score was slightly low, try focusing on Database Joins.", type: "ACTION", priority: "medium" } },
+        { week: 3, attendance: { actual: 100, target: 75 }, quiz: { actual: 95, target: 80 }, aiInsight: { text: "Exceptional performance this week!", type: "SPARK", priority: "medium" } },
+        { week: 4, attendance: { actual: 88, target: 75 }, quiz: { actual: 92, target: 80 }, aiInsight: { text: "Solid progress. You are well above targets.", type: "SPARK", priority: "low" } }
+      ]);
+      setCriticalInsight({ text: "Demo Insight: You're performing better than 85% of peers!", type: "SPARK", priority: "high" });
+      setLocked({ att: 85, quiz: 85 });
+      setAttThreshold(85);
+      setQuizThreshold(85);
+      setLoading(false);
+      showToast("ok", "Demo Mode Enabled 🔬", "Visualizing dashboard with high-fidelity sample data.");
+    }, 600);
+  };
+
+  useEffect(() => {
+    fetchAnalytics();
+    setTimeout(() => {
+      showToast("ok", "Analytics Synchronized", "Successfully retrieved your latest performance data from the server.");
     }, 800);
   }, []);
+
+  if (loading) {
+    return (
+      <div className="analytics-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <div className="spinner"></div>
+        <p style={{ marginLeft: '12px', fontWeight: 500 }}>Loading your analytics data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="analytics-page">
 
       {/* HEADER */}
-      <div className="page-header">
-        <h1>Welcome Back, Student 👋</h1>
-        <p>Track your academic progress and set achievable goals.</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1>Welcome Back, Student 👋</h1>
+          <p>Track your academic progress and set achievable goals.</p>
+        </div>
+        
+        {/* TOP LEVEL AI INSIGHT (GLOBAL) */}
+        {criticalInsight && (
+          <div className="ai-insight-card" style={{ 
+            maxWidth: '320px', 
+            background: 'white', 
+            padding: '16px', 
+            borderRadius: '16px', 
+            boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
+              {getAiIndicator(criticalInsight.type)}
+              <span style={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>AI Intelligence Active</span>
+            </div>
+            <p style={{ fontSize: '14px', color: '#1e293b', lineHeight: '1.4', margin: 0, fontWeight: 500 }}>
+              {criticalInsight.text}
+            </p>
+            <div className="ai-glow"></div>
+          </div>
+        )}
       </div>
 
       <div className="analytics-dashboard-grid" style={{ gridTemplateColumns: '1fr' }}>
         <div className="analytics-main-col">
-
-          {/* HISTORICAL PERFORMANCE (Last Week) */}
-          <div className="overview-card" style={{ marginBottom: '24px', backgroundColor: '#fafbfc' }}>
-            <h3 className="overview-card-header" style={{ color: '#444' }}>Last Week's Performance</h3>
-            
-            <div className="overview-stats-grid">
-              
-              {/* Last Week Attendance */}
-              <div className="analytics-stat-box">
-                <div className="stat-box-top">
-                  <div className={`icon ${getAttendanceState(lastWeek.att, lastWeek.attTarget) === 'ok' ? 'blue' : 'orange'}`}><IconCalendarStats size={14}/></div>
-                  <span>Attendance</span>
-                </div>
-                <div className="stat-box-value">
-                  <h2>{lastWeek.att}%</h2>
-                  <span className={`trend ${getAttendanceState(lastWeek.att, lastWeek.attTarget) === 'ok' ? 'up' : 'down'}`}>
-                    {lastWeek.att >= lastWeek.attTarget ? "Target Hit ✓" : "Target Missed ⛔"} 
-                  </span>
-                </div>
-                <div style={{fontSize: 12, color: 'var(--text-secondary)'}}>
-                  Your Target: {lastWeek.attTarget}%
-                </div>
-              </div>
-
-              {/* Last Week Quiz */}
-              <div className="analytics-stat-box">
-                <div className="stat-box-top">
-                  <div className={`icon ${getQuizState(lastWeek.quiz, lastWeek.quizTarget) === 'ok' ? 'blue' : 'orange'}`}><IconPencilCheck size={14}/></div>
-                  <span>Quiz Performance</span>
-                </div>
-                <div className="stat-box-value">
-                  <h2>{lastWeek.quiz}%</h2>
-                  <span className={`trend ${getQuizState(lastWeek.quiz, lastWeek.quizTarget) === 'ok' ? 'up' : 'down'}`}>
-                    {lastWeek.quiz >= lastWeek.quizTarget ? "Target Hit ✓" : "Target Missed ⛔"}
-                  </span>
-                </div>
-                <div style={{fontSize: 12, color: 'var(--text-secondary)'}}>
-                  Your Target: {lastWeek.quizTarget}%
-                </div>
-              </div>
-
-              {/* Last Week Status Summary */}
-              <div className="analytics-stat-box weak-topics-box" style={{ justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
-                <div className="stat-box-value" style={{ marginBottom: 8, justifyContent: 'center' }}>
-                  {(lastWeek.att >= lastWeek.attTarget && lastWeek.quiz >= lastWeek.quizTarget) ? 
-                    <><IconCheck color="var(--success)" size={32} /> <h2 style={{color: 'var(--success)'}}>Great Job!</h2></> :
-                    <><IconAlertTriangle color="var(--warning)" size={32} /> <h2 style={{color: 'var(--warning)'}}>Needs Work</h2></>
-                  }
-                </div>
-                <p style={{fontSize: 13, color: 'var(--text-secondary)', margin: 0}}>
-                  Review your past performance before locking new targets.
-                </p>
-              </div>
-
-            </div>
-          </div>
 
           {/* TARGET SETTING (Upcoming Week) */}
           <div className="overview-card" style={{ marginBottom: '24px' }}>
@@ -219,7 +303,7 @@ function StudentAnalytics() {
           </div>
 
           {/* CURRENT WEEK PROGRESS */}
-          <div className="overview-card">
+          <div className="overview-card" style={{ marginBottom: '24px' }}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
                <h3 className="overview-card-header" style={{marginBottom: 0}}>Current Week Progress</h3>
                <button className="review-btn" onClick={runValidation} style={{ padding: '8px 16px', fontSize: '13px', backgroundColor: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '20px', cursor: 'pointer', fontWeight: 600 }}>
@@ -283,6 +367,98 @@ function StudentAnalytics() {
                   Start Review
                 </button>
               </div>
+            </div>
+          </div>
+
+          {/* PERFORMANCE TRACK & INSIGHTS (5 Weeks) */}
+          <div className="overview-card" style={{ marginBottom: '24px' }}>
+            <h3 className="overview-card-header">Performance Track & AI Insights</h3>
+            <div className="performance-track-container" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              
+               {error && (
+                <div style={{ padding: '30px', textAlign: 'center', background: '#fff1f2', borderRadius: '12px', border: '1px solid #fda4af' }}>
+                   <IconAlertTriangle size={32} color="#e11d48" style={{ marginBottom: '10px' }} />
+                   <div style={{ fontWeight: 'bold', color: '#9f1239' }}>Unable to load performance history</div>
+                   <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#be123c' }}>{error}</p>
+                   <div style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                    <button onClick={fetchAnalytics} style={{ padding: '8px 16px', background: '#e11d48', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Try Again</button>
+                    <button onClick={loadDemoData} style={{ padding: '8px 16px', background: '#f8fafc', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>Try Demo Mode 🔬</button>
+                   </div>
+                </div>
+              )}
+
+              {!error && weeklyHistory.map((week, idx) => (
+                <div key={idx} className="track-row" style={{ 
+                  padding: '20px', 
+                  borderRadius: '16px', 
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '15px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '18px' }}>Week {week.week}</span>
+                    <span style={{ 
+                      padding: '4px 12px', 
+                      borderRadius: '20px', 
+                      fontSize: '12px', 
+                      fontWeight: 'bold',
+                      background: (week.attendance.actual >= week.attendance.target && week.quiz.actual >= week.quiz.target) ? '#dcfce7' : '#fee2e2',
+                      color: (week.attendance.actual >= week.attendance.target && week.quiz.actual >= week.quiz.target) ? '#15803d' : '#991b1b'
+                    }}>
+                      {(week.attendance.actual >= week.attendance.target && week.quiz.actual >= week.quiz.target) ? 'TARGETS MET' : 'FOCUS NEEDED'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    {/* Attendance Comparison */}
+                    <div style={{ background: '#fff', padding: '12px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>ATTENDANCE</div>
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
+                        <span style={{ fontSize: '22px', fontWeight: 'bold', color: week.attendance.actual >= week.attendance.target ? '#10b981' : '#f59e0b' }}>
+                          {week.attendance.actual.toFixed(0)}%
+                        </span>
+                        <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>/ Target: {week.attendance.target}%</span>
+                      </div>
+                    </div>
+
+                    {/* Quiz Comparison */}
+                    <div style={{ background: '#fff', padding: '12px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>QUIZ PERFORMANCE</div>
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
+                        <span style={{ fontSize: '22px', fontWeight: 'bold', color: week.quiz.actual >= week.quiz.target ? '#10b981' : '#f59e0b' }}>
+                          {week.quiz.actual.toFixed(0)}%
+                        </span>
+                        <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>/ Target: {week.quiz.target}%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* AI Suggestion */}
+                  <div className="ai-insight-card" style={{ 
+                    padding: '12px 16px', 
+                    background: '#eff6ff', 
+                    borderRadius: '10px', 
+                    borderLeft: `4px solid ${week.aiInsight?.type === 'WARNING' ? '#ef4444' : week.aiInsight?.type === 'ACTION' ? '#f59e0b' : '#3b82f6'}`,
+                    fontSize: '14px',
+                    color: '#1e40af',
+                    lineHeight: '1.5',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px'
+                  }}>
+                    {getAiIndicator(week.aiInsight?.type)}
+                    <span><strong>AI Intelligence:</strong> {week.aiInsight?.text || "Analyzing historical patterns..."}</span>
+                    <div className="ai-glow"></div>
+                  </div>
+                </div>
+              ))}
+              {!error && weeklyHistory.length === 0 && (
+                <div style={{ padding: '40px', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                   <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>No historical performance records found for your account.</p>
+                </div>
+              )}
             </div>
           </div>
 
