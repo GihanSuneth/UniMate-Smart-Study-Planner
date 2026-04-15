@@ -1,5 +1,6 @@
 const Quiz = require('../models/Quiz');
 const QuizAttempt = require('../models/QuizAttempt');
+const User = require('../models/User');
 const mongoose = require('mongoose');
 
 // @desc    Create a new quiz (Draft)
@@ -94,9 +95,21 @@ exports.updateQuiz = async (req, res) => {
 // @route   PUT /api/quizzes/:id/publish
 // @access  Private/Lecturer
 exports.publishQuiz = async (req, res) => {
+  const { password } = req.body;
   try {
+    if (!password) {
+      return res.status(400).json({ message: 'Security re-confirmation required: Password is missing.' });
+    }
+
     const quiz = await Quiz.findById(req.params.id);
     if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
+
+    // Verify password
+    const user = await User.findById(req.user._id);
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid password. Publishing aborted.' });
+    }
 
     if (quiz.questions.length < quiz.questionCount) {
       return res.status(400).json({ message: `Need to add ${quiz.questionCount} questions before publishing` });
@@ -120,11 +133,16 @@ exports.submitAttempt = async (req, res) => {
     if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
 
     let correctCount = 0;
+    const questionResults = [];
     quiz.questions.forEach((q, idx) => {
       const studentAnswer = answers[idx]; // { questionIndex: x, selectedOptionIndex: y }
-      if (studentAnswer && q.options[studentAnswer.selectedOptionIndex] && q.options[studentAnswer.selectedOptionIndex].isCorrect) {
-        correctCount++;
-      }
+      const isCorrect = studentAnswer && q.options[studentAnswer.selectedOptionIndex] && q.options[studentAnswer.selectedOptionIndex].isCorrect;
+      if (isCorrect) correctCount++;
+      
+      questionResults.push({
+        questionText: q.text,
+        isCorrect: !!isCorrect
+      });
     });
 
     const score = Math.round((correctCount / quiz.questions.length) * 100);
@@ -136,7 +154,8 @@ exports.submitAttempt = async (req, res) => {
       week: week || quiz.week || 1, // Use attempt week, then quiz week, then default 1
       score,
       correctAnswers: correctCount,
-      totalQuestions: quiz.questions.length
+      totalQuestions: quiz.questions.length,
+      questionResults
     });
 
     res.status(201).json(attempt);
@@ -160,6 +179,25 @@ exports.deleteQuiz = async (req, res) => {
 
     await Quiz.findByIdAndDelete(req.params.id);
     res.json({ message: 'Quiz removed' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get student's quiz attempts history
+// @route   GET /api/quizzes/attempts/history
+// @access  Private/Student
+exports.getStudentAttempts = async (req, res) => {
+  const { module } = req.query;
+  const filter = { student: req.user._id };
+  if (module) filter.module = module;
+
+  try {
+    const attempts = await QuizAttempt.find(filter)
+      .populate('quiz', 'title')
+      .sort({ date: -1 });
+
+    res.json(attempts);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

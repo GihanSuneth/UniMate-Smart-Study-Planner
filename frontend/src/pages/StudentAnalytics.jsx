@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import { 
-  IconCalendarStats, IconPencilCheck, IconAlertTriangle, IconCheck, IconX, IconBrain 
+  IconCalendarStats, IconPencilCheck, IconAlertTriangle, IconCheck, IconX, IconBrain, IconTarget, IconArrowUpRight, IconTrendingUp
 } from '@tabler/icons-react';
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area,
+  BarChart, Bar, Cell, RadialBarChart, RadialBar, PolarAngleAxis
+} from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 import { BASE_URL } from "../api";
 import "./Analytics.css";
 
@@ -23,6 +28,10 @@ function StudentAnalytics() {
   const [criticalInsight, setCriticalInsight] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [enrolledModules, setEnrolledModules] = useState([]);
+  const [selectedModule, setSelectedModule] = useState('Overall');
+  const [overallBoost, setOverallBoost] = useState({ att: 0, quiz: 0, notes: 0 });
+  const [deepDive, setDeepDive] = useState(null);
 
   const [toast, setToast] = useState(null);
   const rawId = localStorage.getItem('userId');
@@ -93,18 +102,26 @@ function StudentAnalytics() {
     }
     if (!confirmStep) {
       setConfirmStep(true);
-      showToast("warn", "Confirm Targets", "Click again to confirm and lock your targets for the week");
+      showToast("warn", "Locking Targets...", "Are you sure? Once locked, you cannot change these goals until next week. Click 'Confirm Lock' to proceed.");
     } else {
+      if (!studentId) {
+        showToast("error", "Unauthorized", "Please log in again. Your session might have expired.");
+        return;
+      }
       try {
         const response = await fetch(`${BASE_URL}/analytics/target`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
           body: JSON.stringify({
             student: studentId,
             week: currentWeekNum,
             attendanceTarget: attThreshold,
             quizTarget: quizThreshold,
-            isLocked: true
+            isLocked: true,
+            module: selectedModule
           }),
         });
 
@@ -140,15 +157,47 @@ function StudentAnalytics() {
     const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased to 15s for better resilience
 
     try {
-      // 1. Fetch Summary for current week
-      const summaryRes = await fetch(`${BASE_URL}/analytics/summary/${studentId}/${currentWeekNum}`, { signal: controller.signal });
+      // 0. Fetch User Profile for Modules (First time)
+      if (enrolledModules.length === 0) {
+        const profileRes = await fetch(`${BASE_URL}/auth/profile`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const profileData = await profileRes.json();
+        if (profileRes.ok) {
+          const modules = profileData.enrolledModules && profileData.enrolledModules.length > 0
+            ? profileData.enrolledModules
+            : ['IT3040', 'IT3020', 'IT3030', 'IT3010'];
+          setEnrolledModules(modules);
+        }
+      }
+
+      const modQuery = selectedModule !== 'Overall' ? `?module=${selectedModule}` : '';
+
+      // 1. Fetch Summary
+      const summaryRes = await fetch(`${BASE_URL}/analytics/summary/${studentId}/${currentWeekNum}${modQuery}`, { signal: controller.signal });
       if (!summaryRes.ok) throw new Error(`Summary API returned ${summaryRes.status}`);
       const summaryData = await summaryRes.json();
       
       // 2. Fetch Detailed Multi-Week History
-      const historyRes = await fetch(`${BASE_URL}/analytics/history/${studentId}`, { signal: controller.signal });
+      const historyRes = await fetch(`${BASE_URL}/analytics/history/${studentId}${modQuery}`, { signal: controller.signal });
       if (!historyRes.ok) throw new Error(`History API returned ${historyRes.status}`);
       const historyData = await historyRes.json();
+
+      // 3. Fetch Deep Dive (if module selected)
+      if (selectedModule !== 'Overall') {
+        const deepDiveRes = await fetch(`${BASE_URL}/analytics/quiz-deep-dive/${selectedModule}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const deepDiveData = await deepDiveRes.json();
+        setDeepDive(deepDiveData);
+      } else {
+        // Overall boost calculation (demo-logic or real from summary)
+        setOverallBoost({
+          att: summaryData.lastWeek.attendance - summaryData.lastWeek.target.attendanceTarget,
+          quiz: summaryData.lastWeek.quiz - summaryData.lastWeek.target.quizTarget,
+          notes: 15 // Mocked for overall
+        });
+      }
 
       clearTimeout(timeoutId);
 
@@ -162,7 +211,9 @@ function StudentAnalytics() {
         att: summaryData.currentWeek.attendance,
         quiz: summaryData.currentWeek.quiz
       });
-      setWeeklyHistory(historyData || []);
+      // Chronological descending sort (Most recent week first)
+      const sortedHistory = (historyData || []).sort((a, b) => b.week - a.week);
+      setWeeklyHistory(sortedHistory);
       setSuggestions(summaryData.suggestions || []);
       setCriticalInsight(summaryData.criticalInsight);
       
@@ -209,10 +260,7 @@ function StudentAnalytics() {
 
   useEffect(() => {
     fetchAnalytics();
-    setTimeout(() => {
-      showToast("ok", "Analytics Synchronized", "Successfully retrieved your latest performance data from the server.");
-    }, 800);
-  }, []);
+  }, [selectedModule]);
 
   if (loading) {
     return (
@@ -227,34 +275,96 @@ function StudentAnalytics() {
     <div className="analytics-page">
 
       {/* HEADER */}
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h1>Welcome Back, Student 👋</h1>
-          <p>Track your academic progress and set achievable goals.</p>
+      <div className="page-header" style={{ marginBottom: '32px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+          <div>
+          <h1>Performance Intelligence 🧠</h1>
+          <p>Analyzing academic trends and goal alignment {selectedModule !== 'Overall' ? `for ${selectedModule}` : 'across all enrollments'}.</p>
         </div>
-        
-        {/* TOP LEVEL AI INSIGHT (GLOBAL) */}
-        {criticalInsight && (
-          <div className="ai-insight-card" style={{ 
-            maxWidth: '320px', 
-            background: 'white', 
-            padding: '16px', 
-            borderRadius: '16px', 
-            boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
-              {getAiIndicator(criticalInsight.type)}
-              <span style={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>AI Intelligence Active</span>
+          
+          {/* TOP LEVEL AI INSIGHT (GLOBAL) */}
+          {criticalInsight && (
+            <div className="ai-insight-card" style={{ 
+              maxWidth: '320px', 
+              background: 'white', 
+              padding: '16px', 
+              borderRadius: '16px', 
+              boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
+                {getAiIndicator(criticalInsight.type)}
+                <span style={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>AI Intelligence Active</span>
+              </div>
+              <p style={{ fontSize: '14px', color: '#1e293b', lineHeight: '1.4', margin: 0, fontWeight: 500 }}>
+                {criticalInsight.text}
+              </p>
+              <div className="ai-glow"></div>
             </div>
-            <p style={{ fontSize: '14px', color: '#1e293b', lineHeight: '1.4', margin: 0, fontWeight: 500 }}>
-              {criticalInsight.text}
-            </p>
-            <div className="ai-glow"></div>
+          )}
+        </div>
+
+        {/* OVERALL PERFORMANCE BOOST CARDS (Hidden if module selected) */}
+        {selectedModule === 'Overall' && (
+          <div className="overall-boost-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginTop: '24px' }}>
+            {[
+              { label: 'Attendance Boost', val: overallBoost.att, icon: <IconCalendarStats size={20} />, unit: '%', color: '#3b82f6' },
+              { label: 'Quiz Mastery', val: overallBoost.quiz, icon: <IconPencilCheck size={20} />, unit: '%', color: '#f59e0b' },
+              { label: 'Notes Ability', val: overallBoost.notes, icon: <IconBrain size={20} />, unit: ' Activities', color: '#10b981' }
+            ].map((stat, i) => (
+              <div key={i} className="boost-card" style={{ background: 'white', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ background: `${stat.color}15`, color: stat.color, padding: '12px', borderRadius: '12px' }}>{stat.icon}</div>
+                <div>
+                  <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>{stat.label}</div>
+                  <div style={{ fontSize: '24px', fontWeight: '800', color: '#1e293b' }}>
+                    {stat.val >= 0 ? '+' : ''}{stat.val.toFixed(0)}{stat.unit}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
+
+        {/* MODULE SELECTOR CHIPS */}
+        <div className="module-selector-chips" style={{ display: 'flex', gap: '10px', marginTop: '24px', flexWrap: 'wrap' }}>
+          <button 
+            onClick={() => setSelectedModule('Overall')}
+            style={{
+              padding: '8px 20px',
+              borderRadius: '20px',
+              border: 'none',
+              background: selectedModule === 'Overall' ? '#1e293b' : '#f1f5f9',
+              color: selectedModule === 'Overall' ? 'white' : '#64748b',
+              fontWeight: '700',
+              fontSize: '13px',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            All Modules
+          </button>
+          {enrolledModules.map(mod => (
+            <button 
+              key={mod}
+              onClick={() => setSelectedModule(mod)}
+              style={{
+                padding: '8px 20px',
+                borderRadius: '20px',
+                border: 'none',
+                background: selectedModule === mod ? '#3b82f6' : '#f1f5f9',
+                color: selectedModule === mod ? 'white' : '#64748b',
+                fontWeight: '700',
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              {mod}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="analytics-dashboard-grid" style={{ gridTemplateColumns: '1fr' }}>
@@ -262,7 +372,7 @@ function StudentAnalytics() {
 
           {/* TARGET SETTING (Upcoming Week) */}
           <div className="overview-card" style={{ marginBottom: '24px' }}>
-            <h3 className="overview-card-header">Set Targets (Upcoming Week)</h3>
+            <h3 className="overview-card-header">Set Targets (Upcoming Week - {selectedModule})</h3>
             <div style={{ display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: '200px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
@@ -303,16 +413,20 @@ function StudentAnalytics() {
           </div>
 
           {/* CURRENT WEEK PROGRESS */}
-          <div className="overview-card" style={{ marginBottom: '24px' }}>
+          <motion.div 
+            className="overview-card" style={{ marginBottom: '24px' }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-               <h3 className="overview-card-header" style={{marginBottom: 0}}>Current Week Progress</h3>
+               <h3 className="overview-card-header" style={{marginBottom: 0}}>Current Week Progress ({selectedModule})</h3>
                <button className="review-btn" onClick={runValidation} style={{ padding: '8px 16px', fontSize: '13px', backgroundColor: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '20px', cursor: 'pointer', fontWeight: 600 }}>
                  Run Live Validation
                </button>
             </div>
 
             <div className="overview-stats-grid">
-
               {/* Attendance */}
               <div className="analytics-stat-box">
                 <div className="stat-box-top">
@@ -326,7 +440,12 @@ function StudentAnalytics() {
                   </span>
                 </div>
                 <div className="mini-progress-track">
-                  <div className={`mini-progress-fill ${getAttendanceState(currentWeek.att, activeAtt) === 'ok' ? 'blue' : 'orange'}`} style={{width: `${currentWeek.att}%`}}></div>
+                  <motion.div 
+                    className={`mini-progress-fill ${getAttendanceState(currentWeek.att, activeAtt) === 'ok' ? 'blue' : 'orange'}`} 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${currentWeek.att}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                  ></motion.div>
                 </div>
                 <div style={{fontSize: 11, color: 'var(--text-secondary)', marginTop: '8px'}}>
                   Active Target: {activeAtt}%
@@ -346,33 +465,145 @@ function StudentAnalytics() {
                   </span>
                 </div>
                 <div className="mini-progress-track">
-                  <div className={`mini-progress-fill ${getQuizState(currentWeek.quiz, activeQuiz) === 'ok' ? 'blue' : 'orange'}`} style={{width: `${currentWeek.quiz}%`}}></div>
+                  <motion.div 
+                    className={`mini-progress-fill ${getQuizState(currentWeek.quiz, activeQuiz) === 'ok' ? 'blue' : 'orange'}`} 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${currentWeek.quiz}%` }}
+                    transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+                  ></motion.div>
                 </div>
                 <div style={{fontSize: 11, color: 'var(--text-secondary)', marginTop: '8px'}}>
                   Active Target: {activeQuiz}%
                 </div>
               </div>
 
-              {/* Weak Topics */}
+              {/* Review and Improvement */}
               <div className="analytics-stat-box weak-topics-box">
                 <div className="stat-box-top">
                   <div className="icon light-blue" style={{backgroundColor: '#e3f2fd', color: '#42a5f5'}}><IconAlertTriangle size={14}/></div>
-                  <span>Current Weak Topics</span>
+                  <span>Aggregated Review & Mastery</span>
                 </div>
-                <ul className="topic-bullet-list">
-                  <li>Database Joins</li>
-                  <li>API Authentication</li>
+                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px' }}>Notes Taking & Generating Logic</div>
+                <ul className="topic-bullet-list" style={{ marginBottom: '16px' }}>
+                  <li>Quiz Consistency: {currentWeek.quiz >= activeQuiz ? 'High' : 'Improving'}</li>
+                  <li>Analysis Completion: 85%</li>
                 </ul>
-                <button className="review-btn" onClick={() => navigate('/quiz-validator')}>
-                  Start Review
+                <button className="review-btn" onClick={() => navigate('/notes-ai')} style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)', border: 'none' }}>
+                  Start Integrated Review
                 </button>
               </div>
             </div>
+          </motion.div>
+
+          {/* PERFORMANCE TRACK & INSIGHTS (Module Specific) */}
+          <div className="overview-card" style={{ marginBottom: '24px' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 className="overview-card-header" style={{ marginBottom: 0 }}>
+                  {selectedModule === 'Overall' ? 'Overall Weekly Learning Report' : `Weekly Learning Report: ${selectedModule}`}
+                </h3>
+                <div className="ai-badge"><IconBrain size={14}/> AI Clustered Data</div>
+             </div>
+
+             <div className="deep-analysis-section">
+                <div className="analysis-grid">
+                   {/* Hardest Questions */}
+                   <div className="analysis-box">
+                      <div className="box-header"><IconAlertTriangle size={18} color="#ef4444" /> <span>Critical: Logic Bottlenecks</span></div>
+                      <p className="box-desc">These specific questions have the highest failure rates in your latest quizzes.</p>
+                      <ul className="failing-questions-list">
+                         {(deepDive?.hardestQuestions || [
+                           { text: "What is the primary difference between a clustered and non-clustered index?", rate: 65 },
+                           { text: "Explain the BCNF normalization form with an example.", rate: 58 }
+                         ]).map((q, i) => {
+                           const rateVal = q.failureRate !== undefined ? Math.round(q.failureRate) : q.rate;
+                           return (
+                           <li key={i}>
+                             <div className="q-head">
+                                <span className="q-text">{q.text}</span>
+                                <span className="fail-badge">{rateVal}% Failure</span>
+                             </div>
+                             <div className="fail-bar"><div className="fail-fill" style={{ width: `${rateVal}%` }}></div></div>
+                           </li>
+                         )})}
+                      </ul>
+                   </div>
+
+                   {/* Performance Clusters */}
+                   <div className="analysis-box">
+                      <div className="box-header"><IconCheck size={18} color="#10b981" /> <span>High Mastery Subtopics</span></div>
+                      <p className="box-desc">Modules and topics where you've demonstrated consistency above 90%.</p>
+                      <div className="mastery-chips">
+                         {deepDive ? (
+                           <span className="chip green">{deepDive.bestSubtopic}</span>
+                         ) : (
+                           <>
+                             <span className="chip green">ER Diagrams</span>
+                             <span className="chip green">Basic SQL</span>
+                           </>
+                         )}
+                      </div>
+                   </div>
+                </div>
+
+                <div className="actual-vs-target-summary" style={{ marginTop: '24px' }}>
+                   <div className="target-summary-header" style={{ marginBottom: '20px' }}>Target Comparison Analysis ({selectedModule})</div>
+                   <div style={{ height: '300px', width: '100%' }}>
+                     <ResponsiveContainer width="100%" height="100%">
+                       <BarChart
+                         data={[
+                           { name: 'Attendance', actual: currentWeek.att, target: activeAtt },
+                           { name: 'Quiz Score', actual: currentWeek.quiz, target: activeQuiz }
+                         ]}
+                         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                       >
+                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                         <XAxis dataKey="name" />
+                         <YAxis unit="%" domain={[0, 100]} />
+                         <Tooltip cursor={{fill: '#f1f5f9'}} />
+                         <Legend />
+                         <Bar dataKey="actual" name="Actual Achievement" fill="#4f46e5" radius={[6, 6, 0, 0]} barSize={50} />
+                         <Bar dataKey="target" name="Set Target" fill="#94a3b8" radius={[6, 6, 0, 0]} barSize={50} />
+                       </BarChart>
+                     </ResponsiveContainer>
+                   </div>
+                </div>
+             </div>
           </div>
 
-          {/* PERFORMANCE TRACK & INSIGHTS (5 Weeks) */}
-          <div className="overview-card" style={{ marginBottom: '24px' }}>
-            <h3 className="overview-card-header">Performance Track & AI Insights</h3>
+          <motion.div 
+            className="overview-card" style={{ marginBottom: '24px' }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <h3 className="overview-card-header">Historical Performance Track ({selectedModule})</h3>
+            
+            {!error && weeklyHistory.length > 0 && (
+              <div style={{ height: '400px', width: '100%', marginBottom: '40px', background: 'white', padding: '20px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={[...weeklyHistory].sort((a,b) => a.week - b.week)}>
+                    <defs>
+                      <linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorQuiz" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="week" label={{ value: 'Week', position: 'insideBottom', offset: -5 }} />
+                    <YAxis unit="%" domain={[0, 100]} />
+                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                    <Legend verticalAlign="top" height={36} />
+                    <Area type="monotone" dataKey="attendance.actual" name="Attendance Achievement" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorAtt)" />
+                    <Area type="monotone" dataKey="quiz.actual" name="Quiz Mastery" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorQuiz)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
             <div className="performance-track-container" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               
                {error && (
@@ -388,15 +619,22 @@ function StudentAnalytics() {
               )}
 
               {!error && weeklyHistory.map((week, idx) => (
-                <div key={idx} className="track-row" style={{ 
-                  padding: '20px', 
-                  borderRadius: '16px', 
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '15px'
-                }}>
+                <motion.div 
+                  key={idx} 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 * idx }}
+                  className="track-row" 
+                  style={{ 
+                    padding: '20px', 
+                    borderRadius: '16px', 
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '15px'
+                  }}
+                >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '18px' }}>Week {week.week}</span>
                     <span style={{ 
@@ -414,23 +652,29 @@ function StudentAnalytics() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                     {/* Attendance Comparison */}
                     <div style={{ background: '#fff', padding: '12px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>ATTENDANCE</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Attendance</div>
+                        {week.attendance.actual >= week.attendance.target && <IconCheck size={14} color="#10b981" />}
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
-                        <span style={{ fontSize: '22px', fontWeight: 'bold', color: week.attendance.actual >= week.attendance.target ? '#10b981' : '#f59e0b' }}>
+                        <span style={{ fontSize: '22px', fontWeight: 'bold', color: week.attendance.actual >= week.attendance.target ? '#4f46e5' : '#f59e0b' }}>
                           {week.attendance.actual.toFixed(0)}%
                         </span>
-                        <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>/ Target: {week.attendance.target}%</span>
+                        <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>/ target {week.attendance.target}%</span>
                       </div>
                     </div>
 
                     {/* Quiz Comparison */}
                     <div style={{ background: '#fff', padding: '12px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>QUIZ PERFORMANCE</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                         <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Quiz Score</div>
+                         {week.quiz.actual >= week.quiz.target && <IconCheck size={14} color="#10b981" />}
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
                         <span style={{ fontSize: '22px', fontWeight: 'bold', color: week.quiz.actual >= week.quiz.target ? '#10b981' : '#f59e0b' }}>
                           {week.quiz.actual.toFixed(0)}%
                         </span>
-                        <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>/ Target: {week.quiz.target}%</span>
+                        <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>/ target {week.quiz.target}%</span>
                       </div>
                     </div>
                   </div>
@@ -449,10 +693,10 @@ function StudentAnalytics() {
                     gap: '10px'
                   }}>
                     {getAiIndicator(week.aiInsight?.type)}
-                    <span><strong>AI Intelligence:</strong> {week.aiInsight?.text || "Analyzing historical patterns..."}</span>
+                    <span><strong>AI Logic Trace:</strong> {week.aiInsight?.text || "Analyzing historical patterns..."}</span>
                     <div className="ai-glow"></div>
                   </div>
-                </div>
+                </motion.div>
               ))}
               {!error && weeklyHistory.length === 0 && (
                 <div style={{ padding: '40px', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
@@ -460,7 +704,7 @@ function StudentAnalytics() {
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
 
         </div>
       </div>

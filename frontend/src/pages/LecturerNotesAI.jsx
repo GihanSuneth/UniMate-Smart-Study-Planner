@@ -1,5 +1,13 @@
 import React, { useState, useRef } from 'react';
-import { IconCloudUpload, IconPlus, IconDeviceFloppy, IconDotsVertical, IconDownload, IconCopy, IconCheck, IconTrash } from '@tabler/icons-react';
+import { toast } from 'react-toastify';
+import { 
+  IconDownload, IconCopy, IconCheck, IconTrash, IconHistory, IconFilter,
+  IconCloudUpload, IconPlus, IconDeviceFloppy, IconDotsVertical
+} from '@tabler/icons-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import jsPDF from 'jsPDF';
+import 'jspdf-autotable';
+import { BASE_URL } from '../api';
 import './NotesAI.css';
 import actionFigureImg from '../images/action-figure-1.png';
 
@@ -9,9 +17,34 @@ function LecturerNotesAI() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('Lesson Plan');
+  const [targetModule, setTargetModule] = useState('General'); 
   const [generatedNotes, setGeneratedNotes] = useState(null);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef(null);
+
+  const [history, setHistory] = useState([]);
+  const [filterModule, setFilterModule] = useState('All');
+
+  const fetchHistory = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/activity?module=${filterModule}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setHistory(data.filter(act => act.type === 'notes_generated'));
+      }
+    } catch (err) { console.error('Failed to fetch history', err); }
+  };
+
+  React.useEffect(() => {
+    fetchHistory();
+  }, [filterModule]);
+
+  const loadHistoryItem = (item) => {
+    setGeneratedNotes(item.content);
+    setActiveTab('Lesson Plan');
+  };
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -52,12 +85,12 @@ function LecturerNotesAI() {
     setIsGenerating(true);
     setGeneratedNotes(null);
 
-    // Mock API Call using file name
-    setTimeout(() => {
+    // Mock AI API Call
+    setTimeout(async () => {
       setIsGenerating(false);
       const sourceName = file ? file.name : 'your pasted text';
 
-      setGeneratedNotes({
+      const newNotesObj = {
         'Lesson Plan': [
           `1. Introduction to the Topic (10 mins): Connect to previous knowledge based on ${sourceName}.`,
           "2. Core Concepts (20 mins): Explain theories using visual aids.",
@@ -73,8 +106,33 @@ function LecturerNotesAI() {
           "Q2: Explain why Data Preprocessing is a necessary step.",
           "Q3: Give an example of an application that uses Neural Networks."
         ]
-      });
+      };
+      setGeneratedNotes(newNotesObj);
       setActiveTab('Lesson Plan');
+
+      // Log activity to backend
+      try {
+        const token = localStorage.getItem('token');
+        await fetch(`${BASE_URL}/activity`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            type: 'notes_generated',
+            module: targetModule,
+            title: file ? file.name : 'Generated Prep',
+            content: newNotesObj
+          })
+        });
+        fetchHistory(); // Refresh history
+        window.dispatchEvent(new CustomEvent('new-notification', { 
+          detail: { text: `Teaching prep generated for module: ${targetModule}` } 
+        }));
+      } catch (err) {
+        console.error('Failed to log activity', err);
+      }
     }, 2500);
   };
 
@@ -88,21 +146,107 @@ function LecturerNotesAI() {
 
   const handleDownload = () => {
     if (!generatedNotes) return;
-    alert("Downloading PDF... (Mock logic)");
+    try {
+      const doc = new jsPDF();
+      const timestamp = new Date().toLocaleString();
+      
+      // Header
+      doc.setFontSize(22);
+      doc.setTextColor(30, 64, 175); // Lecturer Primary color (Blueish)
+      doc.text("UniMate Lecturer Study Prep", 14, 22);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated for ${targetModule} on ${timestamp}`, 14, 30);
+      
+      let cursorY = 40;
+      
+      Object.keys(generatedNotes).forEach((tab) => {
+        doc.setFontSize(16);
+        doc.setTextColor(30, 41, 59);
+        doc.text(tab, 14, cursorY);
+        cursorY += 10;
+        
+        doc.setFontSize(11);
+        doc.setTextColor(51, 65, 85);
+        const lines = generatedNotes[tab].map(item => `• ${item}`);
+        const splitText = doc.splitTextToSize(lines.join('\n\n'), 180);
+        doc.text(splitText, 14, cursorY);
+        
+        cursorY += (splitText.length * 7) + 15;
+        
+        if (cursorY > 270) {
+          doc.addPage();
+          cursorY = 20;
+        }
+      });
+      
+      doc.save(`UniMate_LecturerPrep_${targetModule}_${Date.now()}.pdf`);
+      toast.success("Teaching Prep PDF Downloaded Successfully!");
+    } catch (err) {
+      console.error("PDF Export Error:", err);
+      toast.error("Failed to generate PDF. Please try again.");
+    }
   };
 
   return (
     <div className="notes-ai-page">
+      <AnimatePresence>
+        <motion.div 
+          className="mascot-dialog-container"
+          initial={{ opacity: 0, scale: 0.8, x: 20 }}
+          animate={{ opacity: 1, scale: 1, x: 0 }}
+          transition={{ duration: 0.5, type: 'spring' }}
+        >
+          <motion.div 
+            className="dialog-bubble"
+            animate={{ y: [0, -5, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          >
+            {isGenerating 
+              ? "Transforming your materials into a ready-to-use lesson plan. Hold tight!" 
+              : generatedNotes 
+                ? "Here is your teaching prep! You can switch tabs to see different formats."
+                : "I'm ready! Upload or paste your reference materials above."}
+          </motion.div>
+          <motion.img 
+            src={actionFigureImg} 
+            alt="AI Mascot" 
+            className="dialog-mascot"
+            animate={{ rotate: [0, -5, 5, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </motion.div>
+      </AnimatePresence>
+
       <div className="page-header">
         <h1>Lecturer Reference AI</h1>
         <p>Generate lesson plans, teaching points, and quiz ideas from your reference notes.</p>
       </div>
 
+      <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', justifyContent: 'center' }}>
+        <div className="main-content" style={{ flex: 1, maxWidth: '1000px', minWidth: 0 }}>
       <div className="upload-section">
         <div className="upload-card">
           <div className="upload-header">
             <h3>Reference Materials</h3>
           </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Target Module Code</label>
+            <select 
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '14px', backgroundColor: 'white' }} 
+              value={targetModule} 
+              onChange={e => setTargetModule(e.target.value)}
+            >
+              <option value="General">General</option>
+              <option value="IT3040">IT3040</option>
+              <option value="IT3020">IT3020</option>
+              <option value="IT3030">IT3030</option>
+              <option value="IT3010">IT3010</option>
+            </select>
+          </div>
+
           <div 
             className={`dropzone ${file ? 'has-file' : ''}`}
             onClick={handleUploadClick}
@@ -182,12 +326,12 @@ function LecturerNotesAI() {
         </div>
 
         <div className="tabs-container">
-          {['Lesson Plan', 'Key Teaching Points', 'Quiz Questions'].map((tab) => (
+          {['Lesson Plan', 'Key Teaching Points', 'Quiz Questions', 'Show Previous Record'].map((tab) => (
             <button 
               key={tab}
               className={`tab ${activeTab === tab ? 'active' : ''}`}
               onClick={() => setActiveTab(tab)}
-              disabled={isGenerating}
+              disabled={isGenerating && tab !== 'Show Previous Record'}
             >
               {tab}
             </button>
@@ -195,10 +339,36 @@ function LecturerNotesAI() {
         </div>
 
         <div className="preview-content">
-          {isGenerating ? (
+          {isGenerating && activeTab !== 'Show Previous Record' ? (
             <div className="loading-container">
               <div className="loader"></div>
               <p>Analyzing context and crafting your lesson prep...</p>
+            </div>
+          ) : activeTab === 'Show Previous Record' ? (
+            <div className="history-tab-content">
+              <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <IconFilter size={20} color="var(--text-secondary)" />
+                <span style={{ fontSize: '14px', fontWeight: '600' }}>Filter by Module:</span>
+                <select style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '14px' }} value={filterModule} onChange={e => setFilterModule(e.target.value)}>
+                   <option value="All">All Modules</option>
+                   <option value="General">General</option>
+                   <option value="IT3040">IT3040</option>
+                   <option value="IT3020">IT3020</option>
+                   <option value="IT3030">IT3030</option>
+                   <option value="IT3010">IT3010</option>
+                </select>
+              </div>
+              <div className="history-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+                {history.length === 0 ? <p style={{ gridColumn: '1/-1', textAlign: 'center', color: 'var(--text-secondary)', padding: '40px' }}>No history found for the selected module.</p> : history.map((item, idx) => (
+                   <div key={idx} onClick={() => loadHistoryItem(item)} style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', cursor: 'pointer', transition: '0.2s', backgroundColor: 'white' }} onMouseEnter={(e) => e.currentTarget.style.borderColor='var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.borderColor='var(--border-color)'}>
+                      <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '8px' }}>{item.title || 'Generated Prep'}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        <span style={{ backgroundColor: 'var(--secondary)', color: 'var(--primary)', padding: '4px 8px', borderRadius: '6px', fontWeight: '700' }}>{item.module}</span>
+                        <span>Date: {new Date(item.timestamp).toLocaleDateString()}</span>
+                      </div>
+                   </div>
+                ))}
+              </div>
             </div>
           ) : generatedNotes ? (
             <ul className={`notes-list ${activeTab === 'Lesson Plan' ? 'summary-style' : ''}`}>
@@ -221,17 +391,8 @@ function LecturerNotesAI() {
               <p>Your generated teaching prep will appear here once you upload a file or paste text and click "Generate Teaching Aids".</p>
             </div>
           )}
-
-          <div className="mascot-dialog-container">
-            <div className="dialog-bubble">
-              {isGenerating 
-                ? "Transforming your materials into a ready-to-use lesson plan..." 
-                : generatedNotes 
-                  ? "Here is your teaching prep! You can switch tabs to see different formats."
-                  : "I'm ready! Upload or paste your reference materials above."}
-            </div>
-            <img src={actionFigureImg} alt="AI Mascot" className="dialog-mascot" />
-          </div>
+        </div>
+        </div>
         </div>
       </div>
     </div>

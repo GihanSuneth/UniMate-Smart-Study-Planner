@@ -170,3 +170,15 @@ exports.endSession = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Get active attendance sessions
+// @route   GET /api/attendance/sessions/active
+// @access  Private (Student)
+exports.getActiveSessions = async (req, res) => {
+  try {
+    const activeSessions = await AttendanceSession.find({ isActive: true }).populate('lecturer', 'username email');
+    res.json(activeSessions);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

@@ -8,13 +8,16 @@ import {
   IconEdit, 
   IconEye, 
   IconDeviceFloppy, 
-  IconSend, 
   IconTrash,
   IconCalendar,
   IconClock,
-  IconBulb
+  IconBulb,
+  IconShieldLock,
+  IconSend
 } from '@tabler/icons-react';
 import { API_ENDPOINTS } from '../api';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './QuizValidator.css';
 
 function LecturerQuizValidator() {
@@ -38,6 +41,10 @@ function LecturerQuizValidator() {
     questionCount: 5,
     questions: []
   });
+
+  // Secure publishing state
+  const [confirmPublishId, setConfirmPublishId] = useState(null);
+  const [lecturerPassword, setLecturerPassword] = useState('');
 
   // Current Question being edited/added in step 2
   const [editingIndex, setEditingIndex] = useState(-1);
@@ -237,22 +244,31 @@ function LecturerQuizValidator() {
     }
   };
 
-  const handlePublish = async (id) => {
-    if (!window.confirm("Are you sure you want to publish this quiz? Students will be able to attempt it immediately.")) return;
-    
+  const handlePublish = async (e) => {
+    e.preventDefault();
+    if (!lecturerPassword) return;
+
     try {
-      const response = await fetch(`${API_ENDPOINTS.QUIZZES}/${id}/publish`, {
+      const response = await fetch(`${API_ENDPOINTS.QUIZZES}/${confirmPublishId}/publish`, {
         method: 'PUT',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        },
+        body: JSON.stringify({ password: lecturerPassword })
       });
       if (response.ok) {
+        setConfirmPublishId(null);
+        setLecturerPassword('');
         fetchQuizzes();
-        alert("Quiz published successfully!");
+        toast.success("Quiz published successfully! 🚀");
+      } else {
+        const err = await response.json();
+        toast.error(err.message || "Authentication failed. Incorrect password.");
       }
     } catch (error) {
       console.error('Error publishing quiz:', error);
+      toast.error("Connectivity error.");
     }
   };
 
@@ -324,10 +340,10 @@ function LecturerQuizValidator() {
                     <div style={{ display: 'flex', gap: '8px' }}>
                       {!quiz.isPublished && (
                         <button 
-                          onClick={() => handlePublish(quiz._id)}
-                          style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--primary)', color: 'white', fontWeight: '600', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
+                          onClick={() => setConfirmPublishId(quiz._id)}
+                          style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: '#6366f1', color: 'white', fontWeight: '600', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
                         >
-                          <IconCheck size={18} /> Publish
+                          <IconShieldLock size={18} /> Approve & Publish
                         </button>
                       )}
                       <button 
@@ -406,7 +422,26 @@ function LecturerQuizValidator() {
                   </div>
                 </div>
 
-                {!isViewOnly && <button onClick={handleNextStep} style={{ marginTop: '12px', padding: '14px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>Continue to Questions</button>}
+                {!isViewOnly && (
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                    <button onClick={handleNextStep} style={{ flex: 2, padding: '14px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>
+                      Continue to Questions
+                    </button>
+                    <button 
+                      onClick={() => {
+                        if (!quizForm.title || !quizForm.module || !quizForm.week) {
+                          alert("Please fill in basic details first.");
+                          return;
+                        }
+                        setCurrentStep(2);
+                        handleMockGenerate();
+                      }} 
+                      style={{ flex: 1, padding: '14px', backgroundColor: '#f0f4ff', color: 'var(--primary)', border: '1px solid #e0e7ff', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                    >
+                      <IconRobot size={20} /> AI Auto-Fill
+                    </button>
+                  </div>
+                )}
                 {isViewOnly && <button onClick={() => setCurrentStep(2)} style={{ marginTop: '12px', padding: '14px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>View Questions</button>}
               </div>
             ) : (
@@ -520,6 +555,38 @@ function LecturerQuizValidator() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {/* Publish Confirmation Modal */}
+      {confirmPublishId && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(18, 28, 56, 0.6)', zIndex: 3000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(4px)' }}>
+          <div style={{ backgroundColor: 'white', width: '90%', maxWidth: '400px', borderRadius: '20px', padding: '32px', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h2 style={{ fontSize: '20px', margin: 0 }}>Secure Publish</h2>
+                <button onClick={() => setConfirmPublishId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}><IconX size={20} /></button>
+             </div>
+             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
+               Please enter your password to confirm and publish this quiz. This ensures data integrity.
+             </p>
+             <form onSubmit={handlePublish}>
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '8px' }}>Your Password</label>
+                  <input 
+                    type="password" 
+                    required 
+                    autoFocus
+                    placeholder="Enter password..."
+                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none' }}
+                    value={lecturerPassword}
+                    onChange={e => setLecturerPassword(e.target.value)}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button type="button" onClick={() => setConfirmPublishId(null)} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'white', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+                  <button type="submit" style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#6366f1', color: 'white', fontWeight: '600', cursor: 'pointer' }}>Confirm Publish</button>
+                </div>
+             </form>
           </div>
         </div>
       )}

@@ -1,5 +1,14 @@
 import React, { useState, useRef } from 'react';
-import { IconCloudUpload, IconPlus, IconDeviceFloppy, IconDotsVertical, IconDownload, IconCopy, IconCheck, IconTrash } from '@tabler/icons-react';
+import { toast } from 'react-toastify';
+import { 
+  IconDownload, IconCopy, IconCheck, IconSearch, IconSparkles, 
+  IconFileText, IconTrash, IconChevronRight, IconArrowLeft, IconRobot, IconHistory,
+  IconFilter, IconCloudUpload, IconPlus, IconDeviceFloppy, IconDotsVertical
+} from '@tabler/icons-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import jsPDF from 'jsPDF';
+import 'jspdf-autotable';
+import { BASE_URL } from '../api';
 import './NotesAI.css';
 import actionFigureImg from '../images/action-figure-1.png';
 
@@ -9,10 +18,36 @@ function StudentNotesAI() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('Summary');
+  const [targetModule, setTargetModule] = useState('General'); 
   const [generatedNotes, setGeneratedNotes] = useState(null);
   const [generationMode, setGenerationMode] = useState('short_notes');
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef(null);
+
+  const [history, setHistory] = useState([]);
+  const [filterModule, setFilterModule] = useState('All');
+
+  const fetchHistory = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/activity?module=${filterModule}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setHistory(data.filter(act => act.type === 'notes_generated'));
+      }
+    } catch (err) { console.error('Failed to fetch history', err); }
+  };
+
+  React.useEffect(() => {
+    fetchHistory();
+  }, [filterModule]);
+
+  const loadHistoryItem = (item) => {
+    setGenerationMode(item.content && item.content['Exam Path'] ? 'exam_prep' : 'short_notes');
+    setGeneratedNotes(item.content);
+    setActiveTab(item.content && item.content['Exam Path'] ? 'Exam Path' : 'Summary');
+  };
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -54,12 +89,14 @@ function StudentNotesAI() {
     setGeneratedNotes(null);
 
     // Mock AI API Call
-    setTimeout(() => {
+    setTimeout(async () => {
       setIsGenerating(false);
+
       const sourceName = file ? file.name : 'your pasted notes';
+      let newNotesObj;
 
       if (generationMode === 'short_notes') {
-        setGeneratedNotes({
+        newNotesObj = {
           Summary: [
             `Based on ${sourceName}: Machine Learning is a subset of AI where computers learn from data and make decisions with minimal human intervention.`,
             "It fundamentally relies on using algorithms to parse data, learn from it, and then make a determination or prediction.",
@@ -76,10 +113,11 @@ function StudentNotesAI() {
             "Data Preprocessing: The process of cleaning and transforming raw data into a useful and understandable format.",
             "Model Training: The phase where the learning algorithm is applied to the training data."
           ]
-        });
+        };
+        setGeneratedNotes(newNotesObj);
         setActiveTab('Summary');
       } else {
-        setGeneratedNotes({
+        newNotesObj = {
           'Exam Path': [
             `Week 1: Review Core AI Concepts directly from ${sourceName} and understand the history of Machine Learning.`,
             "Week 2: Focus on Algorithms - specifically Linear Regression and classification methods.",
@@ -91,8 +129,33 @@ function StudentNotesAI() {
             "Cheatsheet 2: Definitions of Data Preprocessing techniques.",
             "CheatSheet 3: Quick look at Python libraries (Scikit-Learn, TensorFlow, PyTorch)."
           ]
-        });
+        };
+        setGeneratedNotes(newNotesObj);
         setActiveTab('Exam Path');
+      }
+
+      // Log activity to backend
+      try {
+        const token = localStorage.getItem('token');
+        await fetch(`${BASE_URL}/activity`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            type: 'notes_generated',
+            module: targetModule,
+            title: file ? file.name : 'Generated Notes',
+            content: newNotesObj
+          })
+        });
+        fetchHistory(); // Refresh history
+        window.dispatchEvent(new CustomEvent('new-notification', { 
+          detail: { text: `AI Notes generated for ${targetModule}!` } 
+        }));
+      } catch (err) {
+        console.error('Failed to log activity', err);
       }
     }, 2500);
   };
@@ -107,11 +170,79 @@ function StudentNotesAI() {
 
   const handleDownload = () => {
     if (!generatedNotes) return;
-    alert("Downloading PDF... (Mock logic)");
+    try {
+      const doc = new jsPDF();
+      const timestamp = new Date().toLocaleString();
+      
+      // Header
+      doc.setFontSize(22);
+      doc.setTextColor(79, 70, 229); // Primary color
+      doc.text("UniMate Smart Study Notes", 14, 22);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated for ${targetModule} on ${timestamp}`, 14, 30);
+      
+      let cursorY = 40;
+      
+      Object.keys(generatedNotes).forEach((tab) => {
+        doc.setFontSize(16);
+        doc.setTextColor(30, 41, 59);
+        doc.text(tab, 14, cursorY);
+        cursorY += 10;
+        
+        doc.setFontSize(11);
+        doc.setTextColor(51, 65, 85);
+        const lines = generatedNotes[tab].map(item => `• ${item}`);
+        const splitText = doc.splitTextToSize(lines.join('\n\n'), 180);
+        doc.text(splitText, 14, cursorY);
+        
+        cursorY += (splitText.length * 7) + 15;
+        
+        if (cursorY > 270) {
+          doc.addPage();
+          cursorY = 20;
+        }
+      });
+      
+      doc.save(`UniMate_Notes_${targetModule}_${Date.now()}.pdf`);
+      toast.success("PDF Downloaded Successfully!");
+    } catch (err) {
+      console.error("PDF Export Error:", err);
+      toast.error("Failed to generate PDF. Please try again.");
+    }
   };
 
   return (
     <div className="notes-ai-page">
+      <AnimatePresence>
+        <motion.div 
+          className="mascot-dialog-container"
+          initial={{ opacity: 0, y: 20, scale: 0.8 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.5, type: 'spring' }}
+        >
+          <motion.div 
+            className="dialog-bubble"
+            animate={{ y: [0, -5, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          >
+            {isGenerating
+              ? "Transforming your rough notes into clear, structured notes. Give me a moment..."
+              : generatedNotes
+                ? "Here are your structured notes! You can switch tabs to see different formats."
+                : "I'm ready! Upload or paste your rough notes above."}
+          </motion.div>
+          <motion.img 
+            src={actionFigureImg} 
+            alt="AI Mascot" 
+            className="dialog-mascot"
+            animate={{ rotate: [0, 5, -5, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </motion.div>
+      </AnimatePresence>
+
       <div className="page-header">
         <h1>Student Notes AI</h1>
         <p>Generate structured study materials with AI from your rough notes.</p>
@@ -132,11 +263,29 @@ function StudentNotesAI() {
         </button>
       </div>
 
+      <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', justifyContent: 'center' }}>
+        <div className="main-content" style={{ flex: 1, maxWidth: '1000px', minWidth: 0 }}>
       <div className="upload-section">
         <div className="upload-card">
           <div className="upload-header">
             <h3>Rough Notes</h3>
           </div>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Target Module Code</label>
+            <select 
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '14px', backgroundColor: 'white' }} 
+              value={targetModule} 
+              onChange={e => setTargetModule(e.target.value)}
+            >
+              <option value="General">General</option>
+              <option value="IT3040">IT3040</option>
+              <option value="IT3020">IT3020</option>
+              <option value="IT3030">IT3030</option>
+              <option value="IT3010">IT3010</option>
+            </select>
+          </div>
+
           <div
             className={`dropzone ${file ? 'has-file' : ''}`}
             onClick={handleUploadClick}
@@ -216,12 +365,12 @@ function StudentNotesAI() {
         </div>
 
         <div className="tabs-container">
-          {(generatedNotes ? Object.keys(generatedNotes) : (generationMode === 'short_notes' ? ['Summary', 'Key Points', 'Definitions'] : ['Exam Path', 'Referral Sheet'])).map((tab) => (
+          {([...(generatedNotes ? Object.keys(generatedNotes) : (generationMode === 'short_notes' ? ['Summary', 'Key Points', 'Definitions'] : ['Exam Path', 'Referral Sheet'])), 'Show Previous Record']).map((tab) => (
             <button
               key={tab}
               className={`tab ${activeTab === tab ? 'active' : ''}`}
               onClick={() => setActiveTab(tab)}
-              disabled={isGenerating}
+              disabled={isGenerating && tab !== 'Show Previous Record'}
             >
               {tab}
             </button>
@@ -229,10 +378,38 @@ function StudentNotesAI() {
         </div>
 
         <div className="preview-content">
-          {isGenerating ? (
+          {isGenerating && activeTab !== 'Show Previous Record' ? (
             <div className="loading-container">
               <div className="loader"></div>
               <p>Analyzing context and crafting your notes...</p>
+            </div>
+          ) : activeTab === 'Show Previous Record' ? (
+            <div className="history-tab-content">
+              <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <IconFilter size={20} color="var(--text-secondary)" />
+                <span style={{ fontSize: '14px', fontWeight: '600' }}>Filter by Module:</span>
+                <select style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '14px' }} value={filterModule} onChange={e => setFilterModule(e.target.value)}>
+                   <option value="All">All Modules</option>
+                   <option value="General">General</option>
+                   <option value="IT3040">IT3040</option>
+                   <option value="IT3020">IT3020</option>
+                   <option value="IT3030">IT3030</option>
+                   <option value="IT3010">IT3010</option>
+                </select>
+              </div>
+              <div className="history-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+                {history.filter(item => generationMode === 'short_notes' ? !!item.content?.Summary : !!item.content?.['Exam Path']).length === 0 ? (
+                  <p style={{ gridColumn: '1/-1', textAlign: 'center', color: 'var(--text-secondary)', padding: '40px' }}>No history found for this tool.</p>
+                ) : history.filter(item => generationMode === 'short_notes' ? !!item.content?.Summary : !!item.content?.['Exam Path']).map((item, idx) => (
+                   <div key={idx} onClick={() => loadHistoryItem(item)} style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', cursor: 'pointer', transition: '0.2s', backgroundColor: 'white' }} onMouseEnter={(e) => e.currentTarget.style.borderColor='var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.borderColor='var(--border-color)'}>
+                      <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '8px' }}>{item.title || 'Generated Notes'}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        <span style={{ backgroundColor: 'var(--secondary)', color: 'var(--primary)', padding: '4px 8px', borderRadius: '6px', fontWeight: '700' }}>{item.module}</span>
+                        <span>Date: {new Date(item.timestamp).toLocaleDateString()}</span>
+                      </div>
+                   </div>
+                ))}
+              </div>
             </div>
           ) : generatedNotes ? (
             <ul className={`notes-list ${activeTab === 'Summary' ? 'summary-style' : ''}`}>
@@ -255,17 +432,8 @@ function StudentNotesAI() {
               <p>Your generated notes will appear here once you upload a file or paste text and click "Generate Smart Notes".</p>
             </div>
           )}
-
-          <div className="mascot-dialog-container">
-            <div className="dialog-bubble">
-              {isGenerating
-                ? "Transforming your rough notes into clear, structured notes. Give me a moment..."
-                : generatedNotes
-                  ? "Here are your structured notes! You can switch tabs to see different formats."
-                  : "I'm ready! Upload or paste your rough notes above."}
-            </div>
-            <img src={actionFigureImg} alt="AI Mascot" className="dialog-mascot" />
-          </div>
+        </div>
+        </div>
         </div>
       </div>
     </div>

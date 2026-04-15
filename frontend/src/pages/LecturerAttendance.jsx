@@ -16,6 +16,7 @@ function LecturerAttendance() {
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [attendanceList, setAttendanceList] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   
   const modules = ['Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering'];
 
@@ -137,6 +138,10 @@ function LecturerAttendance() {
             <div className="qr-display-box" style={{ padding: '30px', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #cbd5e1', marginBottom: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '220px' }}>
               {qrCode ? (
                 <>
+                  <div style={{ marginBottom: '16px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e293b' }}>{selectedModule}</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>Week {selectedWeek}</div>
+                  </div>
                   <QRCodeSVG value={qrCode} size={160} level={"H"} includeMargin={true} />
                   <div style={{ marginTop: '16px', fontSize: '24px', fontWeight: 'bold', letterSpacing: '4px', color: '#4f46e5' }}>
                     {qrCode}
@@ -180,9 +185,22 @@ function LecturerAttendance() {
                 </button>
               </div>
             </div>
+
+            <div style={{ marginBottom: '16px' }}>
+               <input 
+                 type="text" 
+                 placeholder="Filter by Student Portal ID..." 
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
+                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '13px' }}
+               />
+            </div>
             
             <div className="submissions-list" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto' }}>
-              {attendanceList.length > 0 ? [...attendanceList].reverse().map((rec, idx) => (
+              {attendanceList.filter(rec => rec.student?.username?.toLowerCase().includes(searchQuery.toLowerCase()) || rec.student?.email?.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? 
+                [...attendanceList]
+                .filter(rec => rec.student?.username?.toLowerCase().includes(searchQuery.toLowerCase()) || rec.student?.email?.toLowerCase().includes(searchQuery.toLowerCase()))
+                .reverse().map((rec, idx) => (
                 <div key={idx} style={{ 
                   display: 'flex', 
                   flexDirection: 'column', 
@@ -210,7 +228,7 @@ function LecturerAttendance() {
               )) : (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', gap: '12px' }}>
                   <IconUsers size={48} style={{ opacity: 0.2 }} />
-                  <p style={{ fontSize: '14px' }}>Waiting for students to check in...</p>
+                  <p style={{ fontSize: '14px' }}>{searchQuery ? 'No matching students found' : 'Waiting for students to check in...'}</p>
                 </div>
               )}
             </div>

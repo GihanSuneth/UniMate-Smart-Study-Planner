@@ -19,20 +19,20 @@ function Sidebar({ role }) {
 
   const getNavItems = () => {
     const items = [
-      { path: '/', label: 'Dashboard', icon: IconLayoutDashboard, roles: ['student', 'Lecturer'] },
+      { path: '/', label: 'Dashboard', icon: IconLayoutDashboard, roles: ['student', 'lecturer'] },
       { path: '/admin', label: 'Admin Panel', icon: IconShieldLock, roles: ['admin'] },
-      { path: '/notes-ai', label: 'Notes AI', icon: IconNotes, roles: ['student', 'Lecturer'] },
-      { path: '/attendance', label: role === 'student' ? 'Scan QR' : role === 'admin' ? 'Attendance Check' : 'QR Generator', icon: IconCalendarStats, roles: ['student', 'Lecturer', 'admin'] },
-      { path: '/quiz-validator', label: 'Quiz Validator', icon: IconPencilCheck, roles: ['student', 'Lecturer', 'admin'] },
-      { path: '/analytics', label: 'Analytics', icon: IconChartBar, roles: ['student', 'Lecturer', 'admin'] },
-      { path: '/settings', label: role === 'admin' ? 'Admin Settings' : 'Profile Activity', icon: IconSettings, roles: ['student', 'Lecturer', 'admin'] }
+      { path: '/notes-ai', label: 'Notes AI', icon: IconNotes, roles: ['student', 'lecturer'] },
+      { path: '/attendance', label: role === 'student' ? 'Attendance' : 'QR Generator', icon: IconCalendarStats, roles: ['student', 'lecturer'] },
+      { path: '/quiz-validator', label: 'Quiz Validator', icon: IconPencilCheck, roles: ['student', 'lecturer'] },
+      { path: '/analytics', label: 'Analytics', icon: IconChartBar, roles: ['student', 'lecturer', 'admin'] },
+      { path: '/settings', label: role === 'admin' ? 'Admin Settings' : 'Profile Activity', icon: IconSettings, roles: ['student', 'lecturer', 'admin'] }
     ];
     return items.filter(item => item.roles.includes(role));
   };
 
   const navItems = getNavItems();
   const storedUserName = localStorage.getItem('userName') || 'User';
-  const userName = role === 'student' ? 'Student' : (role === 'Lecturer' ? 'Lecturer' : storedUserName);
+  const userName = role === 'student' ? 'Student' : (role === 'lecturer' ? 'Lecturer' : storedUserName);
 
   return (
     <aside className="sidebar">

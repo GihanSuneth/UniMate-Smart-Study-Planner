@@ -25,13 +25,17 @@ const analyticsTargetSchema = new mongoose.Schema({
   isLocked: {
     type: Boolean,
     default: false,
+  },
+  module: {
+    type: String,
+    default: 'Overall'
   }
 }, {
   timestamps: true,
 });
 
-// Compound index to ensure uniqueness per student per week
-analyticsTargetSchema.index({ student: 1, week: 1 }, { unique: true });
+// Compound index to ensure uniqueness per student per week per module
+analyticsTargetSchema.index({ student: 1, week: 1, module: 1 }, { unique: true });
 
 const AnalyticsTarget = mongoose.model('AnalyticsTarget', analyticsTargetSchema);
 module.exports = AnalyticsTarget;

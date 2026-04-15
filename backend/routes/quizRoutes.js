@@ -7,6 +7,7 @@ const {
   updateQuiz,
   publishQuiz,
   submitAttempt,
+  getStudentAttempts,
   deleteQuiz
 } = require('../controllers/quizController');
 const { protect } = require('../middleware/authMiddleware');
@@ -22,5 +23,6 @@ router.route('/:id')
 
 router.put('/:id/publish', protect, publishQuiz);
 router.post('/:id/attempt', protect, submitAttempt);
+router.get('/attempts/history', protect, getStudentAttempts);
 
 module.exports = router;
