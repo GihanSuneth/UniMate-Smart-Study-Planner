@@ -234,85 +234,86 @@ function LecturerNotesAI() {
       </div>
 
       <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', justifyContent: 'center' }}>
-        <div className="main-content" style={{ flex: 1, maxWidth: '1000px', minWidth: 0 }}>
-          <div className="upload-section">
-        <div className="upload-card">
-          <div className="upload-header">
-            <h3>Reference Materials</h3>
-          </div>
+        <div className="main-content" style={{ flex: 1, maxWidth: '1200px', minWidth: 0 }}>
+          <div className="upload-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '48px', padding: '40px', backgroundColor: 'var(--bg-card)', borderRadius: '16px', boxShadow: 'var(--shadow-card)', marginBottom: '24px' }}>
+          
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '16px', color: 'var(--text-dark)' }}>Reference Materials</h3>
+            
 
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Target Module Code</label>
-            <select 
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '14px', backgroundColor: 'white' }} 
-              value={targetModule} 
-              onChange={e => setTargetModule(e.target.value)}
+
+            <div 
+              className={`dropzone ${file ? 'has-file' : ''}`}
+              onClick={handleUploadClick}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+              style={{ flex: 1, minHeight: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginBottom: '24px', border: '1px dashed #cbd5e1', borderRadius: '12px', backgroundColor: '#f8fafc', cursor: 'pointer' }}
             >
-              <option value="General">General</option>
-              <option value="IT3040">IT3040</option>
-              <option value="IT3020">IT3020</option>
-              <option value="IT3030">IT3030</option>
-              <option value="IT3010">IT3010</option>
-            </select>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '20px', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Paste Raw Notes (Optional)</label>
-              <textarea 
-                value={textNotes}
-                onChange={(e) => setTextNotes(e.target.value)}
-                placeholder="Paste your reference materials or notes here..."
-                style={{ flex: 1, minHeight: '160px', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '14px', resize: 'vertical' }}
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                onChange={handleFileChange}
+                accept=".txt,.pdf,.doc,.docx"
               />
+              {file ? (
+                <div className="file-info-container" style={{ textAlign: 'center' }}>
+                  <IconCheck size={28} color="var(--primary)" />
+                  <p className="file-name" style={{ marginTop: '8px', fontWeight: '500' }}>{file.name}</p>
+                  <button 
+                    className="remove-file-btn" 
+                    onClick={removeFile}
+                    style={{ marginTop: '12px', background: 'none', border: 'none', color: '#ef4444', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', margin: '12px auto 0' }}
+                  >
+                    <IconTrash size={16} /> Remove File
+                  </button>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', color: '#64748b' }}>
+                  <div className="cloud-icon-wrapper" style={{ marginBottom: '12px', color: 'var(--primary)' }}><IconCloudUpload size={32} /></div>
+                  <p style={{ margin: '0 20px', fontSize: '14px' }}>Upload or drop your reference materials here...</p>
+                </div>
+              )}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Or Upload Reference File (Optional)</label>
-              <div 
-                className={`dropzone ${file ? 'has-file' : ''}`}
-                onClick={handleUploadClick}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}
-              >
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  style={{ display: 'none' }} 
-                  onChange={handleFileChange}
-                  accept=".txt,.pdf,.doc,.docx"
-                />
-                {file ? (
-                  <div className="file-info-container">
-                    <IconCheck size={28} color="var(--primary)" />
-                    <p className="file-name">{file.name}</p>
-                    <button className="remove-file-btn" onClick={removeFile}>
-                      <IconTrash size={16} /> Remove File
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="cloud-icon-wrapper"><IconCloudUpload size={28} /></div>
-                    <p style={{ textAlign: 'center', margin: '0 10px' }}>Upload or drop reference materials here...</p>
-                  </>
-                )}
+            <button 
+              className="btn-primary generate-btn" 
+              onClick={handleGenerateClick}
+              disabled={isGenerating}
+              style={{ width: 'max-content', padding: '12px 24px', fontSize: '14px', fontWeight: '600', borderRadius: '8px', cursor: 'pointer' }}
+            >
+              {isGenerating ? 'Generating...' : 'Generate Teaching Aids'}
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--text-dark)' }}>Paste Text</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-dark)' }}>Filter by Module:</span>
+                <select 
+                  style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: 'white', color: 'var(--primary)', outline: 'none', cursor: 'pointer', minWidth: '220px' }} 
+                  value={targetModule} 
+                  onChange={e => setTargetModule(e.target.value)}
+                >
+                  <option value="General">Module A (General)</option>
+                  <option value="IT3040">Module B (Calculus II)</option>
+                  <option value="IT3020">Module C (Physics I)</option>
+                  <option value="IT3030">Module D (Biochemistry)</option>
+                  <option value="IT3010">Module E (Philosophy 101)</option>
+                </select>
               </div>
             </div>
+            
+            <textarea 
+              value={textNotes}
+              onChange={(e) => setTextNotes(e.target.value)}
+              placeholder="Paste your syllabus or reference notes here..."
+              style={{ flex: 1, padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', resize: 'none', backgroundColor: '#ffffff', minHeight: '280px' }}
+            />
           </div>
-        </div>
-      </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
-        <button 
-          className="btn-primary generate-btn" 
-          onClick={handleGenerateClick}
-          disabled={isGenerating}
-          style={{ width: '100%', maxWidth: '1000px', padding: '16px', fontSize: '16px', fontWeight: '700' }}
-        >
-          {isGenerating ? 'Generating...' : 'Generate Smart Study Guides & Teaching Aids'}
-        </button>
-      </div>
+        </div>
 
           {error && <div className="error-message" style={{ marginTop: '20px' }}>{error}</div>}
 
