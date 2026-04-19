@@ -104,12 +104,13 @@ function LecturerNotesAI() {
           "2. Core Concepts (20 mins): Explain theories using visual aids.",
           "3. Activity (15 mins): Group problem-solving based on the theories."
         ],
-        'Key Teaching Points': [
-          `Ensure students understand the primary concepts from ${sourceName}.`,
-          "Emphasize the importance of data preprocessing.",
-          "Provide real-world examples (e.g., predicting house prices vs. categorizing emails)."
+        'Key points': [
+          `Comprehensive overview of topics from ${sourceName}.`,
+          "Detailed explanation of core theories and methodologies.",
+          "Visual prompt ideas derived from ${sourceName}. Discussion starters to engage students.",
+          "Case studies and real-world application examples."
         ],
-        'Quiz Questions': [
+        'Quiz Ideas': [
           `Q1: What is the primary purpose of the module discussed in ${sourceName}?`,
           "Q2: Explain why Data Preprocessing is a necessary step.",
           "Q3: Give an example of an application that uses Neural Networks."
@@ -234,7 +235,7 @@ function LecturerNotesAI() {
 
       <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', justifyContent: 'center' }}>
         <div className="main-content" style={{ flex: 1, maxWidth: '1000px', minWidth: 0 }}>
-      <div className="upload-section">
+          <div className="upload-section">
         <div className="upload-card">
           <div className="upload-header">
             <h3>Reference Materials</h3>
@@ -255,73 +256,67 @@ function LecturerNotesAI() {
             </select>
           </div>
 
-          <div 
-            className={`dropzone ${file ? 'has-file' : ''}`}
-            onClick={handleUploadClick}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          >
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              style={{ display: 'none' }} 
-              onChange={handleFileChange}
-              accept=".txt,.pdf,.doc,.docx"
-            />
-            {file ? (
-              <div className="file-info-container">
-                <IconCheck size={28} color="var(--primary)" />
-                <p className="file-name">{file.name}</p>
-                <button className="remove-file-btn" onClick={removeFile}>
-                  <IconTrash size={16} /> Remove File
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="cloud-icon-wrapper"><IconCloudUpload size={28} /></div>
-                <p>Upload or drop your reference materials here...</p>
-              </>
-            )}
-          </div>
-          <button 
-            className="btn-primary generate-btn" 
-            onClick={handleGenerateClick}
-            disabled={isGenerating}
-          >
-            {isGenerating ? 'Generating...' : 'Generate Teaching Aids'}
-          </button>
-          {error && <div className="error-message">{error}</div>}
-        </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '20px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Paste Raw Notes (Optional)</label>
+              <textarea 
+                value={textNotes}
+                onChange={(e) => setTextNotes(e.target.value)}
+                placeholder="Paste your reference materials or notes here..."
+                style={{ flex: 1, minHeight: '160px', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '14px', resize: 'vertical' }}
+              />
+            </div>
 
-        <div className="upload-card">
-          <div className="upload-header with-actions">
-            <h3>Paste Text Reference</h3>
-            <div className="actions">
-              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Add your raw notes here</span>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Or Upload Reference File (Optional)</label>
+              <div 
+                className={`dropzone ${file ? 'has-file' : ''}`}
+                onClick={handleUploadClick}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}
+              >
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  style={{ display: 'none' }} 
+                  onChange={handleFileChange}
+                  accept=".txt,.pdf,.doc,.docx"
+                />
+                {file ? (
+                  <div className="file-info-container">
+                    <IconCheck size={28} color="var(--primary)" />
+                    <p className="file-name">{file.name}</p>
+                    <button className="remove-file-btn" onClick={removeFile}>
+                      <IconTrash size={16} /> Remove File
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="cloud-icon-wrapper"><IconCloudUpload size={28} /></div>
+                    <p style={{ textAlign: 'center', margin: '0 10px' }}>Upload or drop reference materials here...</p>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-          <div className="text-area-wrapper">
-            <textarea 
-              placeholder="Paste your syllabus, reference notes, or raw materials here..."
-              value={textNotes}
-              onChange={(e) => {
-                setTextNotes(e.target.value);
-                if (error) setError('');
-              }}
-            ></textarea>
-          </div>
-          <button 
-            className="btn-primary" 
-            style={{ marginTop: '16px', background: 'var(--secondary)', color: 'var(--primary)', border: 'none' }}
-            onClick={handleGenerateClick}
-            disabled={isGenerating}
-          >
-            {isGenerating ? 'Generating...' : 'Generate from Paste'}
-          </button>
         </div>
       </div>
 
-      <div className="preview-section">
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
+        <button 
+          className="btn-primary generate-btn" 
+          onClick={handleGenerateClick}
+          disabled={isGenerating}
+          style={{ width: '100%', maxWidth: '1000px', padding: '16px', fontSize: '16px', fontWeight: '700' }}
+        >
+          {isGenerating ? 'Generating...' : 'Generate Smart Study Guides & Teaching Aids'}
+        </button>
+      </div>
+
+          {error && <div className="error-message" style={{ marginTop: '20px' }}>{error}</div>}
+
+          <div className="preview-section" style={{ marginTop: '24px' }}>
         <div className="preview-header">
           <div className="preview-title">
             <h3>Smart Teaching Prep Preview</h3>
@@ -337,7 +332,7 @@ function LecturerNotesAI() {
         </div>
 
         <div className="tabs-container">
-          {['Lesson Plan', 'Key Teaching Points', 'Quiz Questions', 'Show Previous Record'].map((tab) => (
+          {['Lesson Plan', 'Key points', 'Quiz Ideas', 'Show Previous Record'].map((tab) => (
             <button 
               key={tab}
               className={`tab ${activeTab === tab ? 'active' : ''}`}
@@ -402,11 +397,11 @@ function LecturerNotesAI() {
               <p>Your generated teaching prep will appear here once you upload a file or paste text and click "Generate Teaching Aids".</p>
             </div>
           )}
-        </div>
-        </div>
+          </div>
         </div>
       </div>
     </div>
+  </div>
   );
 }
 

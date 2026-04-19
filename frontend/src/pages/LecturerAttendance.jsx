@@ -22,6 +22,7 @@ function LecturerAttendance() {
   const [submissionFilter, setSubmissionFilter] = useState('Attended'); // 'Attended' or 'Missed'
   const [sessionStartTime, setSessionStartTime] = useState(null);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [historySearchQuery, setHistorySearchQuery] = useState('');
   
   // Logic to determine current academic week (e.g. Week 8 for current date)
   const currentAcademicWeek = 8; 
@@ -153,11 +154,11 @@ function LecturerAttendance() {
 
   // Polling for live updates every 5 seconds if a session is active
   useEffect(() => {
-    fetchAttendance();
     const interval = setInterval(() => {
       if (activeSessionId) fetchAttendance();
     }, 5000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedModule, selectedWeek, activeSessionId]);
 
   return (
@@ -365,15 +366,28 @@ function LecturerAttendance() {
             <button onClick={() => setShowHistoryModal(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><IconX size={24} /></button>
             <h2 style={{ marginBottom: '20px' }}>Historical Attendance Records</h2>
             <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-               <select value={selectedModule} onChange={e => setSelectedModule(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}>
+               <select value={selectedModule} onChange={e => setSelectedModule(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd', flex: 1 }}>
                  {modules.map(m => <option key={m} value={m}>{m}</option>)}
                </select>
-               <select value={selectedWeek} onChange={e => setSelectedWeek(Number(e.target.value))} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}>
+               <select value={selectedWeek} onChange={e => setSelectedWeek(Number(e.target.value))} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd', flex: 1 }}>
                  {[1,2,3,4,5,6,7,8,9,10,11,12].map(w => <option key={w} value={w}>Week {w}</option>)}
                </select>
+               <input 
+                 type="text" 
+                 placeholder="Search Portal ID / Name..." 
+                 value={historySearchQuery}
+                 onChange={(e) => setHistorySearchQuery(e.target.value)}
+                 style={{ flex: 2, padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
+               />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {attendanceList.length > 0 ? attendanceList.map((rec, i) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', maxHeight: '50vh' }}>
+              {attendanceList.filter(rec => 
+                rec.student?.username?.toLowerCase().includes(historySearchQuery.toLowerCase()) || 
+                rec.student?.portalId?.toLowerCase().includes(historySearchQuery.toLowerCase())
+              ).length > 0 ? attendanceList.filter(rec => 
+                rec.student?.username?.toLowerCase().includes(historySearchQuery.toLowerCase()) || 
+                rec.student?.portalId?.toLowerCase().includes(historySearchQuery.toLowerCase())
+              ).map((rec, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', border: '1px solid #f1f5f9', borderRadius: '12px', background: '#f8fafc' }}>
                   <div>
                     <div style={{ fontWeight: '700' }}>{rec.student?.username}</div>
@@ -381,7 +395,7 @@ function LecturerAttendance() {
                   </div>
                   <div style={{ fontWeight: '700', color: rec.status === 'Present' ? '#10b981' : rec.status === 'Excused' ? '#f59e0b' : '#ef4444' }}>{rec.status.toUpperCase()}</div>
                 </div>
-              )) : <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>No records found for this week.</div>}
+              )) : <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>No records match your search.</div>}
             </div>
           </div>
         </div>

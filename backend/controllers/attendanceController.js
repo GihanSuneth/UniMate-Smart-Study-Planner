@@ -199,3 +199,29 @@ exports.getEnrollmentCount = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+// @desc    Manually override attendance status
+// @route   PUT /api/attendance/override
+// @access  Private (Lecturer)
+exports.updateAttendanceStatus = async (req, res) => {
+  const { studentId, module, week, status } = req.body;
+  try {
+    let attendance = await Attendance.findOne({ student: studentId, module, week });
+    
+    if (attendance) {
+      attendance.status = status;
+      await attendance.save();
+    } else {
+      attendance = await Attendance.create({
+        student: studentId,
+        module,
+        week,
+        status,
+        date: new Date()
+      });
+    }
+
+    res.json({ message: `Attendance updated to ${status}`, attendance });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

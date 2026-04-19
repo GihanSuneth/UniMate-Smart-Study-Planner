@@ -42,7 +42,8 @@ function LecturerQuizValidator() {
     semester: 'Semester 1',
     week: 1,
     questionCount: 5,
-    questions: []
+    questions: [],
+    deadline: ''
   });
 
   // Secure publishing state
@@ -65,6 +66,7 @@ function LecturerQuizValidator() {
 
   useEffect(() => {
     fetchQuizzes();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterModule, filterYear, filterSemester, filterWeek]);
 
   const fetchQuizzes = async () => {

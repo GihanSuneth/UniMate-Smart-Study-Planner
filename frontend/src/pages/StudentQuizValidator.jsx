@@ -14,6 +14,7 @@ import {
   IconBrain,
   IconX
 } from '@tabler/icons-react';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
 import { API_ENDPOINTS, BASE_URL } from '../api';
@@ -43,6 +44,7 @@ function StudentQuizValidator() {
       fetchQuizzes();
       fetchPastAttempts();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedModule, selectedYear, selectedWeek]);
 
   const fetchQuizzes = async () => {
@@ -115,16 +117,20 @@ function StudentQuizValidator() {
         setActiveQuiz(fullQuiz);
         setResult(attempt);
         const dummyAnswers = {};
+        const reveals = {};
         fullQuiz.questions.forEach((q, qIdx) => {
+          reveals[qIdx] = true;
           const res = attempt.questionResults && attempt.questionResults.find(qr => qr.questionText === q.text);
           if (res && res.isCorrect) {
             dummyAnswers[qIdx] = q.options.findIndex(o => o.isCorrect);
           } else {
+            // Find what student might have picked or default to a wrong one
             dummyAnswers[qIdx] = q.options.findIndex(o => !o.isCorrect);
             if (dummyAnswers[qIdx] === -1) dummyAnswers[qIdx] = 0;
           }
         });
         setCurrentAnswers(dummyAnswers);
+        setRevealedAnswers(reveals);
         window.scrollTo(0, 0);
       }
     } catch (e) {
@@ -457,32 +463,45 @@ function StudentQuizValidator() {
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px', marginTop: '16px' }}>
-            {quizzes.map((quiz, idx) => (
-              <motion.div 
-                key={quiz._id} 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 * idx }}
-                style={{ backgroundColor: 'white', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', transition: '0.2s', cursor: 'pointer' }} 
-                onClick={() => startQuiz(quiz)} 
-                whileHover={{ translateY: -4, boxShadow: '0 12px 24px rgba(0,0,0,0.05)' }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '700', padding: '4px 8px', borderRadius: '4px', backgroundColor: '#eef2ff', color: 'var(--primary)', textTransform: 'uppercase' }}>Available</span>
-                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center', fontSize: '12px', color: 'var(--text-secondary)' }}><IconClock size={14} /> 15 mins</div>
-                </div>
-                <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>{quiz.title}</h3>
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>{quiz.module}</p>
-                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <IconCalendar size={14} /> Week {quiz.week} • {quiz.academicYear} • {quiz.questionCount} Qs
-                </p>
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <button style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: '700', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
-                    Attempt Now <IconArrowRight size={18} />
-                  </button>
-                </div>
-              </motion.div>
-            ))}
+            {quizzes.map((quiz, idx) => {
+              const isPastDeadline = quiz.deadline && new Date() > new Date(quiz.deadline);
+              const isCurrentWeek = quiz.week === 8; // Restrict to Week 8 as per requirement
+              const isLocked = isPastDeadline || !isCurrentWeek;
+
+              return (
+                <motion.div 
+                  key={quiz._id} 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05 * idx }}
+                  style={{ backgroundColor: isLocked ? '#f1f5f9' : 'white', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', transition: '0.2s', cursor: isLocked ? 'default' : 'pointer', opacity: isLocked ? 0.7 : 1 }} 
+                  onClick={() => !isLocked && startQuiz(quiz)} 
+                  whileHover={!isLocked ? { translateY: -4, boxShadow: '0 12px 24px rgba(0,0,0,0.05)' } : {}}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '700', padding: '4px 8px', borderRadius: '4px', backgroundColor: isLocked ? '#e2e8f0' : '#eef2ff', color: isLocked ? '#64748b' : 'var(--primary)', textTransform: 'uppercase' }}>
+                      {isPastDeadline ? 'DEADLINE PASSED' : !isCurrentWeek ? 'LOCKED' : 'AVAILABLE'}
+                    </span>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center', fontSize: '12px', color: 'var(--text-secondary)' }}><IconClock size={14} /> 15 mins</div>
+                  </div>
+                  <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>{quiz.title}</h3>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>{quiz.module}</p>
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <IconCalendar size={14} /> Week {quiz.week} • {quiz.academicYear} • {quiz.questionCount} Qs
+                  </p>
+                  {quiz.deadline && (
+                    <p style={{ fontSize: '11px', color: isPastDeadline ? '#ef4444' : '#64748b', fontWeight: '600', marginBottom: '20px' }}>
+                      Deadline: {new Date(quiz.deadline).toLocaleDateString()}
+                    </p>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button disabled={isLocked} style={{ background: 'none', border: 'none', color: isLocked ? '#94a3b8' : 'var(--primary)', fontWeight: '700', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'default' : 'pointer' }}>
+                      {isLocked ? 'Cannot Attempt' : 'Attempt Now'} <IconArrowRight size={18} />
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         )}
 

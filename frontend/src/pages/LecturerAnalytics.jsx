@@ -14,66 +14,18 @@ function LecturerAnalytics() {
   const [activeTab, setActiveTab] = useState('attendance');
   const [selectedModule, setSelectedModule] = useState('Programming Applications');
   const [selectedWeek, setSelectedWeek] = useState(1);
-  const [qrCode, setQrCode] = useState(null);
-  const [activeSessionId, setActiveSessionId] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // eslint-disable-line no-unused-vars
   const [attendanceList, setAttendanceList] = useState([]);
   
   const modules = ['Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering'];
-
-  // Handle generating the Session QR
-  const generateQRCode = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${BASE_URL}/attendance/session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lecturer: localStorage.getItem('userId'),
-          module: selectedModule,
-          week: selectedWeek
-        })
-      });
-      const data = await response.json();
-      setLoading(false);
-      
-      if (response.ok) {
-        setQrCode(data.uniqueCode);
-        setActiveSessionId(data._id);
-        toast.success(`Session created! Code: ${data.uniqueCode}`);
-        // Auto-refresh the list
-        fetchAttendance();
-      } else {
-        toast.error('Failed to create session');
-      }
-    } catch (err) {
-      setLoading(false);
-      toast.error('Server connection error');
-    }
+  const moduleNames = {
+    'Programming Applications': 'IT3010 - Programming Applications',
+    'Database Systems': 'IT3020 - Database Systems',
+    'Operating Systems': 'IT3030 - Operating Systems',
+    'Software Engineering': 'IT3040 - Software Engineering'
   };
 
-  // Handle ending the session
-  const endActiveSession = async () => {
-    if (!activeSessionId) return;
-    setLoading(true);
-    try {
-      const response = await fetch(`${BASE_URL}/attendance/session/${activeSessionId}/end`, {
-        method: 'PUT',
-      });
-      setLoading(false);
-      if (response.ok) {
-        setQrCode(null);
-        setActiveSessionId(null);
-        toast.success('Attendance session ended.');
-      } else {
-        toast.error('Failed to end session');
-      }
-    } catch (err) {
-      setLoading(false);
-      toast.error('Server connection error');
-    }
-  };
-
+  const getFullModuleName = (code) => moduleNames[code] || code;
   // Handle fetching attendance list for the module
   const fetchAttendance = async () => {
     try {
@@ -137,7 +89,7 @@ function LecturerAnalytics() {
               onChange={(e) => setSelectedModule(e.target.value)}
               style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
             >
-              {modules.map(m => <option key={m} value={m}>{m}</option>)}
+               {modules.map(m => <option key={m} value={m}>{getFullModuleName(m)}</option>)}
             </select>
           </div>
           <div style={{ flex: 1 }}>
@@ -173,7 +125,7 @@ function LecturerAnalytics() {
         {activeTab === 'attendance' && (
           <div className="overview-card" style={{ marginBottom: '24px', animation: 'fadeIn 0.3s ease-out' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 className="overview-card-header" style={{ margin: 0 }}>Attendance Records ({selectedModule} - Week {selectedWeek})</h3>
+              <h3 className="overview-card-header" style={{ margin: 0 }}>Attendance Records ({getFullModuleName(selectedModule)} - Week {selectedWeek})</h3>
               <button 
                 onClick={downloadCSV}
                 style={{
@@ -271,7 +223,7 @@ function LecturerAnalytics() {
         {activeTab === 'performance' && (
           <div className="details-row" style={{ animation: 'fadeIn 0.3s ease-out' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h3 className="overview-card-header" style={{ marginBottom: 0 }}>Class Weekly Learning Report: {selectedModule} (Week {selectedWeek})</h3>
+              <h3 className="overview-card-header" style={{ marginBottom: 0 }}>Class Weekly Learning Report: {getFullModuleName(selectedModule)} (Week {selectedWeek})</h3>
               <div className="ai-badge"><IconBrain size={14}/> Clustered Class Data</div>
             </div>
 

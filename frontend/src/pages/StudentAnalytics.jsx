@@ -7,6 +7,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area,
   BarChart, Bar, Cell, RadialBarChart, RadialBar, PolarAngleAxis
 } from 'recharts';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { BASE_URL } from "../api";
 import "./Analytics.css";
@@ -21,9 +22,11 @@ function StudentAnalytics() {
   const [confirmStep, setConfirmStep] = useState(false);
 
   // 🔒 DYNAMIC DATA
+  // eslint-disable-next-line no-unused-vars
   const [lastWeek, setLastWeek] = useState({ att: 0, quiz: 0, attTarget: 0, quizTarget: 0 });
   const [currentWeek, setCurrentWeek] = useState({ att: 0, quiz: 0 });
   const [weeklyHistory, setWeeklyHistory] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [suggestions, setSuggestions] = useState([]);
   const [criticalInsight, setCriticalInsight] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -38,6 +41,19 @@ function StudentAnalytics() {
   // Check if it's a valid ID (string that is not "null", "undefined" and has length)
   const studentId = (rawId && rawId !== "null" && rawId !== "undefined") ? rawId : null;
   const currentWeekNum = 5; 
+
+  const moduleNames = {
+    'IT3040': 'IT3040 - Software Engineering',
+    'IT3020': 'IT3020 - Database Systems',
+    'IT3030': 'IT3030 - Operating Systems',
+    'IT3010': 'IT3010 - Programming Applications',
+    'Programming Applications': 'IT3010 - Programming Applications',
+    'Database Systems': 'IT3020 - Database Systems',
+    'Operating Systems': 'IT3030 - Operating Systems',
+    'Software Engineering': 'IT3040 - Software Engineering'
+  };
+
+  const getModuleName = (code) => moduleNames[code] || code;
 
   // ✅ USE CURRENT LOCKED VALUES IF AVAILABLE for current week validation
   const activeAtt = locked ? locked.att : attThreshold;
@@ -132,7 +148,7 @@ function StudentAnalytics() {
         } else {
           showToast("error", "Error", "Failed to save targets to backend.");
         }
-      } catch (err) {
+      } catch (err) { // eslint-disable-line no-unused-vars
         showToast("error", "Connection Error", "Could not reach backend to save targets.");
       }
     }
@@ -260,6 +276,7 @@ function StudentAnalytics() {
 
   useEffect(() => {
     fetchAnalytics();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedModule]);
 
   if (loading) {
@@ -361,7 +378,7 @@ function StudentAnalytics() {
                 transition: 'all 0.2s'
               }}
             >
-              {mod}
+              {getModuleName(mod)}
             </button>
           ))}
         </div>

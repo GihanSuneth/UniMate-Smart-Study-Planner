@@ -92,47 +92,52 @@ function StudentNotesAI() {
     setTimeout(async () => {
       setIsGenerating(false);
 
-      const sourceName = file ? file.name : 'your pasted notes';
-      let newNotesObj;
+      let sourceName = '';
+      if (file && textNotes.trim()) {
+        sourceName = `${file.name} and your rough notes`;
+      } else if (file) {
+        sourceName = file.name;
+      } else {
+        sourceName = 'your pasted text';
+      }
 
-      if (generationMode === 'short_notes') {
+      let newNotesObj = {};
+      if (generationMode === 'smart_notes') {
         newNotesObj = {
-          Summary: [
-            `Based on ${sourceName}: Machine Learning is a subset of AI where computers learn from data and make decisions with minimal human intervention.`,
-            "It fundamentally relies on using algorithms to parse data, learn from it, and then make a determination or prediction.",
-            "Data preprocessing and building pipelines are core components before any model training can begin."
+          'Summary': [
+            `Comprehensive summary of key concepts based on ${sourceName}.`,
+            "Broken down into digestible sections for quick reading.",
+            "High-level overview suitable for initial understanding."
           ],
-          'Key Points': [
-            `According to ${sourceName}, Linear Regression is used for predicting numerical values.`,
-            "Decision Trees are primarily for classification.",
-            "Neural Networks handle complex pattern recognition.",
-            "Data Collection, Preprocessing, and Model Training are the essential phases of ML development."
+          'Short Notes': [
+            `Focused bullet points derived from ${sourceName}.`,
+            "Concentrated logic for rapid memorization.",
+            "Key formulas and core rules highlighted."
           ],
-          Definitions: [
-            "Artificial Intelligence (AI): The theory and development of computer systems able to perform tasks that normally require human intelligence.",
-            "Data Preprocessing: The process of cleaning and transforming raw data into a useful and understandable format.",
-            "Model Training: The phase where the learning algorithm is applied to the training data."
+          'Explanation': [
+            `Detailed AI-driven explanation of complex parts in ${sourceName}.`,
+            "Analogy-based learning to simplify difficult concepts.",
+            "Contextual bridge between theory and practice."
           ]
         };
-        setGeneratedNotes(newNotesObj);
         setActiveTab('Summary');
       } else {
         newNotesObj = {
-          'Exam Path': [
-            `Week 1: Review Core AI Concepts directly from ${sourceName} and understand the history of Machine Learning.`,
-            "Week 2: Focus on Algorithms - specifically Linear Regression and classification methods.",
-            "Week 3: Deep dive into Neural Networks and architecture design.",
+          'Exam Prep': [
+            `Week 1: Review Core Concepts directly from ${sourceName}.`,
+            "Week 2: Focus on Algorithms - specifically logic and classification methods.",
+            "Week 3: Deep dive into architecture design.",
             "Week 4: Final project practice and mock examinations."
           ],
           'Referral Sheet': [
-            `Cheatsheet 1: Common ML Formulas discussed in ${sourceName}.`,
-            "Cheatsheet 2: Definitions of Data Preprocessing techniques.",
-            "CheatSheet 3: Quick look at Python libraries (Scikit-Learn, TensorFlow, PyTorch)."
+            `Cheatsheet 1: Common formulas found in ${sourceName}.`,
+            "Cheatsheet 2: Definitions of Preprocessing techniques.",
+            "CheatSheet 3: Quick look at core systems discussed."
           ]
         };
-        setGeneratedNotes(newNotesObj);
-        setActiveTab('Exam Path');
+        setActiveTab('Exam Prep');
       }
+      setGeneratedNotes(newNotesObj);
 
       // Log activity to backend
       try {
@@ -246,29 +251,32 @@ function StudentNotesAI() {
       <div className="page-header">
         <h1>Student Notes AI</h1>
         <p>Generate structured study materials with AI from your rough notes.</p>
+        
+        <div className="top-level-tabs" style={{ display: 'flex', gap: '16px', marginTop: '24px', borderBottom: '2px solid var(--border-color)', paddingBottom: '0' }}>
+          <button 
+            className={`tab ${generationMode === 'smart_notes' ? 'active' : ''}`}
+            onClick={() => setGenerationMode('smart_notes')}
+            style={{ padding: '12px 24px', backgroundColor: 'transparent', border: 'none', borderBottom: generationMode === 'smart_notes' ? '3px solid var(--primary)' : '3px solid transparent', fontSize: '16px', fontWeight: '600', color: generationMode === 'smart_notes' ? 'var(--primary)' : 'var(--text-secondary)', cursor: 'pointer', transition: '0.2s', marginBottom: '-2px' }}
+          >
+            Smart Notes Generator
+          </button>
+          <button 
+            className={`tab ${generationMode === 'exam_prep' ? 'active' : ''}`}
+            onClick={() => setGenerationMode('exam_prep')}
+            style={{ padding: '12px 24px', backgroundColor: 'transparent', border: 'none', borderBottom: generationMode === 'exam_prep' ? '3px solid var(--primary)' : '3px solid transparent', fontSize: '16px', fontWeight: '600', color: generationMode === 'exam_prep' ? 'var(--primary)' : 'var(--text-secondary)', cursor: 'pointer', transition: '0.2s', marginBottom: '-2px' }}
+          >
+            Exam Prep Generator
+          </button>
+        </div>
       </div>
 
-      <div className="mode-selector-container" style={{ display: 'flex', gap: '15px', marginBottom: '24px', justifyContent: 'center', flexWrap: 'wrap' }}>
-        <button
-          className={generationMode === 'short_notes' ? 'btn-primary' : 'btn-outline'}
-          onClick={() => { setGenerationMode('short_notes'); setGeneratedNotes(null); setActiveTab('Summary'); }}
-        >
-          Create Short Note and Explanation
-        </button>
-        <button
-          className={generationMode === 'exam_prep' ? 'btn-primary' : 'btn-outline'}
-          onClick={() => { setGenerationMode('exam_prep'); setGeneratedNotes(null); setActiveTab('Exam Path'); }}
-        >
-          Examination Preparation Path and Refferral Sheet Builder
-        </button>
-      </div>
 
       <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', justifyContent: 'center' }}>
         <div className="main-content" style={{ flex: 1, maxWidth: '1000px', minWidth: 0 }}>
-      <div className="upload-section">
+          <div className="upload-section">
         <div className="upload-card">
           <div className="upload-header">
-            <h3>Rough Notes</h3>
+            <h3>Input & Configuration</h3>
           </div>
           
           <div style={{ marginBottom: '16px' }}>
@@ -286,67 +294,66 @@ function StudentNotesAI() {
             </select>
           </div>
 
-          <div
-            className={`dropzone ${file ? 'has-file' : ''}`}
-            onClick={handleUploadClick}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          >
-            <input
-              type="file"
-              ref={fileInputRef}
-              style={{ display: 'none' }}
-              onChange={handleFileChange}
-              accept=".txt,.pdf,.doc,.docx"
-            />
-            {file ? (
-              <div className="file-info-container">
-                <IconCheck size={28} color="var(--primary)" />
-                <p className="file-name">{file.name}</p>
-                <button className="remove-file-btn" onClick={removeFile}>
-                  <IconTrash size={16} /> Remove File
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="cloud-icon-wrapper"><IconCloudUpload size={28} /></div>
-                <p>Upload or drop your lecture notes here...</p>
-              </>
-            )}
-          </div>
-          <button
-            className="btn-primary generate-btn"
-            onClick={handleGenerateClick}
-            disabled={isGenerating}
-          >
-            {isGenerating ? 'Generating...' : 'Generate Smart Notes'}
-          </button>
-          {error && <div className="error-message">{error}</div>}
-        </div>
-
-        <div className="upload-card">
-          <div className="upload-header with-actions">
-            <h3>Paste Text</h3>
-            <div className="actions">
-              <button className="btn-ghost" onClick={handleUploadClick}><IconPlus size={16} /> Upload File</button>
-              <button className="icon-btn-small" onClick={() => alert('Saved Draft!')}><IconDeviceFloppy size={18} /></button>
-              <button className="icon-btn-small"><IconDotsVertical size={18} /></button>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '20px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Paste Raw Notes (Optional)</label>
+              <textarea 
+                value={textNotes}
+                onChange={(e) => setTextNotes(e.target.value)}
+                placeholder="Paste your rough notes or syllabus here..."
+                style={{ flex: 1, minHeight: '160px', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '14px', resize: 'vertical' }}
+              />
             </div>
-          </div>
-          <div className="text-area-wrapper">
-            <textarea
-              placeholder="Paste your rough notes here..."
-              value={textNotes}
-              onChange={(e) => {
-                setTextNotes(e.target.value);
-                if (error) setError('');
-              }}
-            ></textarea>
+
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Or Upload Reference File (Optional)</label>
+              <div
+                className={`dropzone ${file ? 'has-file' : ''}`}
+                onClick={handleUploadClick}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}
+              >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  style={{ display: 'none' }}
+                  onChange={handleFileChange}
+                  accept=".txt,.pdf,.doc,.docx"
+                />
+                {file ? (
+                  <div className="file-info-container">
+                    <IconCheck size={28} color="var(--primary)" />
+                    <p className="file-name">{file.name}</p>
+                    <button className="remove-file-btn" onClick={removeFile}>
+                      <IconTrash size={16} /> Remove File
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="cloud-icon-wrapper"><IconCloudUpload size={28} /></div>
+                    <p style={{ textAlign: 'center', margin: '0 10px' }}>Upload or drop lecture notes here...</p>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="preview-section">
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
+        <button 
+          className="btn-primary generate-btn" 
+          onClick={handleGenerateClick}
+          disabled={isGenerating}
+          style={{ width: '100%', maxWidth: '1000px', padding: '16px', fontSize: '16px', fontWeight: '700' }}
+        >
+          {isGenerating ? `Generating ${generationMode === 'smart_notes' ? 'Smart Notes' : 'Exam Prep'}...` : `Generate ${generationMode === 'smart_notes' ? 'Smart Notes' : 'Exam Preparation'}`}
+        </button>
+      </div>
+          {error && <div className="error-message" style={{ marginTop: '20px' }}>{error}</div>}
+
+          <div className="preview-section" style={{ marginTop: '24px' }}>
         <div className="preview-header">
           <div className="preview-title">
             <h3>Smart Notes Preview</h3>
@@ -365,8 +372,8 @@ function StudentNotesAI() {
         </div>
 
         <div className="tabs-container">
-          {([...(generatedNotes ? Object.keys(generatedNotes) : (generationMode === 'short_notes' ? ['Summary', 'Key Points', 'Definitions'] : ['Exam Path', 'Referral Sheet'])), 'Show Previous Record']).map((tab) => (
-            <button
+          {([...(generatedNotes ? Object.keys(generatedNotes) : (generationMode === 'smart_notes' ? ['Summary', 'Short Notes', 'Explanation'] : ['Exam Prep', 'Referral Sheet'])), 'Show Previous Record']).map((tab) => (
+            <button 
               key={tab}
               className={`tab ${activeTab === tab ? 'active' : ''}`}
               onClick={() => setActiveTab(tab)}
@@ -398,9 +405,9 @@ function StudentNotesAI() {
                 </select>
               </div>
               <div className="history-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-                {history.filter(item => generationMode === 'short_notes' ? !!item.content?.Summary : !!item.content?.['Exam Path']).length === 0 ? (
+                {history.filter(item => generationMode === 'smart_notes' ? !!item.content?.Summary : !!item.content?.['Exam Prep']).length === 0 ? (
                   <p style={{ gridColumn: '1/-1', textAlign: 'center', color: 'var(--text-secondary)', padding: '40px' }}>No history found for this tool.</p>
-                ) : history.filter(item => generationMode === 'short_notes' ? !!item.content?.Summary : !!item.content?.['Exam Path']).map((item, idx) => (
+                ) : history.filter(item => generationMode === 'smart_notes' ? !!item.content?.Summary : !!item.content?.['Exam Prep']).map((item, idx) => (
                    <div key={idx} onClick={() => loadHistoryItem(item)} style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', cursor: 'pointer', transition: '0.2s', backgroundColor: 'white' }} onMouseEnter={(e) => e.currentTarget.style.borderColor='var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.borderColor='var(--border-color)'}>
                       <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '8px' }}>{item.title || 'Generated Notes'}</div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)' }}>
@@ -432,11 +439,11 @@ function StudentNotesAI() {
               <p>Your generated notes will appear here once you upload a file or paste text and click "Generate Smart Notes".</p>
             </div>
           )}
-        </div>
-        </div>
+          </div>
         </div>
       </div>
     </div>
+  </div>
   );
 }
 

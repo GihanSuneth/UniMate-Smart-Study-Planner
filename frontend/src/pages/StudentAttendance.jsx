@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { IconCheck, IconX, IconCalendarEvent, IconClock, IconMapPin, IconUsers, IconUser } from '@tabler/icons-react';
+import { IconCheck, IconX, IconCalendarEvent, IconClock, IconMapPin, IconUsers, IconUser, IconAlertTriangle } from '@tabler/icons-react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { BASE_URL } from '../api';
@@ -16,7 +16,11 @@ function StudentAttendance() {
   const [submittedSessions, setSubmittedSessions] = useState(new Set()); // track local session ids marked
   const [filterModule, setFilterModule] = useState('All');
   const [filterWeek, setFilterWeek] = useState('All');
+  const [showMarkModal, setShowMarkModal] = useState(null); // stores the session for modal
+  const [historyFilterModule, setHistoryFilterModule] = useState('All');
+  const [historyFilterWeek, setHistoryFilterWeek] = useState('All');
 
+  const currentAcademicWeek = 8;
   const modules = ['All', 'Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering'];
   const weeks = ['All', ...Array.from({ length: 12 }, (_, i) => (i + 1).toString())];
 
@@ -111,16 +115,23 @@ function StudentAttendance() {
 
       <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', backgroundColor: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
         <div style={{ flex: 1 }}>
-          <label style={{ fontSize: '13px', fontWeight: 600, color: '#64748b', marginBottom: '8px', display: 'block' }}>Filter by Module</label>
-          <select value={filterModule} onChange={e => setFilterModule(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px', color: '#1e293b' }}>
-            {modules.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
+          <label style={{ fontSize: '13px', fontWeight: 600, color: '#64748b', marginBottom: '8px', display: 'block' }}>Search Active Sessions</label>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <select value={filterModule} onChange={e => setFilterModule(e.target.value)} style={{ flex: 2, padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' }}>
+              {modules.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <select value={filterWeek} onChange={e => setFilterWeek(e.target.value)} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' }}>
+              {weeks.map(w => <option key={w} value={w}>{w === 'All' ? 'All Weeks' : `Week ${w}`}</option>)}
+            </select>
+          </div>
         </div>
-        <div style={{ flex: 1 }}>
-          <label style={{ fontSize: '13px', fontWeight: 600, color: '#64748b', marginBottom: '8px', display: 'block' }}>Filter by Week</label>
-          <select value={filterWeek} onChange={e => setFilterWeek(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px', color: '#1e293b' }}>
-            {weeks.map(w => <option key={w} value={w}>{w === 'All' ? 'All Weeks' : `Week ${w}`}</option>)}
-          </select>
+      </div>
+
+      <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#fff7ed', borderRadius: '12px', border: '1px solid rgba(245, 158, 11, 0.2)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ backgroundColor: '#f59e0b', color: 'white', padding: '8px', borderRadius: '8px' }}><IconClock size={20} /></div>
+        <div>
+          <h4 style={{ margin: 0, fontSize: '15px', color: '#92400e' }}>Current Academic Week: {currentAcademicWeek}</h4>
+          <p style={{ margin: 0, fontSize: '12px', color: '#b45309' }}>You can only join sessions active for this week.</p>
         </div>
       </div>
 
@@ -138,8 +149,8 @@ function StudentAttendance() {
             </div>
             
             <div className="active-sessions-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px', minHeight: '220px' }}>
-               {activeSessions.filter(s => (filterModule === 'All' || s.module === filterModule) && (filterWeek === 'All' || s.week.toString() === filterWeek)).length > 0 ? 
-                 activeSessions.filter(s => (filterModule === 'All' || s.module === filterModule) && (filterWeek === 'All' || s.week.toString() === filterWeek)).map((session) => {
+               {activeSessions.filter(s => s.week === currentAcademicWeek && (filterModule === 'All' || s.module === filterModule) && (filterWeek === 'All' || s.week.toString() === filterWeek)).length > 0 ? 
+                 activeSessions.filter(s => s.week === currentAcademicWeek && (filterModule === 'All' || s.module === filterModule) && (filterWeek === 'All' || s.week.toString() === filterWeek)).map((session) => {
                  // Check if student has already marked it (via local tracking or historical records match)
                  const hasMarkedLocal = submittedSessions.has(session._id);
                  const hasMarkedHistory = attendanceData?.records?.some(r => r.module === session.module && r.week === session.week);
@@ -176,7 +187,7 @@ function StudentAttendance() {
                         </div>
                      ) : (
                         <button 
-                          onClick={() => markAttendance(session)}
+                          onClick={() => setShowMarkModal(session)}
                           disabled={markingId === session._id}
                           style={{ width: '100%', padding: '12px', borderRadius: '12px', backgroundColor: '#4f46e5', color: 'white', border: 'none', fontSize: '14px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)' }}
                           onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(79, 70, 229, 0.3)' }}
@@ -255,11 +266,56 @@ function StudentAttendance() {
         </div>
       </div>
 
+       {/* Missed Attendance Section */}
+      <div className="attendance-card" style={{ marginTop: '30px', borderLeft: '4px solid #ef4444' }}>
+         <h3 className="card-title" style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+           <IconAlertTriangle size={20} color="#ef4444"/> Missed This Week (Week {currentAcademicWeek})
+         </h3>
+         <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>Sessions you were enrolled in but missed checking into.</p>
+         
+         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {/* Logic: modules - attended_in_week8 */}
+            {modules.filter(m => m !== 'All').map(mod => {
+              const attended = attendanceData?.records?.some(r => r.module === mod && r.week === currentAcademicWeek);
+              const activeNow = activeSessions.some(s => s.module === mod && s.week === currentAcademicWeek);
+              
+              if (!attended && !activeNow) {
+                return (
+                  <div key={mod} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: '#fff1f2', borderRadius: '12px', border: '1px solid #fecaca' }}>
+                    <div>
+                      <div style={{ fontWeight: '700', color: '#991b1b', fontSize: '14px' }}>{mod}</div>
+                      <div style={{ fontSize: '12px', color: '#b91c1c' }}>Missed Week {currentAcademicWeek}</div>
+                    </div>
+                    <button onClick={() => setHistoryFilterModule(mod)} style={{ background: 'white', color: '#ef4444', border: '1px solid #fecaca', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>View History</button>
+                  </div>
+                );
+              }
+              return null;
+            })}
+            {/* Placeholder if nothing missed */}
+            {modules.filter(m => m !== 'All').every(mod => attendanceData?.records?.some(r => r.module === mod && r.week === currentAcademicWeek) || activeSessions.some(s => s.module === mod && s.week === currentAcademicWeek)) && (
+               <div style={{ padding: '20px', textAlign: 'center', color: '#059669', background: '#ecfdf5', borderRadius: '12px', fontSize: '14px', fontWeight: '600' }}>
+                 Perfect! You've attended all sessions for your modules so far this week. ✨
+               </div>
+            )}
+         </div>
+      </div>
+
       {/* Historical Records Table */}
       <div className="attendance-card" style={{ marginTop: '30px' }}>
-         <h3 className="card-title" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}><IconCalendarEvent size={20}/> Past Attendance History</h3>
+         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <h3 className="card-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><IconCalendarEvent size={20}/> Past Attendance History</h3>
+            <div style={{ display: 'flex', gap: '8px' }}>
+               <select value={historyFilterModule} onChange={e => setHistoryFilterModule(e.target.value)} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: '600' }}>
+                  {modules.map(m => <option key={m} value={m}>{m}</option>)}
+               </select>
+               <select value={historyFilterWeek} onChange={e => setHistoryFilterWeek(e.target.value)} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: '600' }}>
+                  {weeks.map(w => <option key={w} value={w}>{w === 'All' ? 'All Weeks' : `Week ${w}`}</option>)}
+               </select>
+            </div>
+         </div>
          
-         {!loading && attendanceData?.records?.filter(r => (filterModule === 'All' || r.module === filterModule) && (filterWeek === 'All' || r.week.toString() === filterWeek)).length > 0 ? (
+         {!loading && attendanceData?.records?.filter(r => (historyFilterModule === 'All' || r.module === historyFilterModule) && (historyFilterWeek === 'All' || r.week.toString() === historyFilterWeek)).length > 0 ? (
            <div style={{ overflowX: 'auto' }}>
              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                <thead>
@@ -272,7 +328,7 @@ function StudentAttendance() {
                </thead>
                <tbody>
                  {[...attendanceData.records]
-                   .filter(r => (filterModule === 'All' || r.module === filterModule) && (filterWeek === 'All' || r.week.toString() === filterWeek))
+                   .filter(r => (historyFilterModule === 'All' || r.module === historyFilterModule) && (historyFilterWeek === 'All' || r.week.toString() === historyFilterWeek))
                    .reverse().map((record) => (
                    <tr key={record._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                      <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600', color: '#1e293b' }}>{record.module}</td>
@@ -294,12 +350,80 @@ function StudentAttendance() {
            </div>
          )}
       </div>
+
+      {/* Marking Attendance Modal (Slide Window) */}
+      {showMarkModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end', transition: '0.3s' }}>
+          <div style={{ width: '100%', maxWidth: '400px', height: '100%', backgroundColor: 'white', boxShadow: '-8px 0 32px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', position: 'relative', animation: 'slideInRight 0.4s ease-out' }}>
+            <div style={{ padding: '32px 24px', borderBottom: '1px solid #f1f5f9' }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b', margin: 0 }}>Join Lecture Session</h2>
+                  <button onClick={() => setShowMarkModal(null)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}><IconX size={24}/></button>
+               </div>
+               <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>Confirm your details to mark attendance for this session.</p>
+            </div>
+
+            <div style={{ padding: '24px', flex: 1 }}>
+               <div style={{ backgroundColor: '#f8fafc', borderRadius: '16px', padding: '20px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#6366f1', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Active Module</div>
+                  <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#1e293b', margin: '0 0 16px 0' }}>{showMarkModal.module}</h3>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>WEEK</span>
+                        <span style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b' }}>{showMarkModal.week}</span>
+                     </div>
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>SESSION CODE</span>
+                        <span style={{ fontSize: '15px', fontWeight: '700', color: '#4f46e5' }}>VERIFIED ✓</span>
+                     </div>
+                  </div>
+               </div>
+
+               <div style={{ padding: '16px', backgroundColor: '#eef2ff', borderRadius: '12px', border: '1px solid #c7d2fe', marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                     <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#4f46e5', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <IconUser size={20} />
+                     </div>
+                     <div>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>Attendance Record</div>
+                        <div style={{ fontSize: '11px', color: '#6366f1' }}>Mapping to your Student ID: {studentId?.substring(0, 8)}...</div>
+                     </div>
+                  </div>
+               </div>
+
+               <p style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', lineHeight: '1.5' }}>
+                  By clicking 'Confirm and Mark', you acknowledge that you are physically present in the lecture hall for this session.
+               </p>
+            </div>
+
+            <div style={{ padding: '24px', backgroundColor: '#f8fafc', borderTop: '1px solid #f1f5f9' }}>
+               <button 
+                 disabled={markingId === showMarkModal._id}
+                 onClick={async () => {
+                   await markAttendance(showMarkModal);
+                   setTimeout(() => setShowMarkModal(null), 1500);
+                 }}
+                 style={{ width: '100%', padding: '16px', borderRadius: '12px', backgroundColor: '#4f46e5', color: 'white', border: 'none', fontSize: '16px', fontWeight: '800', cursor: 'pointer', boxShadow: '0 8px 24px rgba(79, 70, 229, 0.25)', transition: '0.2s' }}
+                 onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                 onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+               >
+                 {markingId === showMarkModal._id ? 'Verifying Attendance...' : 'Confirm and Mark Attendance'}
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       <style>{`
         @keyframes pulse {
           0% { opacity: 1; }
           50% { opacity: 0.4; }
           100% { opacity: 1; }
+        }
+        @keyframes slideInRight {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
         }
       `}</style>
     </div>

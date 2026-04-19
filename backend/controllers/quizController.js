@@ -22,7 +22,8 @@ exports.createQuiz = async (req, res) => {
       lecturer: req.user._id,
       questions,
       questionCount,
-      isPublished: false
+      isPublished: false,
+      deadline: req.body.deadline
     });
 
     res.status(201).json(quiz);
@@ -39,8 +40,10 @@ exports.getQuizzes = async (req, res) => {
   const filter = {};
 
   if (module && module !== 'All') filter.module = module;
-  if (academicYear) filter.academicYear = academicYear;
-  if (week) filter.week = parseInt(week);
+  if (academicYear && academicYear !== 'All') {
+    filter.academicYear = { $regex: academicYear, $options: 'i' };
+  }
+  if (week && week !== 'All') filter.week = parseInt(week);
 
   try {
     if (req.user.role === 'Lecturer' || req.user.role === 'admin') {
@@ -133,6 +136,11 @@ exports.submitAttempt = async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.id);
     if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
+
+    // Check deadline
+    if (quiz.deadline && new Date() > new Date(quiz.deadline)) {
+      return res.status(400).json({ message: 'Quiz deadline has passed. You can no longer submit attempts.' });
+    }
 
     let correctCount = 0;
     const questionResults = [];
