@@ -99,10 +99,10 @@ function LecturerAnalytics() {
   const downloadCSV = () => {
     if (!attendanceList.length) return toast.warn('No records to export');
     
-    let csv = 'Student ID,Username,Email,Module,Week,Date,Status\n';
+    let csv = 'Portal ID,Username,Email,Module,Week,Date,Status\n';
     
     attendanceList.forEach(rec => {
-      const studentId = rec.student?._id || 'N/A';
+      const studentId = rec.student?.portalId || 'N/A';
       const name = rec.student?.username || 'Unknown';
       const email = rec.student?.email || 'N/A';
       const date = new Date(rec.date).toLocaleDateString();

@@ -16,6 +16,7 @@ function LecturerAttendance() {
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [attendanceList, setAttendanceList] = useState([]);
+  const [enrollmentCount, setEnrollmentCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   
   const modules = ['Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering'];
@@ -29,6 +30,13 @@ function LecturerAttendance() {
         // Filter by the selected week
         const weekData = data.filter(r => r.week === selectedWeek);
         setAttendanceList(weekData);
+      }
+      
+      // Also fetch enrollment count
+      const enrollRes = await fetch(`${BASE_URL}/attendance/enrollment-count?module=${encodeURIComponent(selectedModule)}`);
+      if (enrollRes.ok) {
+        const enrollData = await enrollRes.json();
+        setEnrollmentCount(enrollData.count);
       }
     } catch (error) {
            console.error('Fetch attendance error', error);
@@ -155,10 +163,14 @@ function LecturerAttendance() {
               )}
             </div>
 
-            <div className="status-indicators" style={{ marginBottom: '20px' }}>
+            <div className="status-indicators" style={{ marginBottom: '20px', display: 'flex', gap: '20px' }}>
               <div className="status-item present">
                  <IconCheck size={20} color="var(--success)" stroke={3} />
                  <span>Checked In: <span className="count">{attendanceList.length}</span></span>
+              </div>
+              <div className="status-item total" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '13px', fontWeight: '600' }}>
+                 <IconUsers size={20} color="#64748b" />
+                 <span>Enrolled: <span className="count">{enrollmentCount}</span></span>
               </div>
             </div>
 

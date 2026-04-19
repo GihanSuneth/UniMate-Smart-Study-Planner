@@ -30,6 +30,9 @@ function LecturerQuizValidator() {
   
   // Dashboard Filtering
   const [filterModule, setFilterModule] = useState('All');
+  const [filterYear, setFilterYear] = useState('All');
+  const [filterSemester, setFilterSemester] = useState('All');
+  const [filterWeek, setFilterWeek] = useState('All');
 
   // Form State for New Quiz
   const [quizForm, setQuizForm] = useState({
@@ -62,12 +65,15 @@ function LecturerQuizValidator() {
 
   useEffect(() => {
     fetchQuizzes();
-  }, []);
+  }, [filterModule, filterWeek]);
 
   const fetchQuizzes = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_ENDPOINTS.QUIZZES}`, {
+      let url = `${API_ENDPOINTS.QUIZZES}?module=${filterModule}`;
+      if (filterWeek !== 'All') url += `&week=${filterWeek}`;
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -272,9 +278,12 @@ function LecturerQuizValidator() {
     }
   };
 
-  const filteredQuizzes = filterModule === 'All' 
-    ? quizzes 
-    : quizzes.filter(q => q.module === filterModule);
+  const filteredQuizzes = quizzes.filter(q => {
+    const matchesModule = filterModule === 'All' || q.module === filterModule;
+    const matchesYear = filterYear === 'All' || (q.academicYear && q.academicYear.includes(filterYear));
+    const matchesSemester = filterSemester === 'All' || (q.academicYear && q.academicYear.includes(filterSemester));
+    return matchesModule && matchesYear && matchesSemester;
+  });
 
   return (
     <div className="quiz-validator-page">
@@ -289,17 +298,39 @@ function LecturerQuizValidator() {
       </div>
 
       <div className="quiz-main-card" style={{ padding: '0', overflow: 'hidden' }}>
-        <div className="topic-selector-row" style={{ padding: '24px', borderBottom: '1px solid var(--border-color)', margin: 0, backgroundColor: '#fcfdfe' }}>
-          <span className="selector-label">Filter by Module</span>
-          <select 
-            className="dropdown" 
-            style={{ width: '300px' }} 
-            value={filterModule}
-            onChange={(e) => setFilterModule(e.target.value)}
-          >
-            <option value="All">All Modules</option>
-            {modules.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
+        <div className="topic-selector-row" style={{ padding: '24px', borderBottom: '1px solid var(--border-color)', margin: 0, backgroundColor: '#fcfdfe', display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span className="selector-label" style={{ fontSize: '11px' }}>Module</span>
+            <select className="dropdown" style={{ width: '220px' }} value={filterModule} onChange={(e) => setFilterModule(e.target.value)}>
+              <option value="All">All Modules</option>
+              {modules.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span className="selector-label" style={{ fontSize: '11px' }}>Year</span>
+            <select className="dropdown" style={{ width: '120px' }} value={filterYear} onChange={(e) => setFilterYear(e.target.value)}>
+              <option value="All">All Years</option>
+              <option value="Year 1">Year 1</option>
+              <option value="Year 2">Year 2</option>
+              <option value="Year 3">Year 3</option>
+              <option value="Year 4">Year 4</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span className="selector-label" style={{ fontSize: '11px' }}>Semester</span>
+            <select className="dropdown" style={{ width: '130px' }} value={filterSemester} onChange={(e) => setFilterSemester(e.target.value)}>
+              <option value="All">All Semesters</option>
+              <option value="Semester 1">Semester 1</option>
+              <option value="Semester 2">Semester 2</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span className="selector-label" style={{ fontSize: '11px' }}>Week</span>
+            <select className="dropdown" style={{ width: '110px' }} value={filterWeek} onChange={(e) => setFilterWeek(e.target.value)}>
+              <option value="All">All Weeks</option>
+              {Array.from({ length: 14 }, (_, i) => i + 1).map(w => <option key={w} value={w}>Week {w}</option>)}
+            </select>
+          </div>
         </div>
 
         <div className="quiz-list" style={{ minHeight: '400px' }}>

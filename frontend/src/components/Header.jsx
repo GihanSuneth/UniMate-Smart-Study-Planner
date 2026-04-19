@@ -34,7 +34,7 @@ function Header() {
        </div>
        
        <div className="header-right">
-         {normalizedRole !== 'admin' && (
+         {normalizedRole !== 'admin' && normalizedRole !== 'lecturer' && (
            <div className="search-box">
               <IconSearch size={18} className="search-icon" />
               <input type="text" placeholder="Search" />

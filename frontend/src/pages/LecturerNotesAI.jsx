@@ -27,12 +27,12 @@ function LecturerNotesAI() {
 
   const fetchHistory = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/activity?module=${filterModule}`, {
+      const response = await fetch(`${BASE_URL}/notes?module=${filterModule}&type=teaching_prep`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (response.ok) {
         const data = await response.json();
-        setHistory(data.filter(act => act.type === 'notes_generated'));
+        setHistory(data);
       }
     } catch (err) { console.error('Failed to fetch history', err); }
   };
@@ -110,28 +110,28 @@ function LecturerNotesAI() {
       setGeneratedNotes(newNotesObj);
       setActiveTab('Lesson Plan');
 
-      // Log activity to backend
+      // Save to Notes database
       try {
         const token = localStorage.getItem('token');
-        await fetch(`${BASE_URL}/activity`, {
+        await fetch(`${BASE_URL}/notes`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
-            type: 'notes_generated',
+            type: 'teaching_prep',
             module: targetModule,
-            title: file ? file.name : 'Generated Prep',
+            title: file ? file.name : 'Teaching Prep Draft',
             content: newNotesObj
           })
         });
         fetchHistory(); // Refresh history
         window.dispatchEvent(new CustomEvent('new-notification', { 
-          detail: { text: `Teaching prep generated for module: ${targetModule}` } 
+          detail: { text: `Teaching prep generated and saved for: ${targetModule}` } 
         }));
       } catch (err) {
-        console.error('Failed to log activity', err);
+        console.error('Failed to save prep', err);
       }
     }, 2500);
   };
@@ -290,7 +290,20 @@ function LecturerNotesAI() {
             <h3>Paste Text</h3>
             <div className="actions">
               <button className="btn-ghost" onClick={handleUploadClick}><IconPlus size={16} /> Upload File</button>
-              <button className="icon-btn-small" onClick={() => alert('Saved Draft!')}><IconDeviceFloppy size={18} /></button>
+              <button className="icon-btn-small" onClick={async () => {
+                if (!textNotes.trim()) return toast.warn("Please paste some notes first.");
+                try {
+                  const response = await fetch(`${BASE_URL}/notes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify({ module: targetModule, title: 'Text Draft', content: { 'Pasted Text': [textNotes] }, type: 'draft' })
+                  });
+                  if (response.ok) {
+                    toast.success('Draft Saved to Database!');
+                    fetchHistory();
+                  }
+                } catch (err) { toast.error('Save failed'); }
+              }}><IconDeviceFloppy size={18} /></button>
               <button className="icon-btn-small"><IconDotsVertical size={18} /></button>
             </div>
           </div>

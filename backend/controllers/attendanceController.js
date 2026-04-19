@@ -142,8 +142,8 @@ exports.getModuleAttendance = async (req, res) => {
   const { moduleName } = req.params;
 
   try {
-    // Note: To get student details, we populate the student reference
-    const records = await Attendance.find({ module: moduleName }).populate('student', 'username email');
+    // Note: To get student details, we populate the student reference including portalId
+    const records = await Attendance.find({ module: moduleName }).populate('student', 'username email portalId');
     
     // Group logic to figure out total unique students and proportion can be done here or on frontend.
     res.json(records);
@@ -178,6 +178,23 @@ exports.getActiveSessions = async (req, res) => {
   try {
     const activeSessions = await AttendanceSession.find({ isActive: true }).populate('lecturer', 'username email');
     res.json(activeSessions);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+// @desc    Get total enrollment count for a module/semester
+// @route   GET /api/attendance/enrollment-count
+// @access  Private (Lecturer)
+exports.getEnrollmentCount = async (req, res) => {
+  const { module, year, semester } = req.query;
+  try {
+    const filter = { role: 'student' };
+    if (module) filter.assignedModules = module;
+    if (year) filter.academicYear = year;
+    if (semester) filter.semester = semester;
+
+    const count = await User.countDocuments(filter);
+    res.json({ count });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

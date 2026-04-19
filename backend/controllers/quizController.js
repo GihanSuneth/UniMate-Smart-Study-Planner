@@ -35,10 +35,12 @@ exports.createQuiz = async (req, res) => {
 // @route   GET /api/quizzes
 // @access  Private
 exports.getQuizzes = async (req, res) => {
-  const { module } = req.query;
+  const { module, academicYear, week } = req.query;
   const filter = {};
 
-  if (module) filter.module = module;
+  if (module && module !== 'All') filter.module = module;
+  if (academicYear) filter.academicYear = academicYear;
+  if (week) filter.week = parseInt(week);
 
   try {
     if (req.user.role === 'Lecturer' || req.user.role === 'admin') {
