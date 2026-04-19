@@ -44,20 +44,20 @@
   transition: all 0.2s;
 }
 
-.btn-refresh {
+.btn-refresh, .btn-bulk {
   background: white;
   border: 1px solid var(--border-color);
   color: var(--text-dark);
 }
 
-.btn-bulk {
+.btn-bulk.primary {
   background: var(--primary);
   border: 1px solid var(--primary);
   color: white;
 }
 
-.btn-refresh:hover { background: #f8fafc; }
-.btn-bulk:hover { background: var(--primary-hover); }
+.btn-refresh:hover, .btn-bulk:hover { background: #f8fafc; }
+.btn-bulk.primary:hover { background: var(--primary-hover); color: white; }
 
 /* Filters Bar */
 .filters-bar {

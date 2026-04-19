@@ -227,7 +227,7 @@ exports.bulkUpdateUsers = async (req, res) => {
     const results = { created: 0, updated: 0, errors: [] };
 
     for (const userData of users) {
-      const { username, email, role, assignedModules, academicYear, semester, password } = userData;
+      const { username, email, role, assignedModules, academicYear, semester, password: incomingPassword } = userData;
 
       try {
         let user = await User.findOne({ username });
@@ -239,22 +239,34 @@ exports.bulkUpdateUsers = async (req, res) => {
           if (assignedModules) user.assignedModules = assignedModules;
           if (academicYear) user.academicYear = academicYear;
           if (semester) user.semester = semester;
-          if (password) user.password = password; // Will be hashed by pre-save hook
+          
+          // Set temporary password based on portalId
+          const tempPwd = user.portalId.toLowerCase() + user.portalId.toLowerCase();
+          user.password = incomingPassword || tempPwd;
           
           await user.save();
           results.updated++;
         } else {
-          // Create new user
-          await User.create({
+          // Create new user - temporarily set a placeholder to trigger pre-save hook
+          user = new User({
             username,
             email,
-            password: password || 'unimate123', // Default temp password
+            password: 'placeholder', 
             role: role || 'student',
             assignedModules: assignedModules || [],
             academicYear: academicYear || '',
             semester: semester || '',
-            status: 'approved' // Bulk added users are auto-approved
+            status: 'approved'
           });
+          
+          // Save once to generate portalId
+          await user.save();
+          
+          // Now set the actual password based on the generated portalId
+          const tempPwd = user.portalId.toLowerCase() + user.portalId.toLowerCase();
+          user.password = incomingPassword || tempPwd;
+          await user.save(); // Save again to hash the real password
+          
           results.created++;
         }
       } catch (err) {

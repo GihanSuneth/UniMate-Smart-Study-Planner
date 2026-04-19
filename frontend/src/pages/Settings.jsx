@@ -65,6 +65,12 @@ function Settings() {
           academicYear: data.academicYear || '',
           semester: data.semester || ''
         });
+        
+        // Sync with localStorage
+        localStorage.setItem('userName', data.fullName || data.username);
+        localStorage.setItem('userRole', data.role);
+        localStorage.setItem('profilePic', data.profilePic || '');
+        window.dispatchEvent(new Event('auth-change'));
       } else {
         toast.error('Failed to load profile data');
       }
@@ -101,6 +107,14 @@ function Settings() {
       if (response.ok) {
         const updatedUser = await response.json();
         setUserData(prev => ({ ...prev, fullName: updatedUser.fullName, email: updatedUser.email }));
+        
+        // Sync with localStorage for Header/Navbar
+        localStorage.setItem('userName', updatedUser.fullName || updatedUser.username);
+        localStorage.setItem('userRole', updatedUser.role);
+        localStorage.setItem('profilePic', updatedUser.profilePic || '');
+        // Dispatch event so other components refresh
+        window.dispatchEvent(new Event('auth-change'));
+        
         toast.success('Profile updated successfully!');
       } else {
         const err = await response.json();
@@ -191,8 +205,8 @@ function Settings() {
   const isLecturer = userRoleStr.toLowerCase() === 'lecturer';
   const isAdmin = userRoleStr.toLowerCase() === 'admin';
 
-  const displayName = userData.fullName || userData.username || (isAdmin ? 'System Admin' : isLecturer ? 'Dr. Smith' : 'John Doe');
-  const displayEmail = userData.email || (isAdmin ? 'admin@unimate.com' : isLecturer ? 'smith@example.com' : 'john.doe@example.com');
+  const displayName = userData.fullName || userData.username || localStorage.getItem('userName') || (isAdmin ? 'Admin User' : isLecturer ? 'Lecturer User' : 'Student User');
+  const displayEmail = userData.email || (isAdmin ? 'admin@unimate.edu' : 'user@unimate.edu');
 
   if (loading) return <div className="loading-spinner" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', fontSize: '18px', color: 'var(--text-secondary)' }}>Loading your profile...</div>;
 

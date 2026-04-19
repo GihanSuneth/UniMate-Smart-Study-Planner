@@ -5,7 +5,6 @@ import {
   IconCalendarStats, 
   IconChartPie, 
   IconRefresh, 
-  IconSearch, 
   IconUpload, 
   IconTrash, 
   IconEdit, 
@@ -25,7 +24,6 @@ function AdminPanel() {
   const [error, setError] = useState('');
   
   // Filters
-  const [searchId, setSearchId] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [yearFilter, setYearFilter] = useState('all');
   const [semesterFilter, setSemesterFilter] = useState('all');
@@ -229,6 +227,25 @@ function AdminPanel() {
     }
   };
 
+  const downloadCSVTemplate = () => {
+    const headers = ['username', 'email', 'fullName', 'role', 'academicYear', 'semester', 'assignedModules'];
+    const sampleData = [
+      'jdoe101,jdoe@unimate.com,John Doe,student,Year 1,Semester 2,Programming Fundamentals;Web Basics',
+      'smith_l,smith@unimate.com,Prof. Smith,Lecturer,,,Advanced Database Systems;Cloud Computing'
+    ];
+    const csvContent = [headers.join(','), ...sampleData].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'unimate_bulk_import_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.info('Standard template downloaded. Use semicolon (;) to separate multiple modules.');
+  };
+
   const handleBulkUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -290,18 +307,12 @@ function AdminPanel() {
 
   const filteredUsers = users.filter(u => {
     if (!u) return false;
-    const username = u.username || '';
-    const portalId = u.portalId || '';
-    const searchLower = searchId.toLowerCase();
-    
-    const matchesId = username.toLowerCase().includes(searchLower) || 
-                      portalId.toLowerCase().includes(searchLower);
     
     const matchesRole = roleFilter === 'all' || u.role === roleFilter;
     const matchesYear = yearFilter === 'all' || u.academicYear === yearFilter;
     const matchesSemester = semesterFilter === 'all' || u.semester === semesterFilter;
     
-    return matchesId && matchesRole && matchesYear && matchesSemester;
+    return matchesRole && matchesYear && matchesSemester;
   });
 
   const pendingReqs = filteredUsers.filter(u => u.status === 'pending');
@@ -323,7 +334,10 @@ function AdminPanel() {
           <button className="btn-refresh" onClick={fetchUsers} title="Refresh Data">
             <IconRefresh size={20} />
           </button>
-          <button className="btn-bulk" onClick={() => fileInputRef.current.click()}>
+          <button className="btn-bulk" onClick={downloadCSVTemplate} title="Get Template">
+             Download Template
+          </button>
+          <button className="btn-bulk primary" onClick={() => fileInputRef.current.click()}>
             <IconUpload size={20} /> Bulk CSV Import
           </button>
           <input 
@@ -338,16 +352,7 @@ function AdminPanel() {
 
       {/* Filters Bar */}
       <div className="filters-bar">
-        <div className="filter-group">
-          <IconSearch size={18} className="filter-icon" />
-          <input 
-            type="text" 
-            placeholder="Search by ID/Username..." 
-            value={searchId}
-            onChange={(e) => setSearchId(e.target.value)}
-            className="filter-input"
-          />
-        </div>
+
         <div className="filter-group">
           <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="filter-select">
             <option value="all">All Roles</option>
