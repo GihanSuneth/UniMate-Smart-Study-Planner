@@ -17,7 +17,14 @@ function LecturerAttendance() {
   const [loading, setLoading] = useState(false);
   const [attendanceList, setAttendanceList] = useState([]);
   const [enrollmentCount, setEnrollmentCount] = useState(0);
+  const [allStudents, setAllStudents] = useState([]); // All enrolled students
   const [searchQuery, setSearchQuery] = useState('');
+  const [submissionFilter, setSubmissionFilter] = useState('Attended'); // 'Attended' or 'Missed'
+  const [sessionStartTime, setSessionStartTime] = useState(null);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  
+  // Logic to determine current academic week (e.g. Week 8 for current date)
+  const currentAcademicWeek = 8; 
   
   const modules = ['Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering'];
 
@@ -27,20 +34,68 @@ function LecturerAttendance() {
       const response = await fetch(`${BASE_URL}/attendance/module/${encodeURIComponent(selectedModule)}`);
       if (response.ok) {
         const data = await response.json();
-        // Filter by the selected week
         const weekData = data.filter(r => r.week === selectedWeek);
         setAttendanceList(weekData);
       }
       
-      // Also fetch enrollment count
+      // Fetch all enrolled students to calculate "Missed"
       const enrollRes = await fetch(`${BASE_URL}/attendance/enrollment-count?module=${encodeURIComponent(selectedModule)}`);
       if (enrollRes.ok) {
         const enrollData = await enrollRes.json();
         setEnrollmentCount(enrollData.count);
+        // We assume the backend might return student list if requested, but for now we look at the attendance controller logic
+        // Let's fetch the actual student list for the module
+        const studentsRes = await fetch(`${BASE_URL}/auth/students?module=${encodeURIComponent(selectedModule)}`);
+        if (studentsRes.ok) {
+          const students = await studentsRes.json();
+          setAllStudents(students);
+        }
       }
     } catch (error) {
-           console.error('Fetch attendance error', error);
+      console.error('Fetch attendance error', error);
     }
+  };
+
+  const handleManualOverride = async (studentId, status) => {
+    try {
+      const response = await fetch(`${BASE_URL}/attendance/override`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId,
+          module: selectedModule,
+          week: selectedWeek,
+          status
+        })
+      });
+      if (response.ok) {
+        toast.success(`Marked as ${status}`);
+        fetchAttendance();
+      }
+    } catch (err) {
+      toast.error('Override failed');
+    }
+  };
+
+  const downloadCSV = () => {
+    const sessionDuration = sessionStartTime ? Math.round((new Date() - sessionStartTime) / 60000) : 'N/A';
+    let csv = `Session Name,${selectedModule} - Week ${selectedWeek}\n`;
+    csv += `Session Duration,${sessionDuration} minutes\n\n`;
+    csv += 'Portal ID,Student Name,Email,Status\n';
+
+    allStudents.forEach(student => {
+      const attendance = attendanceList.find(a => a.student?._id === student._id);
+      const status = attendance ? attendance.status : 'Absent';
+      csv += `${student.portalId},${student.username},${student.email},${status}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Attendance_${selectedModule}_Week${selectedWeek}.csv`;
+    a.click();
+    toast.success('CSV Exported!');
   };
 
   // 2. Create a new live session
@@ -62,6 +117,7 @@ function LecturerAttendance() {
       if (response.ok) {
         setQrCode(data.uniqueCode);
         setActiveSessionId(data._id);
+        setSessionStartTime(new Date());
         toast.success(`Session created! Code: ${data.uniqueCode}`);
         fetchAttendance();
       } else {
@@ -177,7 +233,14 @@ function LecturerAttendance() {
             {activeSessionId ? (
               <button className="action-btn" onClick={endActiveSession} style={{ backgroundColor: '#dc2626' }}>End Active Session</button>
             ) : (
-              <button className="generate-btn" onClick={generateQRCode} style={{ width: '100%' }}>Generate QR Code</button>
+              <button 
+                className="generate-btn" 
+                onClick={generateQRCode} 
+                style={{ width: '100%', opacity: selectedWeek !== currentAcademicWeek ? 0.5 : 1 }}
+                disabled={selectedWeek !== currentAcademicWeek}
+              >
+                {selectedWeek !== currentAcademicWeek ? `Locked (Only Week ${currentAcademicWeek} open)` : 'Generate QR Code'}
+              </button>
             )}
           </div>
         </div>
@@ -191,11 +254,31 @@ function LecturerAttendance() {
                 <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#22c55e', background: '#f0fdf4', padding: '4px 8px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <div style={{ width: 6, height: 6, background: '#22c55e', borderRadius: '50%', animation: 'pulse 2s infinite' }}></div> LIVE
                 </span>
-                <button style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', padding: '6px 10px', borderRadius: '8px', cursor: 'pointer' }}>
+                <button 
+                  onClick={downloadCSV}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', padding: '6px 10px', borderRadius: '8px', cursor: 'pointer' }}
+                >
                   <IconDownload size={16} />
                   <span style={{ fontSize: '12px' }}>CSV</span>
                 </button>
               </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+              <button 
+                className={`filter-tab ${submissionFilter === 'Attended' ? 'active' : ''}`}
+                onClick={() => setSubmissionFilter('Attended')}
+                style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: submissionFilter === 'Attended' ? 'var(--primary)' : 'white', color: submissionFilter === 'Attended' ? 'white' : 'var(--text-dark)', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Attended ({attendanceList.length})
+              </button>
+              <button 
+                className={`filter-tab ${submissionFilter === 'Missed' ? 'active' : ''}`}
+                onClick={() => setSubmissionFilter('Missed')}
+                style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', background: submissionFilter === 'Missed' ? '#ef4444' : 'white', color: submissionFilter === 'Missed' ? 'white' : 'var(--text-dark)', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Missed ({Math.max(0, enrollmentCount - attendanceList.length)})
+              </button>
             </div>
 
             <div style={{ marginBottom: '16px' }}>
@@ -209,48 +292,100 @@ function LecturerAttendance() {
             </div>
             
             <div className="submissions-list" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto' }}>
-              {attendanceList.filter(rec => rec.student?.username?.toLowerCase().includes(searchQuery.toLowerCase()) || rec.student?.email?.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? 
-                [...attendanceList]
-                .filter(rec => rec.student?.username?.toLowerCase().includes(searchQuery.toLowerCase()) || rec.student?.email?.toLowerCase().includes(searchQuery.toLowerCase()))
-                .reverse().map((rec, idx) => (
-                <div key={idx} style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  padding: '12px', 
-                  borderRadius: '12px', 
-                  backgroundColor: idx === 0 ? '#eff6ff' : 'var(--bg-main)', 
-                  border: '1px solid',
-                  borderColor: idx === 0 ? '#bfdbfe' : 'var(--border-color)',
-                  animation: idx === 0 ? 'slideIn 0.3s ease-out' : 'none'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <IconUser size={16} color="#64748b" />
+              {(submissionFilter === 'Attended' ? attendanceList : allStudents.filter(s => !attendanceList.find(a => a.student?._id === s._id)))
+                .filter(item => {
+                  const student = submissionFilter === 'Attended' ? item.student : item;
+                  return student?.username?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         student?.portalId?.toLowerCase().includes(searchQuery.toLowerCase());
+                })
+                .map((item, idx) => {
+                  const student = submissionFilter === 'Attended' ? item.student : item;
+                  const record = submissionFilter === 'Attended' ? item : null;
+                  
+                  return (
+                    <div key={idx} style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      padding: '12px', 
+                      borderRadius: '12px', 
+                      backgroundColor: 'var(--bg-main)', 
+                      border: '1px solid var(--border-color)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <IconUser size={16} color="#64748b" />
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <strong style={{ color: 'var(--text-dark)', fontSize: '14px' }}>{student?.username || 'Unknown'}</strong>
+                            <span style={{ fontSize: '11px', color: '#64748b' }}>{student?.portalId}</span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button onClick={() => handleManualOverride(student._id, 'Present')} title="Mark Present" style={{ padding: '4px', borderRadius: '4px', border: 'none', background: record?.status === 'Present' ? '#dcfce7' : '#f1f5f9', color: '#15803d', cursor: 'pointer' }}><IconCheck size={14}/></button>
+                          <button onClick={() => handleManualOverride(student._id, 'Absent')} title="Mark Absent" style={{ padding: '4px', borderRadius: '4px', border: 'none', background: record?.status === 'Absent' || !record ? '#fee2e2' : '#f1f5f9', color: '#dc2626', cursor: 'pointer' }}><IconX size={14}/></button>
+                          <button onClick={() => handleManualOverride(student._id, 'Excused')} title="Mark Excused" style={{ padding: '4px', borderRadius: '4px', border: 'none', background: record?.status === 'Excused' ? '#fef3c7' : '#f1f5f9', color: '#d97706', cursor: 'pointer' }}><div style={{ fontSize: '10px', fontWeight: 'bold' }}>EX</div></button>
+                        </div>
                       </div>
-                      <strong style={{ color: 'var(--text-dark)', fontSize: '14px' }}>{rec.student?.username || 'Unknown'}</strong>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '40px' }}>
+                        <span>{record ? new Date(record.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'No Record'}</span>
+                        <span style={{ fontWeight: 600, color: record?.status === 'Present' ? 'var(--success)' : record?.status === 'Excused' ? '#d97706' : '#ef4444' }}>
+                          {record?.status || 'ABSENT'}
+                        </span>
+                      </div>
                     </div>
-                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>{new Date(rec.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '40px' }}>
-                    <span>{rec.module}</span>
-                    <span style={{ fontWeight: 600, color: 'var(--success)' }}>SUCCESS ✅</span>
-                  </div>
-                </div>
-              )) : (
+                  );
+                })}
+              {((submissionFilter === 'Attended' ? attendanceList : allStudents.filter(s => !attendanceList.find(a => a.student?._id === s._id)))
+                .filter(item => {
+                  const student = submissionFilter === 'Attended' ? item.student : item;
+                  return student?.username?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         student?.portalId?.toLowerCase().includes(searchQuery.toLowerCase());
+                })).length === 0 && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', gap: '12px' }}>
                   <IconUsers size={48} style={{ opacity: 0.2 }} />
-                  <p style={{ fontSize: '14px' }}>{searchQuery ? 'No matching students found' : 'Waiting for students to check in...'}</p>
+                  <p style={{ fontSize: '14px' }}>No matches found</p>
                 </div>
               )}
             </div>
             
-            <button style={{ width: '100%', marginTop: '20px', padding: '12px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'var(--text-secondary)', fontWeight: '600', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
+            <button 
+              onClick={() => setShowHistoryModal(true)}
+              style={{ width: '100%', marginTop: '20px', padding: '12px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'var(--text-secondary)', fontWeight: '600', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
+            >
               View Historical Records <IconChevronRight size={18} />
             </button>
           </div>
         </div>
       </div>
+
+      {showHistoryModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: 'white', width: '90%', maxWidth: '800px', borderRadius: '20px', padding: '32px', maxHeight: '80vh', overflowY: 'auto', position: 'relative' }}>
+            <button onClick={() => setShowHistoryModal(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><IconX size={24} /></button>
+            <h2 style={{ marginBottom: '20px' }}>Historical Attendance Records</h2>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+               <select value={selectedModule} onChange={e => setSelectedModule(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}>
+                 {modules.map(m => <option key={m} value={m}>{m}</option>)}
+               </select>
+               <select value={selectedWeek} onChange={e => setSelectedWeek(Number(e.target.value))} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}>
+                 {[1,2,3,4,5,6,7,8,9,10,11,12].map(w => <option key={w} value={w}>Week {w}</option>)}
+               </select>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {attendanceList.length > 0 ? attendanceList.map((rec, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', border: '1px solid #f1f5f9', borderRadius: '12px', background: '#f8fafc' }}>
+                  <div>
+                    <div style={{ fontWeight: '700' }}>{rec.student?.username}</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>{rec.student?.portalId} • {new Date(rec.date).toLocaleDateString()}</div>
+                  </div>
+                  <div style={{ fontWeight: '700', color: rec.status === 'Present' ? '#10b981' : rec.status === 'Excused' ? '#f59e0b' : '#ef4444' }}>{rec.status.toUpperCase()}</div>
+                </div>
+              )) : <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>No records found for this week.</div>}
+            </div>
+          </div>
+        </div>
+      )}
       
       <style>{`
         @keyframes pulse {

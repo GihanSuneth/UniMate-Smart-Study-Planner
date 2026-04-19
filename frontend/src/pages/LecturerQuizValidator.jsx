@@ -65,13 +65,17 @@ function LecturerQuizValidator() {
 
   useEffect(() => {
     fetchQuizzes();
-  }, [filterModule, filterWeek]);
+  }, [filterModule, filterYear, filterSemester, filterWeek]);
 
   const fetchQuizzes = async () => {
     setLoading(true);
     try {
-      let url = `${API_ENDPOINTS.QUIZZES}?module=${filterModule}`;
-      if (filterWeek !== 'All') url += `&week=${filterWeek}`;
+      let combinedYear = 'All';
+      if (filterYear !== 'All' && filterSemester !== 'All') combinedYear = `${filterYear} ${filterSemester}`;
+      else if (filterYear !== 'All') combinedYear = filterYear;
+      else if (filterSemester !== 'All') combinedYear = filterSemester;
+
+      let url = `${API_ENDPOINTS.QUIZZES}?module=${filterModule}&academicYear=${combinedYear}&week=${filterWeek}`;
       
       const response = await fetch(url, {
         headers: {

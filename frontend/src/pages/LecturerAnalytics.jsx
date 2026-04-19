@@ -324,7 +324,12 @@ function LecturerAnalytics() {
                </div>
 
                <div className="actual-vs-target-summary" style={{ marginTop: '24px' }}>
-                  <div className="target-summary-header">Class Performance Summary (Current Week)</div>
+                  <div className="target-summary-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Class Performance Summary (Current Week)</span>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <IconBulb size={14} color="#f59e0b" /> **Bench:** Standard target/benchmark for this module
+                    </div>
+                  </div>
                   <div className="summary-bars">
                      <div className="summary-row">
                         <span>Average Attendance</span>

@@ -35,17 +35,21 @@ function StudentQuizValidator() {
 
   const modules = ['Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering'];
 
+  const [selectedWeek, setSelectedWeek] = useState('All');
+  const [selectedYear, setSelectedYear] = useState('All');
+
   useEffect(() => {
     if (selectedModule) {
       fetchQuizzes();
       fetchPastAttempts();
     }
-  }, [selectedModule]);
+  }, [selectedModule, selectedYear, selectedWeek]);
 
   const fetchQuizzes = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_ENDPOINTS.QUIZZES}?module=${selectedModule}`, {
+      const url = `${API_ENDPOINTS.QUIZZES}?module=${selectedModule}&academicYear=${selectedYear}&week=${selectedWeek}`;
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -63,7 +67,8 @@ function StudentQuizValidator() {
 
   const fetchPastAttempts = async () => {
     try {
-      const response = await fetch(`${API_ENDPOINTS.QUIZZES}/attempts/history?module=${selectedModule}`, {
+      const url = `${API_ENDPOINTS.QUIZZES}/attempts/history?module=${selectedModule}&academicYear=${selectedYear}&week=${selectedWeek}`;
+      const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (response.ok) {
@@ -395,16 +400,48 @@ function StudentQuizValidator() {
       </div>
 
       <div className="quiz-main-card">
-        <div className="topic-selector-row">
-          <span className="selector-label">Pick a Module to Start</span>
-          <select 
-            className="dropdown" 
-            value={selectedModule} 
-            onChange={(e) => setSelectedModule(e.target.value)}
-          >
-            <option value="">Select Module</option>
-            {modules.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
+        <div className="topic-selector-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', padding: '16px 24px', backgroundColor: '#fcfdfe', borderBottom: '1px solid #eee' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span className="selector-label" style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#64748b' }}>Module</span>
+            <select 
+              className="dropdown" 
+              style={{ width: '220px', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+              value={selectedModule} 
+              onChange={(e) => setSelectedModule(e.target.value)}
+            >
+              <option value="">Select Module</option>
+              {modules.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span className="selector-label" style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#64748b' }}>Academic Year</span>
+            <select 
+              className="dropdown" 
+              style={{ width: '150px', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+              value={selectedYear} 
+              onChange={(e) => setSelectedYear(e.target.value)}
+            >
+              <option value="All">All Years</option>
+              <option value="Year 1">Year 1</option>
+              <option value="Year 2">Year 2</option>
+              <option value="Year 3">Year 3</option>
+              <option value="Year 4">Year 4</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span className="selector-label" style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#64748b' }}>Academic Week</span>
+            <select 
+              className="dropdown" 
+              style={{ width: '120px', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+              value={selectedWeek} 
+              onChange={(e) => setSelectedWeek(e.target.value)}
+            >
+              <option value="All">All Weeks</option>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map(w => <option key={w} value={w}>Week {w}</option>)}
+            </select>
+          </div>
         </div>
 
         {!selectedModule ? (

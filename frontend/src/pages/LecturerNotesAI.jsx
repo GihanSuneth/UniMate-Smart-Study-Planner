@@ -88,7 +88,15 @@ function LecturerNotesAI() {
     // Mock AI API Call
     setTimeout(async () => {
       setIsGenerating(false);
-      const sourceName = file ? file.name : 'your pasted text';
+      
+      let sourceName = '';
+      if (file && textNotes.trim()) {
+        sourceName = `${file.name} and your raw notes`;
+      } else if (file) {
+        sourceName = file.name;
+      } else {
+        sourceName = 'your pasted text';
+      }
 
       const newNotesObj = {
         'Lesson Plan': [
@@ -287,29 +295,14 @@ function LecturerNotesAI() {
 
         <div className="upload-card">
           <div className="upload-header with-actions">
-            <h3>Paste Text</h3>
+            <h3>Paste Text Reference</h3>
             <div className="actions">
-              <button className="btn-ghost" onClick={handleUploadClick}><IconPlus size={16} /> Upload File</button>
-              <button className="icon-btn-small" onClick={async () => {
-                if (!textNotes.trim()) return toast.warn("Please paste some notes first.");
-                try {
-                  const response = await fetch(`${BASE_URL}/notes`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-                    body: JSON.stringify({ module: targetModule, title: 'Text Draft', content: { 'Pasted Text': [textNotes] }, type: 'draft' })
-                  });
-                  if (response.ok) {
-                    toast.success('Draft Saved to Database!');
-                    fetchHistory();
-                  }
-                } catch (err) { toast.error('Save failed'); }
-              }}><IconDeviceFloppy size={18} /></button>
-              <button className="icon-btn-small"><IconDotsVertical size={18} /></button>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Add your raw notes here</span>
             </div>
           </div>
           <div className="text-area-wrapper">
             <textarea 
-              placeholder="Paste your syllabus or reference notes here..."
+              placeholder="Paste your syllabus, reference notes, or raw materials here..."
               value={textNotes}
               onChange={(e) => {
                 setTextNotes(e.target.value);
@@ -317,6 +310,14 @@ function LecturerNotesAI() {
               }}
             ></textarea>
           </div>
+          <button 
+            className="btn-primary" 
+            style={{ marginTop: '16px', background: 'var(--secondary)', color: 'var(--primary)', border: 'none' }}
+            onClick={handleGenerateClick}
+            disabled={isGenerating}
+          >
+            {isGenerating ? 'Generating...' : 'Generate from Paste'}
+          </button>
         </div>
       </div>
 
@@ -331,9 +332,6 @@ function LecturerNotesAI() {
           <div className="preview-actions">
             <button className="btn-outline" onClick={handleDownload} disabled={!generatedNotes || isGenerating}>
               <IconDownload size={16} /> Download PDF
-            </button>
-            <button className="btn-outline" onClick={handleCopy} disabled={!generatedNotes || isGenerating}>
-              {copied ? <><IconCheck size={16} /> Copied!</> : <><IconCopy size={16} /> Copy Content</>}
             </button>
           </div>
         </div>
