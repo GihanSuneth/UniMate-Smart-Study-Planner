@@ -5,7 +5,7 @@ import {
   IconCloudUpload, IconPlus, IconDeviceFloppy, IconDotsVertical
 } from '@tabler/icons-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import jsPDF from 'jsPDF';
+import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { BASE_URL } from '../api';
 import './NotesAI.css';
@@ -37,8 +37,34 @@ function LecturerNotesAI() {
     } catch (err) { console.error('Failed to fetch history', err); }
   };
 
+  const [modules, setModules] = useState([]);
+  const [userProfile, setUserProfile] = useState(null);
+
+  const fetchUserProfile = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/auth/profile`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUserProfile(data);
+        const assigned = data.assignedModules || [];
+        setModules(assigned);
+        if (assigned.length > 0) {
+          setTargetModule(assigned[0]);
+        } else {
+          setTargetModule('General');
+        }
+      }
+    } catch (err) {
+      console.error("Profile fetch error", err);
+    }
+  };
+
   React.useEffect(() => {
+    fetchUserProfile();
     fetchHistory();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterModule]);
 
   const loadHistoryItem = (item) => {
@@ -46,10 +72,24 @@ function LecturerNotesAI() {
     setActiveTab('Lesson Plan');
   };
 
+  const [fileContent, setFileContent] = useState('');
+
+  const processFile = (fileObj) => {
+    setFile(fileObj);
+    setError('');
+    
+    if (fileObj.type === 'text/plain' || fileObj.name.endsWith('.txt')) {
+      const reader = new FileReader();
+      reader.onload = (e) => setFileContent(e.target.result);
+      reader.readAsText(fileObj);
+    } else {
+      setFileContent(`[Attached Document: ${fileObj.name}. Note: Automated parsing for non-txt files may be limited in demo.]`);
+    }
+  };
+
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-      setError('');
+      processFile(e.target.files[0]);
     }
   };
 
@@ -60,8 +100,7 @@ function LecturerNotesAI() {
   const handleDrop = (e) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setFile(e.dataTransfer.files[0]);
-      setError('');
+      processFile(e.dataTransfer.files[0]);
     }
   };
 
@@ -75,7 +114,7 @@ function LecturerNotesAI() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleGenerateClick = () => {
+  const handleGenerateClick = async () => {
     if (!file && !textNotes.trim()) {
       setError('Please upload a file or paste your reference materials first.');
       return;
@@ -85,64 +124,65 @@ function LecturerNotesAI() {
     setIsGenerating(true);
     setGeneratedNotes(null);
 
-    // Mock AI API Call
-    setTimeout(async () => {
-      setIsGenerating(false);
-      
-      let sourceName = '';
-      if (file && textNotes.trim()) {
-        sourceName = `${file.name} and your raw notes`;
-      } else if (file) {
-        sourceName = file.name;
-      } else {
-        sourceName = 'your pasted text';
-      }
-
-      const newNotesObj = {
-        'Lesson Plan': [
-          `1. Introduction to the Topic (10 mins): Connect to previous knowledge based on ${sourceName}.`,
-          "2. Core Concepts (20 mins): Explain theories using visual aids.",
-          "3. Activity (15 mins): Group problem-solving based on the theories."
-        ],
-        'Key points': [
-          `Comprehensive overview of topics from ${sourceName}.`,
-          "Detailed explanation of core theories and methodologies.",
-          "Visual prompt ideas derived from ${sourceName}. Discussion starters to engage students.",
-          "Case studies and real-world application examples."
-        ],
-        'Quiz Ideas': [
-          `Q1: What is the primary purpose of the module discussed in ${sourceName}?`,
-          "Q2: Explain why Data Preprocessing is a necessary step.",
-          "Q3: Give an example of an application that uses Neural Networks."
-        ]
-      };
-      setGeneratedNotes(newNotesObj);
-      setActiveTab('Lesson Plan');
-
-      // Save to Notes database
-      try {
-        const token = localStorage.getItem('token');
-        await fetch(`${BASE_URL}/notes`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            type: 'teaching_prep',
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BASE_URL}/ai`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          type: 'notes',
+          data: {
             module: targetModule,
-            title: file ? file.name : 'Teaching Prep Draft',
-            content: newNotesObj
-          })
-        });
-        fetchHistory(); // Refresh history
-        window.dispatchEvent(new CustomEvent('new-notification', { 
-          detail: { text: `Teaching prep generated and saved for: ${targetModule}` } 
-        }));
-      } catch (err) {
-        console.error('Failed to save prep', err);
+            notes: [fileContent, textNotes].filter(Boolean).join('\n\n--- Document Text ---\n\n'),
+            fileName: file ? file.name : null,
+          }
+        })
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          toast.warning("Gemini AI Quota Exceeded. Please wait 60 seconds before retrying.");
+          setIsGenerating(false);
+          return;
+        }
+        throw new Error('Failed to generate teaching prep from AI');
       }
-    }, 2500);
+
+      const newNotesObj = await response.json();
+      setIsGenerating(false);
+      setGeneratedNotes(newNotesObj);
+      
+      const firstTab = Object.keys(newNotesObj)[0];
+      if (firstTab) setActiveTab(firstTab);
+
+      // Save to Notes database (log activity)
+      await fetch(`${BASE_URL}/notes`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          type: 'teaching_prep',
+          module: targetModule,
+          title: file ? file.name : 'Teaching Prep Draft',
+          content: newNotesObj
+        })
+      });
+      fetchHistory(); 
+      window.dispatchEvent(new CustomEvent('new-notification', { 
+        detail: { text: `Teaching prep generated and saved for: ${targetModule}` } 
+      }));
+
+    } catch (err) {
+      console.error('AI Generation Error:', err);
+      setError('Failed to reach AI. Please try again later.');
+      setIsGenerating(false);
+      toast.error("AI Service is temporarily unavailable.");
+    }
   };
 
   const handleCopy = () => {
@@ -296,11 +336,10 @@ function LecturerNotesAI() {
                   value={targetModule} 
                   onChange={e => setTargetModule(e.target.value)}
                 >
-                  <option value="General">Module A (General)</option>
-                  <option value="IT3040">Module B (Calculus II)</option>
-                  <option value="IT3020">Module C (Physics I)</option>
-                  <option value="IT3030">Module D (Biochemistry)</option>
-                  <option value="IT3010">Module E (Philosophy 101)</option>
+                  {modules.map((mod, idx) => (
+                    <option key={idx} value={mod}>{mod}</option>
+                  ))}
+                  {modules.length === 0 && <option value="General">General</option>}
                 </select>
               </div>
             </div>
@@ -333,7 +372,7 @@ function LecturerNotesAI() {
         </div>
 
         <div className="tabs-container">
-          {['Lesson Plan', 'Key points', 'Quiz Ideas', 'Show Previous Record'].map((tab) => (
+          {([...(generatedNotes ? Object.keys(generatedNotes) : ['Summary', 'Key Points', 'Lesson Plan', 'Quiz Ideas']), 'Show Previous Record']).map((tab) => (
             <button 
               key={tab}
               className={`tab ${activeTab === tab ? 'active' : ''}`}
@@ -358,11 +397,13 @@ function LecturerNotesAI() {
                 <span style={{ fontSize: '14px', fontWeight: '600' }}>Filter by Module:</span>
                 <select style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '14px' }} value={filterModule} onChange={e => setFilterModule(e.target.value)}>
                    <option value="All">All Modules</option>
-                   <option value="General">General</option>
-                   <option value="IT3040">IT3040</option>
-                   <option value="IT3020">IT3020</option>
-                   <option value="IT3030">IT3030</option>
-                   <option value="IT3010">IT3010</option>
+                   {modules.length > 0 ? (
+                     modules.map((mod, idx) => (
+                       <option key={idx} value={mod}>{mod}</option>
+                     ))
+                   ) : (
+                     <option value="" disabled>No Assigned Modules</option>
+                   )}
                 </select>
               </div>
               <div className="history-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>

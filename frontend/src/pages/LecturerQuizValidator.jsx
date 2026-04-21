@@ -11,11 +11,17 @@ import {
   IconTrash,
   IconCalendar,
   IconClock,
-  IconBulb,
   IconShieldLock,
-  IconSend
+  IconSend,
+  IconRotateClockwise,
+  IconArrowRight,
+  IconTrophy,
+  IconListNumbers,
+  IconBulb,
+  IconBrain
 } from '@tabler/icons-react';
-import { API_ENDPOINTS } from '../api';
+import jsPDF from 'jspdf';
+import { API_ENDPOINTS, BASE_URL } from '../api';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './QuizValidator.css';
@@ -25,8 +31,19 @@ function LecturerQuizValidator() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [aiTrace, setAiTrace] = useState(null);
+  const [showTrace, setShowTrace] = useState(false);
   const [currentStep, setCurrentStep] = useState(1); // 1: Setup, 2: Questions
   const [isViewOnly, setIsViewOnly] = useState(false);
+  
+  // Student Attempts & Logic Trace States
+  const [studentAttempts, setStudentAttempts] = useState([]);
+  const [attemptsLoading, setAttemptsLoading] = useState(false);
+  const [selectedAttempt, setSelectedAttempt] = useState(null);
+  const [explanations, setExplanations] = useState({});
+  const [isExplaining, setIsExplaining] = useState(null);
+  const [showResultModal, setShowResultModal] = useState(false);
+  
   
   // Dashboard Filtering
   const [filterModule, setFilterModule] = useState('All');
@@ -40,8 +57,10 @@ function LecturerQuizValidator() {
     module: '',
     year: 'Year 1',
     semester: 'Semester 1',
-    week: 1,
+    week: 5,
     questionCount: 5,
+    difficulty: 'Medium',
+    concept: '',
     questions: [],
     deadline: ''
   });
@@ -62,12 +81,122 @@ function LecturerQuizValidator() {
     ]
   });
 
-  const modules = ['Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering'];
+  const [modules, setModules] = useState([]);
+  const [userProfile, setUserProfile] = useState(null);
 
   useEffect(() => {
-    fetchQuizzes();
+    fetchUserProfile();
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      const response = await fetch(`${API_ENDPOINTS.AUTH}/profile`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUserProfile(data);
+        const assigned = data.assignedModules || [];
+        setModules(assigned);
+        if (assigned.length > 0) {
+          setFilterModule(assigned[0]);
+          setQuizForm(prev => ({ ...prev, module: assigned[0] }));
+        } else {
+          setFilterModule('All');
+        }
+      }
+    } catch (err) {
+      console.error("Profile fetch error", err);
+    }
+  };
+
+  useEffect(() => {
+    if (modules.length > 0) {
+      fetchQuizzes();
+      if (filterModule !== 'All') {
+        fetchStudentAttempts();
+      }
+    } else if (userProfile) {
+      // If profile is fetched but modules are empty, still stop loading
+      setLoading(false);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterModule, filterYear, filterSemester, filterWeek]);
+  }, [filterModule, filterYear, filterSemester, filterWeek, modules]);
+
+  const fetchStudentAttempts = async () => {
+    setAttemptsLoading(true);
+    try {
+      const response = await fetch(`${API_ENDPOINTS.QUIZZES}/attempts/module/${encodeURIComponent(filterModule)}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setStudentAttempts(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error('Error fetching student attempts:', error);
+    } finally {
+      setAttemptsLoading(false);
+    }
+  };
+
+  const viewAttemptJustification = async (attempt) => {
+    if (!attempt?.quiz?._id) {
+      toast.error("Quiz metadata is missing for this attempt.");
+      return;
+    }
+    try {
+      // Get the full quiz structure to match against results
+      const qRes = await fetch(`${API_ENDPOINTS.QUIZZES}/${attempt.quiz._id}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (qRes.ok) {
+        const fullQuiz = await qRes.json();
+        setSelectedAttempt({ ...attempt, quizData: fullQuiz });
+        setShowResultModal(true);
+        setExplanations({});
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to load attempt details.");
+    }
+  };
+
+  const handleGetAiJustification = async (qIdx) => {
+    if (!selectedAttempt?.quizData?.questions?.[qIdx]) return;
+    const q = selectedAttempt.quizData.questions[qIdx];
+    const res = (selectedAttempt.questionResults || []).find(r => r.questionText === q.text);
+    const userChoice = res ? res.selectedText : 'No Answer';
+    const correctChoice = (q.options || []).find(o => o.isCorrect)?.text || 'N/A';
+
+    setIsExplaining(qIdx);
+    try {
+      const response = await fetch(`${API_ENDPOINTS.ANALYTICS}/justify`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          questionText: q.text,
+          selectedAnswer: userChoice,
+          correctAnswer: correctChoice
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setExplanations(prev => ({ ...prev, [qIdx]: data.explanation }));
+      } else if (response.status === 429) {
+        toast.warning("Gemini AI Quota Exceeded. Please wait 60 seconds before retrying.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("AI service failure.");
+    } finally {
+      setIsExplaining(null);
+    }
+  };
 
   const fetchQuizzes = async () => {
     setLoading(true);
@@ -98,11 +227,13 @@ function LecturerQuizValidator() {
   const handleCreateNew = () => {
     setQuizForm({
       title: '',
-      module: '',
-      year: 'Year 1',
-      semester: 'Semester 1',
-      week: 1,
+      module: filterModule !== 'All' ? filterModule : (modules[0] || ''),
+      year: filterYear !== 'All' ? filterYear : 'Year 1',
+      semester: filterSemester !== 'All' ? filterSemester : 'Semester 1',
+      week: filterWeek !== 'All' ? Number(filterWeek) : 5,
       questionCount: 5,
+      difficulty: 'Medium',
+      concept: '',
       questions: []
     });
     setIsViewOnly(false);
@@ -206,21 +337,55 @@ function LecturerQuizValidator() {
     setQuizForm({ ...quizForm, questions: newQuestions });
   };
 
-  const handleMockGenerate = () => {
+  const handleMockGenerate = async () => {
+    if (!quizForm.module) {
+      alert("Please select a module first.");
+      return;
+    }
     setIsGenerating(true);
-    setTimeout(() => {
-      const mockQuestions = Array.from({ length: quizForm.questionCount }, (_, i) => ({
-        text: `Sample generated question ${i + 1} for ${quizForm.module}?`,
-        options: [
-          { text: 'Correct Answer', isCorrect: true },
-          { text: 'Wrong Answer 1', isCorrect: false },
-          { text: 'Wrong Answer 2', isCorrect: false },
-          { text: 'Wrong Answer 3', isCorrect: false }
-        ]
-      }));
-      setQuizForm({ ...quizForm, questions: mockQuestions });
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BASE_URL}/quizzes/generate-ai`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          module: quizForm.module,
+          week: quizForm.week,
+          count: quizForm.questionCount,
+          concept: quizForm.concept
+        })
+      });
+
+      const validatedQuestions = await response.json();
+      
+      if (!Array.isArray(validatedQuestions) || validatedQuestions.length === 0) {
+        throw new Error("AI returned no valid questions.");
+      }
+
+      setQuizForm({ ...quizForm, questions: validatedQuestions });
+      setAiTrace(null); 
+      toast.success(`Generated ${validatedQuestions.length} academic questions!`);
+    } catch (err) {
+      console.error(err);
+      setAiTrace(err.message || "AI service failure.");
+      toast.error(
+        <div>
+          AI Generation Error: {err.message || "Service failure"}. 
+          <button 
+            onClick={() => setShowTrace(true)}
+            style={{ marginLeft: '10px', background: 'none', border: '1px solid white', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}
+          >
+            View Trace
+          </button>
+        </div>,
+        { autoClose: 10000 }
+      );
+    } finally {
       setIsGenerating(false);
-    }, 1500);
+    }
   };
 
   const handleSaveDraft = async () => {
@@ -284,12 +449,7 @@ function LecturerQuizValidator() {
     }
   };
 
-  const filteredQuizzes = quizzes.filter(q => {
-    const matchesModule = filterModule === 'All' || q.module === filterModule;
-    const matchesYear = filterYear === 'All' || (q.academicYear && q.academicYear.includes(filterYear));
-    const matchesSemester = filterSemester === 'All' || (q.academicYear && q.academicYear.includes(filterSemester));
-    return matchesModule && matchesYear && matchesSemester;
-  });
+  // Dashboard logic: Relying on backend filtering in fetchQuizzes()
 
   return (
     <div className="quiz-validator-page">
@@ -309,7 +469,11 @@ function LecturerQuizValidator() {
             <span className="selector-label" style={{ fontSize: '11px' }}>Module</span>
             <select className="dropdown" style={{ width: '220px' }} value={filterModule} onChange={(e) => setFilterModule(e.target.value)}>
               <option value="All">All Modules</option>
-              {modules.map(m => <option key={m} value={m}>{m}</option>)}
+              {modules.length > 0 ? (
+                modules.map(m => <option key={m} value={m}>{m}</option>)
+              ) : (
+                <option value="" disabled>No Assigned Modules</option>
+              )}
             </select>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -344,7 +508,7 @@ function LecturerQuizValidator() {
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px', color: 'var(--text-secondary)' }}>
               Loading quizzes...
             </div>
-          ) : filteredQuizzes.length === 0 ? (
+          ) : quizzes.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '400px', gap: '16px' }}>
               <IconRobot size={48} style={{ color: '#cbd5e1' }} />
               <p style={{ color: 'var(--text-secondary)' }}>No quizzes found for this selection.</p>
@@ -353,7 +517,7 @@ function LecturerQuizValidator() {
           ) : (
             <div style={{ padding: '24px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '24px' }}>
-                {filteredQuizzes.map(quiz => (
+                {quizzes.map(quiz => (
                   <div key={quiz._id} className="quiz-item-card" style={{ backgroundColor: 'white', borderRadius: '16px', border: '1px solid var(--border-color)', padding: '20px', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                       <span style={{ fontSize: '12px', fontWeight: '700', padding: '4px 10px', borderRadius: '20px', backgroundColor: quiz.isPublished ? '#e6f8f1' : '#fff3dc', color: quiz.isPublished ? '#01b574' : '#ff9c00', textTransform: 'uppercase' }}>
@@ -405,6 +569,58 @@ function LecturerQuizValidator() {
         </div>
       </div>
 
+      {/* Performed Quizzes (Student History) Section */}
+      {filterModule !== 'All' && (
+        <div className="quiz-main-card" style={{ marginTop: '32px', padding: '32px' }}>
+           <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+             <IconRotateClockwise size={24} color="var(--primary)" /> Performed Quizzes (Student History)
+           </h3>
+           <div className="attempts-table-container" style={{ border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                <thead style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
+                  <tr>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', color: '#475569', fontWeight: '600' }}>Student</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', color: '#475569', fontWeight: '600' }}>Quiz Title</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'center', color: '#475569', fontWeight: '600' }}>Score</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'center', color: '#475569', fontWeight: '600' }}>Week</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right', color: '#475569', fontWeight: '600' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {attemptsLoading ? (
+                    <tr><td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading attempts...</td></tr>
+                  ) : studentAttempts.length === 0 ? (
+                    <tr><td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No attempts found for this module.</td></tr>
+                  ) : studentAttempts.map(attempt => (
+                    <tr key={attempt._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ fontWeight: '600', color: '#1e293b' }}>{attempt.student?.username || 'Unknown'}</div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>{attempt.student?.portalId || ''}</div>
+                      </td>
+                      <td style={{ padding: '12px 16px', color: '#475569' }}>{attempt.quiz?.title || 'Deleted Quiz'}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                        <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', backgroundColor: attempt.score >= 75 ? '#dcfce7' : attempt.score >= 40 ? '#fff7ed' : '#fee2e2', color: attempt.score >= 75 ? '#15803d' : attempt.score >= 40 ? '#c2410b' : '#ef4444' }}>
+                          {attempt.score}%
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'center', color: '#64748b' }}>Week {attempt.week}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                        <button 
+                          onClick={() => viewAttemptJustification(attempt)}
+                          style={{ background: 'white', border: '1px solid #e2e8f0', color: '#6366f1', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', transition: '0.2s', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          <IconBulb size={14} /> View Logic Trace
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+           </div>
+        </div>
+      )}
+
+
       {showModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(18, 28, 56, 0.6)', zIndex: 2000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(4px)' }}>
           <div style={{ backgroundColor: 'white', width: '90%', maxWidth: currentStep === 1 ? '500px' : '900px', borderRadius: '20px', padding: '32px', boxShadow: '0 20px 50px rgba(0,0,0,0.3)', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -431,6 +647,18 @@ function LecturerQuizValidator() {
                   </select>
                 </div>
 
+                <div className="input-group">
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Specific Topic/Concept (Required for AI)</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Inheritance, Normalization, TCP Handshake..." 
+                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none' }} 
+                    value={quizForm.concept} 
+                    onChange={e => setQuizForm({...quizForm, concept: e.target.value})} 
+                  />
+                  <p style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>This provides context to the AI for specialized question generation.</p>
+                </div>
+
                 <div style={{ display: 'flex', gap: '16px' }}>
                   <div style={{ flex: 1 }}>
                     <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Year</label>
@@ -450,11 +678,19 @@ function LecturerQuizValidator() {
                   <div style={{ flex: 1 }}>
                     <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Academic Week</label>
                     <select disabled={isViewOnly} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none' }} value={quizForm.week} onChange={e => setQuizForm({...quizForm, week: parseInt(e.target.value)})}>
-                      {Array.from({length: 15}, (_, i) => i + 1).map(w => <option key={w} value={w}>Week {w}</option>)}
+                      {Array.from({length: 15}, (_, i) => i + 1).filter(w => w >= 5).map(w => <option key={w} value={w}>Week {w}</option>)}
                     </select>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Question Count (Min 5)</label>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Difficulty</label>
+                    <select disabled={isViewOnly} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none' }} value={quizForm.difficulty} onChange={e => setQuizForm({...quizForm, difficulty: e.target.value})}>
+                      <option value="Easy">Easy</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Hard">Hard</option>
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Question Count</label>
                     <input disabled={isViewOnly} type="number" min="5" style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none' }} value={quizForm.questionCount} onChange={e => setQuizForm({...quizForm, questionCount: parseInt(e.target.value)})} />
                   </div>
                 </div>
@@ -466,8 +702,8 @@ function LecturerQuizValidator() {
                     </button>
                     <button 
                       onClick={() => {
-                        if (!quizForm.title || !quizForm.module || !quizForm.week) {
-                          alert("Please fill in basic details first.");
+                        if (!quizForm.title || !quizForm.module || !quizForm.week || !quizForm.concept) {
+                          alert("Please fill in title, module, week, and concept for AI context.");
                           return;
                         }
                         setCurrentStep(2);
@@ -555,7 +791,7 @@ function LecturerQuizValidator() {
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <h4 style={{ margin: 0 }}>Quiz structure ({quizForm.questions.length}/{quizForm.questionCount})</h4>
-                    {!isViewOnly && quizForm.questions.length >= quizForm.questionCount && (
+                    {!isViewOnly && quizForm.title && quizForm.module && (
                       <button onClick={handleSaveDraft} style={{ padding: '8px 20px', backgroundColor: '#e6f8f1', color: '#01b574', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <IconDeviceFloppy size={18} /> {quizForm._id ? "Update Quiz" : "Save Draft"}
                       </button>
@@ -624,6 +860,79 @@ function LecturerQuizValidator() {
                   <button type="submit" style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#6366f1', color: 'white', fontWeight: '600', cursor: 'pointer' }}>Confirm Publish</button>
                 </div>
              </form>
+          </div>
+        </div>
+      )}
+      {/* Diagnostic Trace Modal */}
+      {showTrace && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
+          <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '16px', maxWidth: '800px', width: '100%', maxHeight: '800px', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0 }}>AI Response Trace (Diagnostic)</h3>
+              <button onClick={() => setShowTrace(false)} style={{ border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
+            </div>
+            <pre style={{ backgroundColor: '#f1f5f9', padding: '16px', borderRadius: '8px', fontSize: '12px', whiteSpace: 'pre-wrap', overflowX: 'auto' }}>
+              {typeof aiTrace === 'string' ? aiTrace : JSON.stringify(aiTrace, null, 2)}
+            </pre>
+            <p style={{ fontSize: '12px', color: '#64748b', marginTop: '16px' }}>Copy this trace and share it with support if AI generation fails.</p>
+          </div>
+        </div>
+      )}
+      {/* Logic Trace (Result) Modal for Lecturers */}
+      {showResultModal && selectedAttempt && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(18, 28, 56, 0.6)', zIndex: 4000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(4px)' }}>
+          <div style={{ backgroundColor: 'white', width: '90%', maxWidth: '800px', borderRadius: '20px', padding: '32px', boxShadow: '0 20px 50px rgba(0,0,0,0.3)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
+              <div>
+                <h2 style={{ fontSize: '22px', margin: 0, color: 'var(--text-dark)' }}>AI Logic Trace: {selectedAttempt.student?.username}'s Attempt</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Result analysis for {selectedAttempt.quizData?.title}</p>
+              </div>
+              <button onClick={() => setShowResultModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}><IconX size={24} /></button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '24px', marginBottom: '32px', padding: '20px', background: '#f8fafc', borderRadius: '16px', alignItems: 'center' }}>
+               <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'white', border: '4px solid #6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '800', color: '#1e293b' }}>
+                 {selectedAttempt.score}%
+               </div>
+               <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Student Performance</div>
+                  <div style={{ display: 'flex', gap: '20px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600' }}><IconCheck size={16} color="#10b981" /> {selectedAttempt.correctAnswers} Correct</div>
+                    <div style={{ fontSize: '14px', fontWeight: '600' }}><IconTrophy size={16} color="#f59e0b" /> Score: {selectedAttempt.score}/100</div>
+                  </div>
+               </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <IconListNumbers size={20} color="var(--primary)" /> Detailed Question Review
+              </h3>
+              {selectedAttempt.quizData?.questions?.map((q, qIdx) => {
+                const res = selectedAttempt.questionResults.find(r => r.questionText === q.text);
+                const isCorrect = res ? res.isCorrect : false;
+
+                return (
+                  <div key={qIdx} style={{ padding: '20px', borderRadius: '16px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontWeight: '700', fontSize: '12px', color: '#64748b' }}>QUESTION {qIdx + 1}</span>
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: isCorrect ? '#10b981' : '#ef4444' }}>{isCorrect ? 'PASSED' : 'FAILED'}</span>
+                    </div>
+                    <p style={{ margin: '8px 0', fontWeight: '600', fontSize: '15px' }}>{q.text}</p>
+                    <div style={{ fontSize: '13px', marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ padding: '8px 12px', borderRadius: '6px', background: isCorrect ? '#f0fdf4' : '#fef2f2', border: `1px solid ${isCorrect ? '#bbf7d0' : '#fecaca'}`, color: isCorrect ? '#166534' : '#991b1b' }}>
+                        <span style={{ fontWeight: '700' }}>Student's Choice:</span> {res ? res.selectedText : 'No Answer'}
+                      </div>
+                                          {explanations[qIdx] && (
+                        <div style={{ padding: '12px', borderRadius: '8px', background: '#eef2ff', border: '1px solid #c7d2fe', color: '#3730a3', fontSize: '13px', lineHeight: '1.5' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', fontWeight: '700' }}><IconBrain size={16} /> AI Explanation:</div>
+                          {explanations[qIdx]}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

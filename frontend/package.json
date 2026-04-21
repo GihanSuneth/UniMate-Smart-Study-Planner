@@ -13,6 +13,7 @@
     "@google/generative-ai": "^0.24.1",
     "@tabler/icons-react": "^3.40.0",
     "framer-motion": "^12.4.7",
+    "html5-qrcode": "^2.3.8",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "qrcode.react": "^4.2.0",

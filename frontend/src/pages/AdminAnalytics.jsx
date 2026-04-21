@@ -26,7 +26,7 @@ function AdminAnalytics() {
 
   const years = ['All', 'Year 1', 'Year 2', 'Year 3', 'Year 4'];
   const semesters = ['All', 'Semester 1', 'Semester 2'];
-  const availableModules = ['Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering', 'Computer Networks', 'Discrete Mathematics'];
+  const availableModules = ['Network Design and Modeling', 'Database Systems', 'Operating Systems', 'Data Structures and Algorithms', 'Data Science and Analytics'];
 
   useEffect(() => {
     fetchStats();

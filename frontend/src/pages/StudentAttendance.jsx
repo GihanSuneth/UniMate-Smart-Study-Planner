@@ -17,12 +17,15 @@ function StudentAttendance() {
   const [filterModule, setFilterModule] = useState('All');
   const [filterWeek, setFilterWeek] = useState('All');
   const [showMarkModal, setShowMarkModal] = useState(null); // stores the session for modal
+  const [tokenInput, setTokenInput] = useState('');
+  const [sessionQR, setSessionQR] = useState(null);
   const [historyFilterModule, setHistoryFilterModule] = useState('All');
   const [historyFilterWeek, setHistoryFilterWeek] = useState('All');
 
-  const currentAcademicWeek = 8;
-  const modules = ['All', 'Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering'];
+  const currentAcademicWeek = 5;
+  const modules = ['All', 'Network Design and Modeling', 'Database Systems', 'Operating Systems', 'Data Structures and Algorithms', 'Data Science and Analytics'];
   const weeks = ['All', ...Array.from({ length: 12 }, (_, i) => (i + 1).toString())];
+
 
   useEffect(() => {
     fetchActiveSessions();
@@ -66,7 +69,26 @@ function StudentAttendance() {
     }
   };
 
+  const fetchSessionQR = async (sessionId) => {
+    try {
+      const response = await fetch(`${BASE_URL}/qr/session/${sessionId}/image`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSessionQR(data.qrImage);
+      }
+    } catch (err) {
+      console.error('Error fetching session QR:', err);
+    }
+  };
+
   const markAttendance = async (session) => {
+    if (!tokenInput || tokenInput.trim().length !== 6) {
+      toast.warning('Please enter a valid 6-character token ID');
+      return;
+    }
+
     setMarkingId(session._id);
     try {
       const response = await fetch(`${BASE_URL}/attendance/mark`, {
@@ -76,19 +98,20 @@ function StudentAttendance() {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
-          studentId,
-          code: session.uniqueCode // using the hidden code mapped to the visible session
+          code: tokenInput.trim().toUpperCase() // using the manual token input for verification
         })
       });
       
       const data = await response.json();
       
       if (response.ok) {
-        toast.success(`Successfully marked attendance for ${session.module}!`);
+        toast.success(`Successfully marked attendance!`);
         setSubmittedSessions(prev => new Set(prev).add(session._id));
+        setTokenInput('');
         fetchStudentAttendance(); // Refresh history
+        setTimeout(() => setShowMarkModal(null), 1500);
       } else {
-        toast.error(data.message || 'Failed to mark attendance. You may have already marked it.');
+        toast.error(data.message || 'Verification failed. Please check the token ID.');
       }
     } catch (err) {
       toast.error('Network Error. Please try again.');
@@ -96,6 +119,7 @@ function StudentAttendance() {
       setMarkingId(null);
     }
   };
+
 
   const overallPercentage = attendanceData?.overallPercentage ? Math.round(attendanceData.overallPercentage) : 0;
   const totalPresent = attendanceData?.records?.filter(r => r.status === 'Present').length || 0;
@@ -187,7 +211,12 @@ function StudentAttendance() {
                         </div>
                      ) : (
                         <button 
-                          onClick={() => setShowMarkModal(session)}
+                          onClick={() => {
+                            setShowMarkModal(session);
+                            setTokenInput('');
+                            setSessionQR(null);
+                            fetchSessionQR(session._id);
+                          }}
                           disabled={markingId === session._id}
                           style={{ width: '100%', padding: '12px', borderRadius: '12px', backgroundColor: '#4f46e5', color: 'white', border: 'none', fontSize: '14px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)' }}
                           onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(79, 70, 229, 0.3)' }}
@@ -195,6 +224,7 @@ function StudentAttendance() {
                         >
                           {markingId === session._id ? 'Verifying...' : 'Join & Mark Attendance'}
                         </button>
+
                      )}
                    </div>
                  );
@@ -361,35 +391,35 @@ function StudentAttendance() {
                   <button onClick={() => setShowMarkModal(null)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}><IconX size={24}/></button>
                </div>
                <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>Confirm your details to mark attendance for this session.</p>
-            </div>
-
-            <div style={{ padding: '24px', flex: 1 }}>
-               <div style={{ backgroundColor: '#f8fafc', borderRadius: '16px', padding: '20px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
+            </div>             <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
+               <div style={{ backgroundColor: '#f8fafc', borderRadius: '16px', padding: '20px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
                   <div style={{ fontSize: '11px', fontWeight: '700', color: '#6366f1', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Active Module</div>
-                  <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#1e293b', margin: '0 0 16px 0' }}>{showMarkModal.module}</h3>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>WEEK</span>
-                        <span style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b' }}>{showMarkModal.week}</span>
-                     </div>
-                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>SESSION CODE</span>
-                        <span style={{ fontSize: '15px', fontWeight: '700', color: '#4f46e5' }}>VERIFIED ✓</span>
-                     </div>
-                  </div>
+                  <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b', margin: '0 0 12px 0' }}>{showMarkModal.module}</h3>
+                  <div style={{ fontSize: '13px', color: '#64748b' }}>Week {showMarkModal.week} • Academic Session</div>
                </div>
 
-               <div style={{ padding: '16px', backgroundColor: '#eef2ff', borderRadius: '12px', border: '1px solid #c7d2fe', marginBottom: '24px' }}>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                     <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#4f46e5', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <IconUser size={20} />
-                     </div>
-                     <div>
-                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>Attendance Record</div>
-                        <div style={{ fontSize: '11px', color: '#6366f1' }}>Mapping to your Student ID: {studentId?.substring(0, 8)}...</div>
-                     </div>
+               {/* QR Image Injection */}
+               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
+                  <div style={{ width: '160px', height: '160px', background: '#f1f5f9', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px', border: '1px dashed #cbd5e1' }}>
+                    {sessionQR ? (
+                      <img src={sessionQR} alt="Session QR" style={{ width: '100%', height: '100%', borderRadius: '11px' }} />
+                    ) : (
+                      <div style={{ fontSize: '12px', color: '#94a3b8' }}>Loading QR...</div>
+                    )}
                   </div>
+                  <p style={{ fontSize: '11px', color: '#64748b', textAlign: 'center' }}>Scan the QR or enter the 6-digit verification code provided by your lecturer.</p>
+               </div>
+
+               <div style={{ marginBottom: '24px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px', display: 'block' }}>Verification Token ID</label>
+                  <input 
+                    type="text" 
+                    placeholder="Enter 6-digit code"
+                    value={tokenInput}
+                    onChange={(e) => setTokenInput(e.target.value.toUpperCase())}
+                    maxLength={6}
+                    style={{ width: '100%', padding: '16px', borderRadius: '12px', border: '2px solid #e2e8f0', fontSize: '24px', fontWeight: '800', textAlign: 'center', letterSpacing: '8px', outline: 'none', color: '#4f46e5' }}
+                  />
                </div>
 
                <p style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', lineHeight: '1.5' }}>
@@ -399,14 +429,11 @@ function StudentAttendance() {
 
             <div style={{ padding: '24px', backgroundColor: '#f8fafc', borderTop: '1px solid #f1f5f9' }}>
                <button 
-                 disabled={markingId === showMarkModal._id}
-                 onClick={async () => {
-                   await markAttendance(showMarkModal);
-                   setTimeout(() => setShowMarkModal(null), 1500);
-                 }}
-                 style={{ width: '100%', padding: '16px', borderRadius: '12px', backgroundColor: '#4f46e5', color: 'white', border: 'none', fontSize: '16px', fontWeight: '800', cursor: 'pointer', boxShadow: '0 8px 24px rgba(79, 70, 229, 0.25)', transition: '0.2s' }}
-                 onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                 onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                 disabled={markingId === showMarkModal._id || tokenInput.length !== 6}
+                 onClick={() => markAttendance(showMarkModal)}
+                 style={{ width: '100%', padding: '16px', borderRadius: '12px', backgroundColor: '#4f46e5', color: 'white', border: 'none', fontSize: '16px', fontWeight: '800', cursor: 'pointer', boxShadow: '0 8px 24px rgba(79, 70, 229, 0.25)', transition: '0.2s', opacity: tokenInput.length === 6 ? 1 : 0.6 }}
+                 onMouseEnter={(e) => { if(tokenInput.length === 6) e.currentTarget.style.transform = 'translateY(-2px)' }}
+                 onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)' }}
                >
                  {markingId === showMarkModal._id ? 'Verifying Attendance...' : 'Confirm and Mark Attendance'}
                </button>
@@ -414,6 +441,7 @@ function StudentAttendance() {
           </div>
         </div>
       )}
+
       
       <style>{`
         @keyframes pulse {

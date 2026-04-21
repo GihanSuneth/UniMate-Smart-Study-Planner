@@ -19,18 +19,50 @@ exports.saveNote = async (req, res) => {
   }
 };
 
-// @desc    Get all notes for the user
+// @desc    Get all notes for the user (including shared ones for the module)
 // @route   GET /api/notes
 // @access  Private
 exports.getNotes = async (req, res) => {
   const { module, type } = req.query;
-  const filter = { user: req.user._id };
-  if (module && module !== 'All') filter.module = module;
+  
+  // Logical OR: either it belongs to the user OR it is shared for this specific module
+  const orConditions = [{ user: req.user._id }];
+  
+  // Only students should see shared notes? For now, anyone allowed in module can see shared
+  orConditions.push({ isShared: true });
+
+  const filter = { $or: orConditions };
+
+  if (module && module !== 'All') {
+    filter.module = module;
+  }
+  
   if (type) filter.type = type;
 
   try {
     const notes = await Note.find(filter).sort({ timestamp: -1 });
     res.json(notes);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Deploy/Share an AI insight as a shared note
+// @route   POST /api/notes/deploy-insight
+// @access  Private
+exports.deployInsight = async (req, res) => {
+  const { title, module, content } = req.body;
+  try {
+    const note = await Note.create({
+      user: req.user._id,
+      title,
+      module,
+      content,
+      type: 'short_note',
+      isShared: true,
+      sharedBy: req.user._id
+    });
+    res.status(201).json(note);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

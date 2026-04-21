@@ -23,6 +23,14 @@ const noteSchema = new mongoose.Schema({
     enum: ['teaching_prep', 'draft', 'short_note'],
     default: 'draft',
   },
+  isShared: {
+    type: Boolean,
+    default: false,
+  },
+  sharedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
   timestamp: {
     type: Date,
     default: Date.now,

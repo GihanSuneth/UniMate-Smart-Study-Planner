@@ -10,46 +10,106 @@ import { BASE_URL } from '../api';
 import './Attendance.css';
 
 function LecturerAttendance() {
-  const [selectedModule, setSelectedModule] = useState('Programming Applications');
+  const [selectedModule, setSelectedModule] = useState('Network Design and Modeling');
   const [selectedWeek, setSelectedWeek] = useState(5);
-  const [qrCode, setQrCode] = useState(null);
-  const [activeSessionId, setActiveSessionId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [attendanceList, setAttendanceList] = useState([]);
+  const [historyList, setHistoryList] = useState([]);
   const [enrollmentCount, setEnrollmentCount] = useState(0);
   const [allStudents, setAllStudents] = useState([]); // All enrolled students
   const [searchQuery, setSearchQuery] = useState('');
-  const [submissionFilter, setSubmissionFilter] = useState('Attended'); // 'Attended' or 'Missed'
+  const [submissionFilter, setSubmissionFilter] = useState('Attended'); 
   const [sessionStartTime, setSessionStartTime] = useState(null);
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [historyFilterModule, setHistoryFilterModule] = useState('');
+  const [historyFilterWeek, setHistoryFilterWeek] = useState(5);
   const [historySearchQuery, setHistorySearchQuery] = useState('');
+
   
-  // Logic to determine current academic week (e.g. Week 8 for current date)
-  const currentAcademicWeek = 8; 
+  // Logic to determine current academic week
+  const currentAcademicWeek = 5; 
   
-  const modules = ['Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering'];
+  const [modules, setModules] = useState([]);
+  const [userProfile, setUserProfile] = useState(null);
+  const [duration, setDuration] = useState(10);
+  const [qrCode, setQrCode] = useState(null);
+  const [sessionToken, setSessionToken] = useState(null);
+  const [timeLeft, setTimeLeft] = useState('');
+  const [expiresAt, setExpiresAt] = useState(null);
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/auth/profile`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUserProfile(data);
+        const assigned = Array.isArray(data.assignedModules) ? data.assignedModules : [];
+        setModules(assigned);
+        if (assigned.length > 0) {
+          setSelectedModule(assigned[0]);
+          setHistoryFilterModule(assigned[0]);
+        }
+      }
+    } catch (err) {
+      console.error("Profile fetch error", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchHistory = async () => {
+    if (!historyFilterModule) return;
+    try {
+      const response = await fetch(`${BASE_URL}/attendance/module/${encodeURIComponent(historyFilterModule)}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          const weekData = data.filter(r => r.week === historyFilterWeek);
+          setHistoryList(weekData);
+        } else {
+          setHistoryList([]);
+        }
+      }
+    } catch (error) {
+      console.error('Fetch history error', error);
+      setHistoryList([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, [historyFilterModule, historyFilterWeek]);
+
 
   // 1. Fetch live attendance for the active session or selected criteria
   const fetchAttendance = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/attendance/module/${encodeURIComponent(selectedModule)}`);
+      const authHeader = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
+      const response = await fetch(`${BASE_URL}/attendance/module/${encodeURIComponent(selectedModule)}`, { headers: authHeader });
       if (response.ok) {
         const data = await response.json();
-        const weekData = data.filter(r => r.week === selectedWeek);
-        setAttendanceList(weekData);
+        if (Array.isArray(data)) {
+          const weekData = data.filter(r => r.week === selectedWeek);
+          setAttendanceList(weekData);
+        }
       }
       
-      // Fetch all enrolled students to calculate "Missed"
-      const enrollRes = await fetch(`${BASE_URL}/attendance/enrollment-count?module=${encodeURIComponent(selectedModule)}`);
+      const enrollRes = await fetch(`${BASE_URL}/attendance/enrollment-count?module=${encodeURIComponent(selectedModule)}`, { headers: authHeader });
       if (enrollRes.ok) {
         const enrollData = await enrollRes.json();
-        setEnrollmentCount(enrollData.count);
-        // We assume the backend might return student list if requested, but for now we look at the attendance controller logic
-        // Let's fetch the actual student list for the module
-        const studentsRes = await fetch(`${BASE_URL}/auth/students?module=${encodeURIComponent(selectedModule)}`);
+        setEnrollmentCount(enrollData.count || 0);
+        
+        const studentsRes = await fetch(`${BASE_URL}/auth/students?module=${encodeURIComponent(selectedModule)}`, { headers: authHeader });
         if (studentsRes.ok) {
           const students = await studentsRes.json();
-          setAllStudents(students);
+          setAllStudents(Array.isArray(students) ? students : []);
         }
       }
     } catch (error) {
@@ -103,26 +163,34 @@ function LecturerAttendance() {
   const generateQRCode = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${BASE_URL}/attendance/session`, {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BASE_URL}/qr/generate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
-          lecturer: localStorage.getItem('userId'),
           module: selectedModule,
-          week: selectedWeek
+          week: selectedWeek,
+          duration: duration,
+          baseUrl: window.location.origin
         })
       });
       const data = await response.json();
       setLoading(false);
       
       if (response.ok) {
-        setQrCode(data.uniqueCode);
-        setActiveSessionId(data._id);
+        console.log("QR Generation Success:", data.sessionToken);
+        setQrCode(data.qrImage);
+        setSessionToken(data.sessionToken);
+        setExpiresAt(new Date(data.expiresAt));
         setSessionStartTime(new Date());
-        toast.success(`Session created! Code: ${data.uniqueCode}`);
+        setTimeLeft(`${duration}:00`);
+        toast.success(`Session created! Code: ${data.sessionToken}`);
         fetchAttendance();
       } else {
-        toast.error('Failed to create session');
+        toast.error(data.message || 'Failed to create session');
       }
     } catch (err) {
       setLoading(false);
@@ -130,18 +198,48 @@ function LecturerAttendance() {
     }
   };
 
-  // 3. Close the active session
+  const extendSession = async (mins = 5) => {
+    if (!sessionToken) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BASE_URL}/qr/extend`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          sessionToken: sessionToken, // Backend needs to find by code or ID
+          additionalMinutes: mins
+        })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setExpiresAt(new Date(data.expiresAt));
+        toast.success(`Session extended by ${mins} minutes`);
+      }
+    } catch (err) {
+      toast.error('Extension failed');
+    }
+  };
+
   const endActiveSession = async () => {
-    if (!activeSessionId) return;
     setLoading(true);
     try {
-      const response = await fetch(`${BASE_URL}/attendance/session/${activeSessionId}/end`, {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BASE_URL}/qr/end`, {
         method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ sessionToken })
       });
       setLoading(false);
       if (response.ok) {
         setQrCode(null);
-        setActiveSessionId(null);
+        setSessionToken(null);
+        setExpiresAt(null);
         toast.success('Attendance session ended.');
       } else {
         toast.error('Failed to end session');
@@ -152,14 +250,33 @@ function LecturerAttendance() {
     }
   };
 
+  // Timer logic
+  useEffect(() => {
+    if (!expiresAt) return;
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = expiresAt.getTime() - now;
+      if (distance < 0) {
+        clearInterval(timer);
+        setTimeLeft('EXPIRED');
+        setQrCode(null);
+      } else {
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        setTimeLeft(`${minutes}:${seconds < 10 ? '0' : ''}${seconds}`);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [expiresAt]);
+
   // Polling for live updates every 5 seconds if a session is active
   useEffect(() => {
     const interval = setInterval(() => {
-      if (activeSessionId) fetchAttendance();
+      if (sessionToken) fetchAttendance();
     }, 5000);
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedModule, selectedWeek, activeSessionId]);
+  }, [selectedModule, selectedWeek, sessionToken]);
 
   return (
     <div className="attendance-page">
@@ -181,7 +298,7 @@ function LecturerAttendance() {
                 <select 
                   value={selectedModule} 
                   onChange={(e) => setSelectedModule(e.target.value)}
-                  disabled={!!activeSessionId}
+                  disabled={!!sessionToken}
                   style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}
                 >
                   {modules.map(m => <option key={m} value={m}>{m}</option>)}
@@ -192,11 +309,23 @@ function LecturerAttendance() {
                 <select 
                   value={selectedWeek} 
                   onChange={(e) => setSelectedWeek(Number(e.target.value))}
-                  disabled={!!activeSessionId}
+                  disabled={!!sessionToken}
                   style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}
                 >
                   {[1,2,3,4,5,6,7,8,9,10,11,12].map(w => <option key={w} value={w}>Week {w}</option>)}
                 </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '4px', display: 'block' }}>Timer (Mins)</label>
+                <input 
+                  type="number" 
+                  value={duration} 
+                  onChange={(e) => setDuration(Number(e.target.value))}
+                  disabled={!!sessionToken}
+                  min="1"
+                  max="60"
+                  style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+                />
               </div>
             </div>
 
@@ -205,11 +334,43 @@ function LecturerAttendance() {
                 <>
                   <div style={{ marginBottom: '16px', textAlign: 'center' }}>
                     <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e293b' }}>{selectedModule}</div>
-                    <div style={{ fontSize: '12px', color: '#64748b' }}>Week {selectedWeek}</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>Week {selectedWeek} • Time Left: <span style={{ color: '#ef4444', fontWeight: '800' }}>{timeLeft}</span></div>
                   </div>
-                  <QRCodeSVG value={qrCode} size={160} level={"H"} includeMargin={true} />
+                  <div style={{ 
+                    position: 'relative', 
+                    width: '200px', 
+                    height: '200px', 
+                    backgroundColor: 'white', 
+                    borderRadius: '12px', 
+                    padding: '10px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+                    border: '1px solid #e2e8f0',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center' 
+                  }}>
+                    <img 
+                      src={qrCode} 
+                      alt="Attendance QR" 
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                      onError={(e) => {
+                        console.error("QR Image Load Error", e);
+                        e.target.style.display = 'none';
+                        const fallback = e.target.nextSibling;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                    <div style={{ display: 'none', flexDirection: 'column', alignItems: 'center', color: '#94a3b8', textAlign: 'center', padding: '10px' }}>
+                      <IconQrcode size={48} />
+                      <div style={{ fontSize: '10px', marginTop: '4px' }}>Image Load Failed<br/>Use Token ID Below</div>
+                    </div>
+                  </div>
                   <div style={{ marginTop: '16px', fontSize: '24px', fontWeight: 'bold', letterSpacing: '4px', color: '#4f46e5' }}>
-                    {qrCode}
+                    {sessionToken}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                    <button onClick={() => extendSession(5)} style={{ padding: '6px 12px', borderRadius: '6px', backgroundColor: '#eef2ff', color: '#4f46e5', border: 'none', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>+5 Mins</button>
+                    <button onClick={() => extendSession(10)} style={{ padding: '6px 12px', borderRadius: '6px', backgroundColor: '#eef2ff', color: '#4f46e5', border: 'none', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>+10 Mins</button>
                   </div>
                 </>
               ) : (
@@ -231,16 +392,16 @@ function LecturerAttendance() {
               </div>
             </div>
 
-            {activeSessionId ? (
-              <button className="action-btn" onClick={endActiveSession} style={{ backgroundColor: '#dc2626' }}>End Active Session</button>
+            {sessionToken ? (
+              <button className="action-btn" onClick={endActiveSession} style={{ backgroundColor: '#dc2626' }}>End Session Now</button>
             ) : (
               <button 
                 className="generate-btn" 
                 onClick={generateQRCode} 
-                style={{ width: '100%', opacity: selectedWeek !== currentAcademicWeek ? 0.5 : 1 }}
-                disabled={selectedWeek !== currentAcademicWeek}
+                style={{ width: '100%', opacity: selectedWeek < 5 ? 0.5 : 1 }}
+                disabled={selectedWeek < 5}
               >
-                {selectedWeek !== currentAcademicWeek ? `Locked (Only Week ${currentAcademicWeek} open)` : 'Generate QR Code'}
+                {selectedWeek < 5 ? `Locked (Past Week records cannot be created)` : 'Start Attendance Session'}
               </button>
             )}
           </div>
@@ -349,57 +510,96 @@ function LecturerAttendance() {
                 </div>
               )}
             </div>
-            
-            <button 
-              onClick={() => setShowHistoryModal(true)}
-              style={{ width: '100%', marginTop: '20px', padding: '12px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'var(--text-secondary)', fontWeight: '600', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
-            >
-              View Historical Records <IconChevronRight size={18} />
-            </button>
           </div>
         </div>
       </div>
+            
+      {/* Permanent Historical Records Section */}
+      <div className="attendance-card" style={{ marginTop: '32px', borderTop: '4px solid var(--primary)' }}>
 
-      {showHistoryModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(4px)' }}>
-          <div style={{ background: 'white', width: '90%', maxWidth: '800px', borderRadius: '20px', padding: '32px', maxHeight: '80vh', overflowY: 'auto', position: 'relative' }}>
-            <button onClick={() => setShowHistoryModal(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><IconX size={24} /></button>
-            <h2 style={{ marginBottom: '20px' }}>Historical Attendance Records</h2>
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-               <select value={selectedModule} onChange={e => setSelectedModule(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd', flex: 1 }}>
-                 {modules.map(m => <option key={m} value={m}>{m}</option>)}
-               </select>
-               <select value={selectedWeek} onChange={e => setSelectedWeek(Number(e.target.value))} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd', flex: 1 }}>
-                 {[1,2,3,4,5,6,7,8,9,10,11,12].map(w => <option key={w} value={w}>Week {w}</option>)}
-               </select>
-               <input 
-                 type="text" 
-                 placeholder="Search Portal ID / Name..." 
-                 value={historySearchQuery}
-                 onChange={(e) => setHistorySearchQuery(e.target.value)}
-                 style={{ flex: 2, padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
-               />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', maxHeight: '50vh' }}>
-              {attendanceList.filter(rec => 
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+           <div>
+             <h3 className="card-title" style={{ margin: 0 }}>Past Attendance Details</h3>
+             <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>Review historical participation records by module and week.</p>
+           </div>
+           <div style={{ display: 'flex', gap: '12px' }}>
+              <select 
+                value={historyFilterModule} 
+                onChange={e => setHistoryFilterModule(e.target.value)} 
+                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', fontWeight: '600', minWidth: '180px' }}
+              >
+                {modules.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+              <select 
+                value={historyFilterWeek} 
+                onChange={e => setHistoryFilterWeek(Number(e.target.value))} 
+                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', fontWeight: '600' }}
+              >
+                {[1,2,3,4,5,6,7,8,9,10,11,12].map(w => <option key={w} value={w}>Week {w}</option>)}
+              </select>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="text" 
+                  placeholder="Search student..." 
+                  value={historySearchQuery}
+                  onChange={(e) => setHistorySearchQuery(e.target.value)}
+                  style={{ padding: '8px 12px', paddingRight: '32px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', width: '200px' }}
+                />
+              </div>
+           </div>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                <th style={{ padding: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>Portal ID</th>
+                <th style={{ padding: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>Student Name</th>
+                <th style={{ padding: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>Date & Time</th>
+                <th style={{ padding: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {historyList.filter(rec => 
                 rec.student?.username?.toLowerCase().includes(historySearchQuery.toLowerCase()) || 
                 rec.student?.portalId?.toLowerCase().includes(historySearchQuery.toLowerCase())
-              ).length > 0 ? attendanceList.filter(rec => 
+              ).length > 0 ? historyList.filter(rec => 
                 rec.student?.username?.toLowerCase().includes(historySearchQuery.toLowerCase()) || 
                 rec.student?.portalId?.toLowerCase().includes(historySearchQuery.toLowerCase())
               ).map((rec, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', border: '1px solid #f1f5f9', borderRadius: '12px', background: '#f8fafc' }}>
-                  <div>
-                    <div style={{ fontWeight: '700' }}>{rec.student?.username}</div>
-                    <div style={{ fontSize: '12px', color: '#64748b' }}>{rec.student?.portalId} • {new Date(rec.date).toLocaleDateString()}</div>
-                  </div>
-                  <div style={{ fontWeight: '700', color: rec.status === 'Present' ? '#10b981' : rec.status === 'Excused' ? '#f59e0b' : '#ef4444' }}>{rec.status.toUpperCase()}</div>
-                </div>
-              )) : <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>No records match your search.</div>}
-            </div>
-          </div>
+                <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '16px', fontSize: '14px', fontWeight: '700', color: '#4f46e5' }}>{rec.student?.portalId}</td>
+                  <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600', color: '#1e293b' }}>{rec.student?.username}</td>
+                  <td style={{ padding: '16px', fontSize: '14px', color: '#64748b' }}>
+                    {new Date(rec.date).toLocaleDateString()} at {new Date(rec.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <span style={{ 
+                      padding: '4px 10px', 
+                      borderRadius: '8px', 
+                      fontSize: '12px', 
+                      fontWeight: '800', 
+                      backgroundColor: rec.status === 'Present' ? '#dcfce7' : rec.status === 'Excused' ? '#fef3c7' : '#fee2e2', 
+                      color: rec.status === 'Present' ? '#15803d' : rec.status === 'Excused' ? '#d97706' : '#dc2626' 
+                    }}>
+                      {rec.status.toUpperCase()}
+                    </span>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan="4" style={{ padding: '48px', textAlign: 'center', color: '#94a3b8' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                      <IconUsers size={40} style={{ opacity: 0.2 }} />
+                      <p>No historical records found for this selection.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
       
       <style>{`
         @keyframes pulse {
@@ -417,3 +617,4 @@ function LecturerAttendance() {
 }
 
 export default LecturerAttendance;
+

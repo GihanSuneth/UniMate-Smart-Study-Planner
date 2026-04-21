@@ -136,6 +136,45 @@ exports.getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
     if (user) {
+      // 🚀 Auto-allocation for Demo Sustainability
+      const coreModules = [
+        'Network Design and Modeling', 
+        'Database System', 
+        'Operating Systems', 
+        'Data Structures and Algorithms', 
+        'Data Science and Analytics'
+      ];
+
+      let changed = false;
+
+      if (user.role === 'student') {
+        // Enforce 3rd Year, 2nd Sem if not set
+        if (!user.academicYear || user.academicYear === '') {
+          user.academicYear = '3rd Year';
+          changed = true;
+        }
+        if (!user.semester || user.semester === '') {
+          user.semester = '2nd Semester';
+          changed = true;
+        }
+        // Enforce all 5 modules if list is empty
+        if (!user.enrolledModules || user.enrolledModules.length === 0) {
+          user.enrolledModules = coreModules;
+          changed = true;
+        }
+      } else if (user.role && user.role.toLowerCase() === 'lecturer') {
+        // Enforce modules for lecturers if list is empty
+        if (!user.assignedModules || user.assignedModules.length === 0) {
+          user.assignedModules = [coreModules[0], coreModules[1]]; // Assign Network Design and Database System
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        await user.save();
+        console.log(`[Auto-Allocation] Updated profile for ${user.username} (${user.role})`);
+      }
+
       res.json(user);
     } else {
       res.status(404).json({ message: 'User not found' });
@@ -144,6 +183,7 @@ exports.getUserProfile = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // @desc    Update user profile
 // @route   PUT /api/auth/profile
@@ -363,6 +403,23 @@ exports.resetUserPassword = async (req, res) => {
     await user.save();
 
     res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get students filtered by assigned module
+// @route   GET /api/auth/students
+// @access  Private (Lecturer/Admin)
+exports.getStudentsByModule = async (req, res) => {
+  const { module } = req.query;
+  try {
+    const filter = { role: 'student' };
+    if (module) {
+      filter.assignedModules = { $in: [module] };
+    }
+    const students = await User.find(filter).select('username email portalId academicYear semester status');
+    res.json(students);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

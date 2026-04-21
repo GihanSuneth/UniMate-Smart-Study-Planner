@@ -5,7 +5,7 @@ const {
   registerUser, loginUser, approveUser, rejectUser, getUsers, 
   getUserProfile, updateUserProfile, updatePassword, 
   bulkUpdateUsers, deleteUser, adminUpdateUser, verifyPassword, resetUserPassword,
-  lookupPortalId
+  lookupPortalId, getStudentsByModule
 } = authController;
 const { protect, admin } = require('../middleware/authMiddleware');
 
@@ -16,6 +16,7 @@ router.post('/portal-id-lookup', lookupPortalId);
 
 // Private routes
 router.get('/profile', protect, getUserProfile);
+router.get('/students', protect, getStudentsByModule);
 router.put('/profile', protect, updateUserProfile);
 router.put('/change-password', protect, updatePassword);
 router.post('/verify-password', protect, verifyPassword);

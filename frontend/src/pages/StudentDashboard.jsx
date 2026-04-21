@@ -14,24 +14,38 @@ function StudentDashboard() {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const [summaryData, setSummaryData] = useState(null);
+
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${BASE_URL}/auth/profile`, {
+        const userId = localStorage.getItem('userId');
+        
+        // 1. Fetch Profile
+        const profileRes = await fetch(`${BASE_URL}/auth/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        const data = await response.json();
-        if (response.ok) {
-          setUserData(data);
+        const profileData = await profileRes.json();
+        if (profileRes.ok) {
+          setUserData(profileData);
+        }
+
+        // 2. Fetch Summary for Week 5
+        const summaryRes = await fetch(`${BASE_URL}/analytics/summary/${userId}/5`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const sData = await summaryRes.json();
+        if (summaryRes.ok) {
+          setSummaryData(sData);
         }
       } catch (err) {
-        console.error('Failed to fetch profile', err);
+        console.error('Failed to fetch dashboard data', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchProfile();
+    fetchData();
   }, []);
 
   if (loading) return <div className="loading-container">Loading Dashboard...</div>;
@@ -55,10 +69,10 @@ function StudentDashboard() {
             <IconTrendingUp size={20} className="trend-icon up" />
           </div>
           <div className="stat-value">
-            <h2>142</h2>
-            <span className="trend-text up">+12% this week</span>
+            <h2>{summaryData?.weeklyStats?.notes || 0}</h2>
+            <span className="trend-text up">Active Week 5</span>
           </div>
-          <div className="progress-track"><div className="progress-fill" style={{ backgroundColor: '#10b981', width: '80%' }}></div></div>
+          <div className="progress-track"><div className="progress-fill" style={{ backgroundColor: '#10b981', width: '50%' }}></div></div>
         </div>
 
         <div className="stat-card card-attendance">
@@ -70,10 +84,10 @@ function StudentDashboard() {
             <IconTrendingUp size={20} className="trend-icon up" />
           </div>
           <div className="stat-value">
-            <h2>82%</h2>
-            <span className="trend-text up">+5% this week</span>
+            <h2>{Math.round(summaryData?.weeklyStats?.attendance || 0)}%</h2>
+            <span className="trend-text up">Target: {summaryData?.target?.attendanceTarget || 80}%</span>
           </div>
-          <div className="progress-track"><div className="progress-fill blue-fill" style={{ width: '82%' }}></div></div>
+          <div className="progress-track"><div className="progress-fill blue-fill" style={{ width: `${summaryData?.weeklyStats?.attendance || 0}%` }}></div></div>
         </div>
 
         <div className="stat-card card-quiz">
@@ -82,13 +96,13 @@ function StudentDashboard() {
               <div className="icon-wrapper blue-bg"><IconPencilCheck size={16} /></div>
               <h3>Quiz Performance</h3>
             </div>
-            <IconTrendingDown size={20} className="trend-icon down" />
+            <IconTrendingUp size={20} className="trend-icon up" />
           </div>
           <div className="stat-value">
-            <h2>76%</h2>
-            <span className="trend-text down">-4% this week</span>
+            <h2>{Math.round(summaryData?.weeklyStats?.quiz || 0)}%</h2>
+            <span className="trend-text up">Target: {summaryData?.target?.quizTarget || 75}%</span>
           </div>
-          <div className="progress-track"><div className="progress-fill yellow-fill" style={{ width: '76%' }}></div></div>
+          <div className="progress-track"><div className="progress-fill yellow-fill" style={{ width: `${summaryData?.weeklyStats?.quiz || 0}%` }}></div></div>
         </div>
 
         <div className="mascot-card card-mascot" style={{ gridColumn: 'span 1', gridRow: 'span 2', marginBottom: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', position: 'relative', overflow: 'hidden' }}>
@@ -100,45 +114,25 @@ function StudentDashboard() {
         {/* Row 2: AI Weekly Report */}
         <WeeklyReportCard role="student" />
 
-        {/* Row 3: Student Quick Actions (Aligned with Patterns) */}
-        <div className="action-buttons-row" style={{ gridColumn: 'span 4', display: 'flex', gap: '12px', marginBottom: '24px' }}>
-          {[
-            { label: 'Study with AI', icon: <IconBrain size={16} />, color: '#999bf5ff', bg: '#c9bffeff', bdr: '#3d67f1ff', path: '/notes-ai' },
-            { label: 'Mark Attendance', icon: <IconCheckbox size={16} />, color: '#056545ff', bg: '#c9ffd9ff', bdr: '#2ffb76ff', path: '/mark-attendance' },
-            { label: 'Try Quiz', icon: <IconPencilCheck size={16} />, color: '#d48d11ff', bg: '#fff2bdff', bdr: '#ffd42aff', path: '/quiz-validator' }
-          ].map((btn, i) => (
-            <button
-              key={i}
-              onClick={() => navigate(btn.path)}
-              style={{
-                flex: 1,
-                padding: '12px 16px',
-                borderRadius: '12px',
-                background: btn.bg,
-                color: btn.color,
-                border: `1px solid ${btn.bdr}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontWeight: '700',
-                fontSize: '13px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = btn.bdr;
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = btn.bg;
-                e.currentTarget.style.transform = 'none';
-              }}
-            >
-              {btn.icon}
-              <span>{btn.label}</span>
-            </button>
-          ))}
+        {/* Row 3: Student Quick Actions (Full Width) */}
+        <div className="action-buttons-row" style={{ gridColumn: 'span 4', display: 'flex', gap: '20px', marginBottom: '24px' }}>
+          <div className="premium-action-card grad-indigo" onClick={() => navigate('/notes-ai')}>
+            <div className="action-card-icon"><IconBrain size={24} /></div>
+            <div className="action-card-label">Study with AI</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.8)', fontWeight: '600' }}>Smart generation for Week 5</div>
+          </div>
+
+          <div className="premium-action-card grad-emerald" onClick={() => navigate('/mark-attendance')}>
+            <div className="action-card-icon"><IconCheckbox size={24} /></div>
+            <div className="action-card-label">Mark My Attendance</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.8)', fontWeight: '600' }}>Submit presence for Week 5</div>
+          </div>
+
+          <div className="premium-action-card grad-orange" onClick={() => navigate('/quiz-validator')}>
+            <div className="action-card-icon"><IconPencilCheck size={24} /></div>
+            <div className="action-card-label">Try Weekly Quiz</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.8)', fontWeight: '600' }}>Test mastery & view logic trace</div>
+          </div>
         </div>
 
         {/* Row 4: Enrolled Modules (Compact Horizontal Pattern) */}
@@ -158,12 +152,13 @@ function StudentDashboard() {
           </div>
 
           <div className="modules-grid-enhanced" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-            {(userData?.enrolledModules || ['IT3040', 'IT3020', 'IT3030', 'IT3010']).map((moduleCode, idx) => {
+            {(userData?.enrolledModules || ['IT3010', 'IT3011', 'IT3012', 'IT3013', 'IT3014']).map((moduleCode, idx) => {
               const moduleNames = {
-                'IT3040': 'IT Project Management',
-                'IT3020': 'Data Science Origins',
-                'IT3030': 'Professional Application Frameworks',
-                'IT3010': 'Network Design & Management'
+                'IT3010': 'Network Design and Modeling',
+                'IT3011': 'Database Systems',
+                'IT3012': 'Operating Systems',
+                'IT3013': 'Data Structures and Algorithms',
+                'IT3014': 'Data Science and Analytics'
               };
               const isITPM = moduleCode.includes('IT3040');
               const year = 3;

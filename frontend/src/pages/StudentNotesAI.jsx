@@ -6,7 +6,7 @@ import {
   IconFilter, IconCloudUpload, IconPlus, IconDeviceFloppy, IconDotsVertical
 } from '@tabler/icons-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import jsPDF from 'jsPDF';
+import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { BASE_URL } from '../api';
 import './NotesAI.css';
@@ -39,20 +39,60 @@ function StudentNotesAI() {
     } catch (err) { console.error('Failed to fetch history', err); }
   };
 
+  const [modules, setModules] = useState([]);
+  const [userProfile, setUserProfile] = useState(null);
+
+  const fetchUserProfile = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/auth/profile`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUserProfile(data);
+        const enrolled = data.enrolledModules || [];
+        setModules(enrolled);
+        if (enrolled.length > 0) {
+          setTargetModule(enrolled[0]);
+        }
+      }
+    } catch (err) {
+      console.error("Profile fetch error", err);
+    }
+  };
+
   React.useEffect(() => {
+    fetchUserProfile();
     fetchHistory();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterModule]);
 
   const loadHistoryItem = (item) => {
-    setGenerationMode(item.content && item.content['Exam Path'] ? 'exam_prep' : 'short_notes');
+    // Determine if it's a structured JSON (deployed insight) or a standard AI note
+    const isStructured = typeof item.content === 'object' && !Array.isArray(item.content);
+    setGenerationMode(isStructured ? 'exam_prep' : (item.content && item.content['Exam Path'] ? 'exam_prep' : 'short_notes'));
     setGeneratedNotes(item.content);
-    setActiveTab(item.content && item.content['Exam Path'] ? 'Exam Path' : 'Summary');
+    setActiveTab(isStructured ? Object.keys(item.content)[0] : (item.content && item.content['Exam Path'] ? 'Exam Path' : 'Summary'));
+  };
+
+  const [fileContent, setFileContent] = useState('');
+
+  const processFile = (fileObj) => {
+    setFile(fileObj);
+    setError('');
+    
+    if (fileObj.type === 'text/plain' || fileObj.name.endsWith('.txt')) {
+      const reader = new FileReader();
+      reader.onload = (e) => setFileContent(e.target.result);
+      reader.readAsText(fileObj);
+    } else {
+      setFileContent(`[Attached Document: ${fileObj.name}. Note: Automated parsing for non-txt files may be limited in demo.]`);
+    }
   };
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-      setError('');
+      processFile(e.target.files[0]);
     }
   };
 
@@ -63,8 +103,7 @@ function StudentNotesAI() {
   const handleDrop = (e) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setFile(e.dataTransfer.files[0]);
-      setError('');
+      processFile(e.dataTransfer.files[0]);
     }
   };
 
@@ -78,7 +117,7 @@ function StudentNotesAI() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleGenerateClick = () => {
+  const handleGenerateClick = async () => {
     if (!file && !textNotes.trim()) {
       setError('Please upload a file or paste your rough notes first.');
       return;
@@ -88,81 +127,66 @@ function StudentNotesAI() {
     setIsGenerating(true);
     setGeneratedNotes(null);
 
-    // Mock AI API Call
-    setTimeout(async () => {
-      setIsGenerating(false);
-
-      let sourceName = '';
-      if (file && textNotes.trim()) {
-        sourceName = `${file.name} and your rough notes`;
-      } else if (file) {
-        sourceName = file.name;
-      } else {
-        sourceName = 'your pasted text';
-      }
-
-      let newNotesObj = {};
-      if (generationMode === 'smart_notes') {
-        newNotesObj = {
-          'Summary': [
-            `Comprehensive summary of key concepts based on ${sourceName}.`,
-            "Broken down into digestible sections for quick reading.",
-            "High-level overview suitable for initial understanding."
-          ],
-          'Short Notes': [
-            `Focused bullet points derived from ${sourceName}.`,
-            "Concentrated logic for rapid memorization.",
-            "Key formulas and core rules highlighted."
-          ],
-          'Explanation': [
-            `Detailed AI-driven explanation of complex parts in ${sourceName}.`,
-            "Analogy-based learning to simplify difficult concepts.",
-            "Contextual bridge between theory and practice."
-          ]
-        };
-        setActiveTab('Summary');
-      } else {
-        newNotesObj = {
-          'Exam Prep': [
-            `Week 1: Review Core Concepts directly from ${sourceName}.`,
-            "Week 2: Focus on Algorithms - specifically logic and classification methods.",
-            "Week 3: Deep dive into architecture design.",
-            "Week 4: Final project practice and mock examinations."
-          ],
-          'Referral Sheet': [
-            `Cheatsheet 1: Common formulas found in ${sourceName}.`,
-            "Cheatsheet 2: Definitions of Preprocessing techniques.",
-            "CheatSheet 3: Quick look at core systems discussed."
-          ]
-        };
-        setActiveTab('Exam Prep');
-      }
-      setGeneratedNotes(newNotesObj);
-
-      // Log activity to backend
-      try {
-        const token = localStorage.getItem('token');
-        await fetch(`${BASE_URL}/activity`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            type: 'notes_generated',
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BASE_URL}/ai`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          type: 'notes',
+          data: {
             module: targetModule,
-            title: file ? file.name : 'Generated Notes',
-            content: newNotesObj
-          })
-        });
-        fetchHistory(); // Refresh history
-        window.dispatchEvent(new CustomEvent('new-notification', { 
-          detail: { text: `AI Notes generated for ${targetModule}!` } 
-        }));
-      } catch (err) {
-        console.error('Failed to log activity', err);
+            notes: [fileContent, textNotes].filter(Boolean).join('\n\n--- Document Text ---\n\n'),
+            fileName: file ? file.name : null,
+            generationMode: generationMode // Can be used for prompt customization if needed
+          }
+        })
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          toast.warning("Gemini AI Quota Exceeded. Please wait 60 seconds before retrying.");
+          setIsGenerating(false);
+          return;
+        }
+        throw new Error('Failed to generate notes from AI');
       }
-    }, 2500);
+
+      const newNotesObj = await response.json();
+      setIsGenerating(false);
+      setGeneratedNotes(newNotesObj);
+      
+      const firstTab = Object.keys(newNotesObj)[0];
+      if (firstTab) setActiveTab(firstTab);
+
+      // Log activity to backend (for History tab)
+      await fetch(`${BASE_URL}/activity`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          type: 'notes_generated',
+          module: targetModule,
+          title: file ? file.name : 'AI Generated Notes',
+          content: newNotesObj
+        })
+      });
+      fetchHistory(); 
+      window.dispatchEvent(new CustomEvent('new-notification', { 
+        detail: { text: `AI Notes generated for ${targetModule}!` } 
+      }));
+
+    } catch (err) {
+      console.error('AI Generation Error:', err);
+      setError('Failed to reach AI. Please try again later.');
+      setIsGenerating(false);
+      toast.error("AI Service is temporarily unavailable.");
+    }
   };
 
   const handleCopy = () => {
@@ -334,11 +358,10 @@ function StudentNotesAI() {
                   value={targetModule} 
                   onChange={e => setTargetModule(e.target.value)}
                 >
-                  <option value="General">Module A (General)</option>
-                  <option value="IT3040">Module B (Calculus II)</option>
-                  <option value="IT3020">Module C (Physics I)</option>
-                  <option value="IT3030">Module D (Biochemistry)</option>
-                  <option value="IT3010">Module E (Philosophy 101)</option>
+                  {modules.map((mod, idx) => (
+                    <option key={idx} value={mod}>{mod}</option>
+                  ))}
+                  {modules.length === 0 && <option value="General">Module A (General)</option>}
                 </select>
               </div>
             </div>
@@ -373,7 +396,7 @@ function StudentNotesAI() {
         </div>
 
         <div className="tabs-container">
-          {([...(generatedNotes ? Object.keys(generatedNotes) : (generationMode === 'smart_notes' ? ['Summary', 'Short Notes', 'Explanation'] : ['Exam Prep', 'Referral Sheet'])), 'Show Previous Record']).map((tab) => (
+          {([...(generatedNotes ? Object.keys(generatedNotes) : ['Summary', 'Key Points', 'Lesson Plan', 'Quiz Ideas']), 'Show Previous Record']).map((tab) => (
             <button 
               key={tab}
               className={`tab ${activeTab === tab ? 'active' : ''}`}
@@ -398,22 +421,45 @@ function StudentNotesAI() {
                 <span style={{ fontSize: '14px', fontWeight: '600' }}>Filter by Module:</span>
                 <select style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '14px' }} value={filterModule} onChange={e => setFilterModule(e.target.value)}>
                    <option value="All">All Modules</option>
-                   <option value="General">General</option>
-                   <option value="IT3040">IT3040</option>
-                   <option value="IT3020">IT3020</option>
-                   <option value="IT3030">IT3030</option>
-                   <option value="IT3010">IT3010</option>
+                   {modules.map((mod, idx) => (
+                     <option key={idx} value={mod}>{mod}</option>
+                   ))}
                 </select>
               </div>
               <div className="history-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-                {history.filter(item => generationMode === 'smart_notes' ? !!item.content?.Summary : !!item.content?.['Exam Prep']).length === 0 ? (
+                {history.length === 0 ? (
                   <p style={{ gridColumn: '1/-1', textAlign: 'center', color: 'var(--text-secondary)', padding: '40px' }}>No history found for this tool.</p>
-                ) : history.filter(item => generationMode === 'smart_notes' ? !!item.content?.Summary : !!item.content?.['Exam Prep']).map((item, idx) => (
-                   <div key={idx} onClick={() => loadHistoryItem(item)} style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', cursor: 'pointer', transition: '0.2s', backgroundColor: 'white' }} onMouseEnter={(e) => e.currentTarget.style.borderColor='var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.borderColor='var(--border-color)'}>
-                      <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-dark)', marginBottom: '8px' }}>{item.title || 'Generated Notes'}</div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                        <span style={{ backgroundColor: 'var(--secondary)', color: 'var(--primary)', padding: '4px 8px', borderRadius: '6px', fontWeight: '700' }}>{item.module}</span>
-                        <span>Date: {new Date(item.timestamp).toLocaleDateString()}</span>
+                ) : history.map((item, idx) => (
+                   <div 
+                    key={idx} 
+                    onClick={() => loadHistoryItem(item)} 
+                    style={{ 
+                      padding: '16px', 
+                      borderRadius: '12px', 
+                      border: item.isShared ? '2.5px solid #6366f1' : '1px solid var(--border-color)', 
+                      cursor: 'pointer', 
+                      transition: '0.2s', 
+                      backgroundColor: 'white',
+                      position: 'relative'
+                    }} 
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor=item.isShared ? '#6366f1' : 'var(--primary)'} 
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor=item.isShared ? '#6366f1' : 'var(--border-color)'}
+                   >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                        <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-dark)' }}>{item.title || 'Generated Notes'}</div>
+                        {item.isShared && <IconRobot size={18} color="#6366f1" />}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        <span style={{ 
+                          backgroundColor: item.isShared ? '#eef2ff' : 'var(--secondary)', 
+                          color: item.isShared ? '#6366f1' : 'var(--primary)', 
+                          padding: '4px 8px', 
+                          borderRadius: '6px', 
+                          fontWeight: '800' 
+                        }}>
+                          {item.module} {item.isShared ? '• FROM LECTURER' : ''}
+                        </span>
+                        <span>{new Date(item.timestamp).toLocaleDateString()}</span>
                       </div>
                    </div>
                 ))}

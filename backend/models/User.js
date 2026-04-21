@@ -45,6 +45,9 @@ const userSchema = new mongoose.Schema({
   assignedModules: [{
     type: String, // 'Programming Applications', 'Database Systems', etc.
   }],
+  enrolledModules: [{
+    type: String, // Module codes or names
+  }],
   academicYear: {
     type: String, // "Year 1", "Year 2", etc.
     default: '',

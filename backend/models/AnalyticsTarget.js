@@ -4,7 +4,6 @@ const analyticsTargetSchema = new mongoose.Schema({
   student: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
   },
   week: {
     type: Number,
@@ -29,6 +28,14 @@ const analyticsTargetSchema = new mongoose.Schema({
   module: {
     type: String,
     default: 'Overall'
+  },
+  unlockCount: {
+    type: Number,
+    default: 0
+  },
+  aiInsight: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
   }
 }, {
   timestamps: true,

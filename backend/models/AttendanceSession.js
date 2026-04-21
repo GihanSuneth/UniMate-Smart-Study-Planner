@@ -8,7 +8,6 @@ const attendanceSessionSchema = new mongoose.Schema({
   },
   module: {
     type: String,
-    enum: ['Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering'],
     required: true,
   },
   week: {
@@ -27,6 +26,10 @@ const attendanceSessionSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true,
+  },
+  expiresAt: {
+    type: Date,
+    required: true,
   }
 }, {
   timestamps: true,

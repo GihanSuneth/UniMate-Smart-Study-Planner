@@ -33,20 +33,23 @@ function Header() {
           {/* Intentional space for aesthetic absolute positioning visual balance matching image */}
        </div>
        
-       <div className="header-right">
-         {/* Search Filter hidden for all roles per standardisation requirement */}
-         <div className="header-actions">
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>{userName}</div>
-                <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'capitalize' }}>{userRole}</div>
-              </div>
-              <img src={displayAvatar} alt="Profile" className="header-avatar" style={{ border: '2px solid #eef2ff' }} />
-            </div>
-            
-         </div>
-       </div>
+        <div className="header-right">
+          <div className="current-week-pill">
+            <div className="week-pulse-dot"></div>
+            <span>Academic Week 5</span>
+          </div>
+          <div className="header-actions">
+             
+             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+               <div style={{ textAlign: 'right' }}>
+                 <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>{userName}</div>
+                 <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'capitalize' }}>{userRole}</div>
+               </div>
+               <img src={displayAvatar} alt="Profile" className="header-avatar" style={{ border: '2px solid #eef2ff' }} />
+             </div>
+             
+          </div>
+        </div>
     </header>
   );
 }

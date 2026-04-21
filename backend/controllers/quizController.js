@@ -1,6 +1,7 @@
 const Quiz = require('../models/Quiz');
 const QuizAttempt = require('../models/QuizAttempt');
 const User = require('../models/User');
+const geminiService = require('../services/gemini.service');
 const mongoose = require('mongoose');
 
 // @desc    Create a new quiz (Draft)
@@ -41,9 +42,17 @@ exports.getQuizzes = async (req, res) => {
 
   if (module && module !== 'All') filter.module = module;
   if (academicYear && academicYear !== 'All') {
-    filter.academicYear = { $regex: academicYear, $options: 'i' };
+    // If it contains "All", we might want to just filter by the part that isn't "All"
+    // e.g. "Year 1 All" -> regex "Year 1"
+    const cleanYear = academicYear.replace(/All/g, '').trim();
+    if (cleanYear) {
+      filter.academicYear = { $regex: cleanYear, $options: 'i' };
+    }
   }
-  if (week && week !== 'All') filter.week = parseInt(week);
+  if (week && week !== 'All') {
+    const weekNum = parseInt(week);
+    if (!isNaN(weekNum)) filter.week = weekNum;
+  }
 
   try {
     if (req.user.role === 'Lecturer' || req.user.role === 'admin') {
@@ -146,11 +155,13 @@ exports.submitAttempt = async (req, res) => {
     const questionResults = [];
     quiz.questions.forEach((q, idx) => {
       const studentAnswer = answers[idx]; // { questionIndex: x, selectedOptionIndex: y }
-      const isCorrect = studentAnswer && q.options[studentAnswer.selectedOptionIndex] && q.options[studentAnswer.selectedOptionIndex].isCorrect;
+      const selectedOpt = studentAnswer && q.options[studentAnswer.selectedOptionIndex];
+      const isCorrect = selectedOpt && selectedOpt.isCorrect;
       if (isCorrect) correctCount++;
       
       questionResults.push({
         questionText: q.text,
+        selectedText: selectedOpt ? selectedOpt.text : 'No Answer',
         isCorrect: !!isCorrect
       });
     });
@@ -168,7 +179,9 @@ exports.submitAttempt = async (req, res) => {
       questionResults
     });
 
-    res.status(201).json(attempt);
+    const responseData = attempt.toObject();
+    responseData.correctCount = correctCount; // Alias for frontend compatibility
+    res.status(201).json(responseData);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -210,5 +223,87 @@ exports.getStudentAttempts = async (req, res) => {
     res.json(attempts);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+// @desc    Get all attempts for a specific module (Lecturer View)
+// @route   GET /api/quizzes/attempts/module/:moduleCode
+// @access  Private/Lecturer
+exports.getModuleAttempts = async (req, res) => {
+  const { moduleCode } = req.params;
+  try {
+    const attempts = await QuizAttempt.find({ module: moduleCode })
+      .populate('student', 'username email portalId')
+      .populate('quiz', 'title')
+      .sort({ date: -1 });
+
+    res.json(attempts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Generate Quiz using AI
+// @route   POST /api/quizzes/generate-ai
+// @access  Private/Lecturer
+exports.generateAiQuiz = async (req, res) => {
+  const { module, week, count, concept } = req.body;
+  
+  if (!module) return res.status(400).json({ message: 'Module is required' });
+
+  try {
+    const generatedData = await geminiService.generateContent('quiz', { 
+      module, 
+      week: week || 1, 
+      count: count || 5,
+      concept
+    });
+
+    console.log("DEBUG: AI Data for Quiz:", JSON.stringify(generatedData).substring(0, 500));
+
+    // Flexible extraction logic
+    let questionsRaw = [];
+    if (Array.isArray(generatedData)) {
+      questionsRaw = generatedData;
+    } else if (generatedData.questions && Array.isArray(generatedData.questions)) {
+      questionsRaw = generatedData.questions;
+    } else if (generatedData.quiz && Array.isArray(generatedData.quiz)) {
+      questionsRaw = generatedData.quiz;
+    } else if (generatedData.data && Array.isArray(generatedData.data)) {
+      questionsRaw = generatedData.data;
+    }
+
+    if (questionsRaw.length === 0) {
+      return res.status(500).json({ message: 'AI returned an invalid data structure. Please try again.' });
+    }
+
+    // Format for frontend: Gemini returns [{question, options, correctAnswer}]
+    // Scavenge for varied keys (question/text/qText and options/choices/answers)
+    const formattedQuestions = questionsRaw
+      .map(q => {
+        const questionText = q.question || q.text || q.title || q.qText;
+        const optionsList = q.options || q.choices || q.answers;
+        const correctAns = q.correctAnswer || q.correct || q.answer;
+
+        if (!questionText || !Array.isArray(optionsList)) return null;
+
+        return {
+          text: questionText,
+          options: optionsList.map(opt => ({
+            text: String(opt),
+            isCorrect: String(opt).trim().toLowerCase() === String(correctAns || "").trim().toLowerCase()
+          }))
+        };
+      })
+      .filter(q => q !== null && q.options.some(o => o.isCorrect));
+
+    if (formattedQuestions.length === 0) {
+      return res.status(500).json({ message: 'AI returned questions but they could not be mapped to the required format. Please refine your concept and try again.' });
+    }
+
+    res.json(formattedQuestions);
+  } catch (error) {
+    console.error("AI Quiz Gen Error:", error);
+    const status = error.message.includes('429') ? 429 : 500;
+    res.status(status).json({ message: error.message });
   }
 };

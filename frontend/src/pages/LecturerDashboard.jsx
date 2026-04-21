@@ -22,24 +22,37 @@ function LecturerDashboard() {
   const [loading, setLoading] = useState(true);
 
 
+  const [classStats, setClassStats] = useState(null);
+
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${BASE_URL}/auth/profile`, {
+        
+        // 1. Fetch Profile
+        const profileRes = await fetch(`${BASE_URL}/auth/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        const data = await response.json();
-        if (response.ok) {
-          setUserData(data);
+        const profileData = await profileRes.json();
+        if (profileRes.ok) {
+          setUserData(profileData);
+        }
+
+        // 2. Fetch Weekly Class Stats (Aggregate for lecturer modules)
+        const statsRes = await fetch(`${BASE_URL}/analytics/weekly-report`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const sData = await statsRes.json();
+        if (statsRes.ok) {
+          setClassStats(sData);
         }
       } catch (err) {
-        console.error('Failed to fetch profile', err);
+        console.error('Failed to fetch dashboard data', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchProfile();
+    fetchData();
   }, []);
 
   if (loading) return <div className="loading-container">Loading Dashboard...</div>;
@@ -65,40 +78,40 @@ function LecturerDashboard() {
             <IconTrendingUp size={20} className="trend-icon up" />
           </div>
           <div className="stat-value">
-            <h2>142</h2>
-            <span className="trend-text up">+12% this week</span>
+            <h2>{classStats?.notes?.frequency || 0}</h2>
+            <span className="trend-text up">{classStats?.notes?.status || 'Normal'} Class Usage</span>
           </div>
-          <div className="progress-track"><div className="progress-fill" style={{ backgroundColor: '#10b981', width: '80%' }}></div></div>
+          <div className="progress-track"><div className="progress-fill" style={{ backgroundColor: '#10b981', width: '60%' }}></div></div>
         </div>
 
         <div className="stat-card card-attendance">
           <div className="stat-header">
             <div className="stat-title">
               <div className="icon-wrapper blue-bg"><IconUsers size={16} /></div>
-              <h3>Class Attendance</h3>
+              <h3>Avg Class Attendance</h3>
             </div>
             <IconTrendingUp size={20} className="trend-icon up" />
           </div>
           <div className="stat-value">
-            <h2>92%</h2>
-            <span className="trend-text up">+2% this week</span>
+            <h2>{Math.round(classStats?.attendance?.overall || 0)}%</h2>
+            <span className="trend-text up">Week 5 Benchmark</span>
           </div>
-          <div className="progress-track"><div className="progress-fill blue-fill" style={{ width: '92%' }}></div></div>
+          <div className="progress-track"><div className="progress-fill blue-fill" style={{ width: `${classStats?.attendance?.overall || 0}%` }}></div></div>
         </div>
 
         <div className="stat-card card-quiz">
           <div className="stat-header">
             <div className="stat-title">
               <div className="icon-wrapper blue-bg"><IconListCheck size={16} /></div>
-              <h3>Avg Quiz Score</h3>
+              <h3>Avg Class Quiz Score</h3>
             </div>
             <IconTrendingUp size={20} className="trend-icon up" />
           </div>
           <div className="stat-value">
-            <h2>85%</h2>
-            <span className="trend-text up">+3% this week</span>
+            <h2>{Math.round(classStats?.quiz?.averageScore || 0)}%</h2>
+            <span className="trend-text up">{classStats?.quiz?.totalAttempts || 0} Total Attempts</span>
           </div>
-          <div className="progress-track"><div className="progress-fill yellow-fill" style={{ width: '85%' }}></div></div>
+          <div className="progress-track"><div className="progress-fill yellow-fill" style={{ width: `${classStats?.quiz?.averageScore || 0}%` }}></div></div>
         </div>
 
         <div className="mascot-card card-mascot" style={{ gridColumn: 'span 1', gridRow: 'span 2', marginBottom: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -114,66 +127,46 @@ function LecturerDashboard() {
 
             <div className="raw-stats-row" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
               <div className="raw-stat" style={{ flex: 1, backgroundColor: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Quizzes Done</div>
-                <div style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b' }}>850</div>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Active Quizzes</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b' }}>{classStats?.quiz?.totalAttempts || 0}</div>
               </div>
               <div className="raw-stat" style={{ flex: 1, backgroundColor: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Notes Generated</div>
-                <div style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b' }}>142</div>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Resource Syncs</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b' }}>{classStats?.notes?.frequency || 0}</div>
               </div>
               <div className="raw-stat" style={{ flex: 1, backgroundColor: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Weekly Attendance</div>
-                <div style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b' }}>92%</div>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Attendance Rate</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b' }}>{Math.round(classStats?.attendance?.overall || 0)}%</div>
               </div>
             </div>
 
             <div className="ai-actions">
               <button className="btn-primary" onClick={() => navigate('/analytics')} style={{ padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <IconBrain size={14} /> Analyze with Intelligence
+                <IconBrain size={14} /> View AI Trace Intelligence
               </button>
             </div>
           </div>
         </div>
 
         {/* Row 3: Quick Action Buttons (Full Width) */}
-        <div className="action-buttons-row" style={{ gridColumn: 'span 4', display: 'flex', gap: '12px', marginBottom: '24px' }}>
-          {[
-            { label: 'Prepare Notes', icon: <IconNotes size={16} />, color: '#999bf5ff', bg: '#c9bffeff', bdr: '#3d67f1ff', path: '/notes-ai' },
-            { label: 'Take Attendance', icon: <IconCheckbox size={16} />, color: '#056545ff', bg: '#c9ffd9ff', bdr: '#2ffb76ff', path: '/attendance' },
-            { label: 'Prepare Quiz', icon: <IconPencilCheck size={16} />, color: '#d48d11ff', bg: '#fff2bdff', bdr: '#ffd42aff', path: '/quiz-validator' }
-          ].map((btn, i) => (
-            <button
-              key={i}
-              onClick={() => navigate(btn.path)}
-              style={{
-                flex: 1,
-                padding: '12px 16px',
-                borderRadius: '12px',
-                background: btn.bg,
-                color: btn.color,
-                border: `1px solid ${btn.bdr}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontWeight: '700',
-                fontSize: '13px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = btn.bdr;
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = btn.bg;
-                e.currentTarget.style.transform = 'none';
-              }}
-            >
-              {btn.icon}
-              <span>{btn.label}</span>
-            </button>
-          ))}
+        <div className="action-buttons-row" style={{ gridColumn: 'span 4', display: 'flex', gap: '20px', marginBottom: '24px' }}>
+          <div className="premium-action-card grad-indigo" onClick={() => navigate('/notes-ai')}>
+            <div className="action-card-icon"><IconNotes size={24} /></div>
+            <div className="action-card-label">Prepare Study Notes</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.8)', fontWeight: '600' }}>AI-Powered generation for Week 5</div>
+          </div>
+
+          <div className="premium-action-card grad-emerald" onClick={() => navigate('/attendance')}>
+            <div className="action-card-icon"><IconCheckbox size={24} /></div>
+            <div className="action-card-label">Mark Attendance</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.8)', fontWeight: '600' }}>Secure QR session for Week 5</div>
+          </div>
+
+          <div className="premium-action-card grad-orange" onClick={() => navigate('/quiz-validator')}>
+            <div className="action-card-icon"><IconPencilCheck size={24} /></div>
+            <div className="action-card-label">Prepare Weekly Quiz</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.8)', fontWeight: '600' }}>Module validation & logic trace</div>
+          </div>
         </div>
 
         {/* Row 4: Allocated Modules (Full Width) */}
@@ -195,6 +188,7 @@ function LecturerDashboard() {
           <div className="modules-grid-enhanced" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
             {userData?.assignedModules?.length > 0 ? (
               userData.assignedModules.map((moduleCode, idx) => {
+                if (!moduleCode || typeof moduleCode !== 'string') return null;
                 const isITPM = moduleCode.includes('ITPM');
                 const year = isITPM ? 2 : 3;
                 const studentCount = isITPM ? 78 : 64;
@@ -238,7 +232,7 @@ function LecturerDashboard() {
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: '800', fontSize: '16px', color: '#1e293b' }}>{moduleCode}</div>
                         <div style={{ fontSize: '12px', color: '#64748b' }}>
-                          {isITPM ? 'IT Project Management' : 'Computer Science Core'}
+                          Academic Year 3 - Semester 2
                         </div>
                       </div>
 

@@ -42,6 +42,7 @@ const quizAttemptSchema = new mongoose.Schema({
   },
   questionResults: [{
     questionText: String,
+    selectedText: String,
     isCorrect: Boolean
   }]
 }, {

@@ -5,7 +5,7 @@ import {
 } from '@tabler/icons-react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area,
-  BarChart, Bar, Cell, RadialBarChart, RadialBar, PolarAngleAxis
+  BarChart, Bar, Cell, RadialBarChart, RadialBar, PolarAngleAxis, ReferenceLine
 } from 'recharts';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -32,25 +32,24 @@ function StudentAnalytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [enrolledModules, setEnrolledModules] = useState([]);
-  const [selectedModule, setSelectedModule] = useState('Overall');
+  const [selectedModule, setSelectedModule] = useState('');
   const [overallBoost, setOverallBoost] = useState({ att: 0, quiz: 0, notes: 0 });
   const [deepDive, setDeepDive] = useState(null);
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [isDeploying, setIsDeploying] = useState({}); // Tracking AI deployment per week/index
 
   const [toast, setToast] = useState(null);
   const rawId = localStorage.getItem('userId');
   // Check if it's a valid ID (string that is not "null", "undefined" and has length)
   const studentId = (rawId && rawId !== "null" && rawId !== "undefined") ? rawId : null;
   const currentWeekNum = 5; 
-
+  const currentAcademicWeek = 5;
   const moduleNames = {
-    'IT3040': 'IT3040 - Software Engineering',
-    'IT3020': 'IT3020 - Database Systems',
-    'IT3030': 'IT3030 - Operating Systems',
-    'IT3010': 'IT3010 - Programming Applications',
-    'Programming Applications': 'IT3010 - Programming Applications',
-    'Database Systems': 'IT3020 - Database Systems',
-    'Operating Systems': 'IT3030 - Operating Systems',
-    'Software Engineering': 'IT3040 - Software Engineering'
+    'IT3010': 'IT3010 - Network Design and Modeling',
+    'IT3011': 'IT3011 - Database Systems',
+    'IT3012': 'IT3012 - Operating Systems',
+    'IT3013': 'IT3013 - Data Structures and Algorithms',
+    'IT3014': 'IT3014 - Data Science and Analytics'
   };
 
   const getModuleName = (code) => moduleNames[code] || code;
@@ -111,9 +110,44 @@ function StudentAnalytics() {
   // 🔒 2-step lock
   const handleLock = async () => {
     if (locked) {
-      setLocked(null);
-      setConfirmStep(false);
-      showToast("ok", "Unlocked", "Targets unlocked. You can set new goals for the upcoming week 🔓");
+      // 🔓 Handle Unlock Attempt
+      if (locked.unlockCount >= 2) {
+        showToast("error", "Unlock Limit Reached", "You have already used your 2 allowed changes for this week's targets. 🔒");
+        return;
+      }
+
+      if (!confirmStep) {
+        setConfirmStep(true);
+        showToast("warn", "Unlocking Changes...", `You have ${2 - locked.unlockCount} unlock attempts remaining. Click 'Confirm Unlock' to proceed.`);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${BASE_URL}/analytics/target`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            student: studentId,
+            week: currentWeekNum,
+            isLocked: false,
+            module: selectedModule
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setLocked(null);
+          setConfirmStep(false);
+          showToast("ok", "Targets Unlocked 🔓", `You can now adjust your goals. You have ${2 - data.unlockCount} unlocks left for this week.`);
+        } else {
+          showToast("error", "Error", "Failed to unlock targets.");
+        }
+      } catch (err) { // eslint-disable-line no-unused-vars
+        showToast("error", "Connection Error", "Could not reach backend to unlock.");
+      }
       return;
     }
     if (!confirmStep) {
@@ -122,6 +156,10 @@ function StudentAnalytics() {
     } else {
       if (!studentId) {
         showToast("error", "Unauthorized", "Please log in again. Your session might have expired.");
+        return;
+      }
+      if (!selectedModule) {
+        showToast("error", "Module Missing", "Please select a specific module before locking targets.");
         return;
       }
       try {
@@ -142,11 +180,14 @@ function StudentAnalytics() {
         });
 
         if (response.ok) {
-          setLocked({ att: attThreshold, quiz: quizThreshold });
+          const data = await response.json();
+          setLocked({ att: attThreshold, quiz: quizThreshold, unlockCount: data.unlockCount });
           setConfirmStep(false);
-          showToast("ok", "Targets Locked ✅", "Your goals are saved in our systems! Click Run Live Validation to check your current progress.");
+          showToast("ok", "Targets Locked ✅", data.unlockCount > 0 ? `Target updated! (${data.unlockCount}/2 changes used)` : "Your goals are saved! Click Run Live Validation to check progress.");
         } else {
-          showToast("error", "Error", "Failed to save targets to backend.");
+           const errData = await response.json();
+           console.error("Target Save Failed. Status:", response.status, "Error:", errData);
+           showToast("error", "Error", errData.message || `Backend error: ${response.status}`);
         }
       } catch (err) { // eslint-disable-line no-unused-vars
         showToast("error", "Connection Error", "Could not reach backend to save targets.");
@@ -182,35 +223,39 @@ function StudentAnalytics() {
         if (profileRes.ok) {
           const modules = profileData.enrolledModules && profileData.enrolledModules.length > 0
             ? profileData.enrolledModules
-            : ['IT3040', 'IT3020', 'IT3030', 'IT3010'];
+            : ['IT3010', 'IT3011', 'IT3012', 'IT3013', 'IT3014'];
           setEnrolledModules(modules);
+          if (!selectedModule && modules.length > 0) {
+            setSelectedModule(modules[0]);
+          }
         }
       }
 
       const modQuery = selectedModule !== 'Overall' ? `?module=${selectedModule}` : '';
 
       // 1. Fetch Summary
-      const summaryRes = await fetch(`${BASE_URL}/analytics/summary/${studentId}/${currentWeekNum}${modQuery}`, { signal: controller.signal });
+      const summaryRes = await fetch(`${BASE_URL}/analytics/summary/${studentId}/${currentWeekNum}${modQuery}`, { 
+        signal: controller.signal,
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
       if (!summaryRes.ok) throw new Error(`Summary API returned ${summaryRes.status}`);
       const summaryData = await summaryRes.json();
       
       // 2. Fetch Detailed Multi-Week History
-      const historyRes = await fetch(`${BASE_URL}/analytics/history/${studentId}${modQuery}`, { signal: controller.signal });
+      const historyRes = await fetch(`${BASE_URL}/analytics/history/${studentId}${modQuery}`, { 
+        signal: controller.signal,
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
       if (!historyRes.ok) throw new Error(`History API returned ${historyRes.status}`);
       const historyData = await historyRes.json();
 
-      // 3. Fetch Deep Dive (if module selected)
-      if (selectedModule !== 'Overall') {
-        const deepDiveRes = await fetch(`${BASE_URL}/analytics/quiz-deep-dive/${selectedModule}`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const deepDiveData = await deepDiveRes.json();
-        setDeepDive(deepDiveData);
-      } else {
+      // 3. Fetch Deep Dive (ONLY if manually deployed or already exists in state)
+      // Removing automatic fetch to respect manual trigger request
+      if (selectedModule === 'Overall') {
         // Overall boost calculation (demo-logic or real from summary)
         setOverallBoost({
-          att: summaryData.lastWeek.attendance - summaryData.lastWeek.target.attendanceTarget,
-          quiz: summaryData.lastWeek.quiz - summaryData.lastWeek.target.quizTarget,
+          att: (summaryData?.lastWeek?.attendance || 0) - (summaryData?.lastWeek?.target?.attendanceTarget || 0),
+          quiz: (summaryData?.lastWeek?.quiz || 0) - (summaryData?.lastWeek?.target?.quizTarget || 0),
           notes: 15 // Mocked for overall
         });
       }
@@ -236,7 +281,8 @@ function StudentAnalytics() {
       if (summaryData.currentWeek.target && summaryData.currentWeek.target.isLocked) {
         setLocked({
           att: summaryData.currentWeek.target.attendanceTarget,
-          quiz: summaryData.currentWeek.target.quizTarget
+          quiz: summaryData.currentWeek.target.quizTarget,
+          unlockCount: summaryData.currentWeek.target.unlockCount
         });
         setAttThreshold(summaryData.currentWeek.target.attendanceTarget);
         setQuizThreshold(summaryData.currentWeek.target.quizTarget);
@@ -250,6 +296,99 @@ function StudentAnalytics() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+ 
+  const handleDeployAiTrace = async (weekNum, idx) => {
+    if (isDeploying[idx]) return;
+    setIsDeploying(prev => ({ ...prev, [idx]: true }));
+    try {
+      const response = await fetch(`${BASE_URL}/analytics/generate-ai-insight`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          studentId: studentId,
+          week: weekNum,
+          module: selectedModule,
+          role: 'student',
+          type: 'performance'
+        })
+      });
+ 
+      if (response.ok) {
+        const newInsight = await response.json();
+        setWeeklyHistory(prev => {
+          const newHistory = [...prev];
+          newHistory[idx].aiInsight = newInsight;
+          return newHistory;
+        });
+        showToast("ok", "Logic Trace Deployed 🚀", `Analysis for Week ${weekNum} is now synced with your performance data.`);
+      } else if (response.status === 429) {
+        showToast("warn", "AI Quota Exceeded ⏳", "Your daily academic analysis limit has been reached. Please wait 60 seconds or try again tomorrow.");
+      } else {
+        const err = await response.json();
+        showToast("error", "AI Synthesis Failed", err.message || "Logic trace could not be generated at this time.");
+      }
+    } catch (err) {
+      showToast("error", "Connection Error", "Check your internet connection.");
+    } finally {
+      setIsDeploying(prev => ({ ...prev, [idx]: false }));
+    }
+  };
+
+  const handleDeployAI = async () => {
+    if (!studentId || !locked) {
+      showToast("error", "Setup Required", "Please ensure your targets are locked before generating AI analytics.");
+      return;
+    }
+
+    setIsAiGenerating(true);
+    try {
+      const response = await fetch(`${BASE_URL}/analytics/generate-ai-insight`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          role: 'student',
+          module: selectedModule,
+          studentId,
+          week: currentWeekNum
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCriticalInsight(data);
+        
+        // 🔥 Also fetch Deep Dive now that we have deployed AI
+        if (selectedModule !== 'Overall') {
+          try {
+            const deepDiveRes = await fetch(`${BASE_URL}/analytics/quiz-deep-dive/${selectedModule}`, {
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            const deepDiveData = await deepDiveRes.json();
+            setDeepDive(deepDiveData);
+          } catch (e) { console.error("Deep dive fetch failed", e); }
+        }
+
+        showToast("ok", "AI Analytics Deployed", "Your deep pattern analysis is now active for this week.");
+        fetchAnalytics();
+      } else if (response.status === 429) {
+        showToast("warn", "AI Quota Exceeded", "Gemini AI Quota Exceeded. Please wait 60 seconds before retrying.");
+      } else {
+        const errData = await response.json();
+        showToast("error", "AI Failure", errData.message || "Failed to generate AI analytics.");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("error", "AI Connection Error", "Could not reach AI services.");
+    } finally {
+      setIsAiGenerating(false);
     }
   };
 
@@ -300,25 +439,87 @@ function StudentAnalytics() {
         </div>
           
           {/* TOP LEVEL AI INSIGHT (GLOBAL) */}
-          {criticalInsight && (
+           {criticalInsight && criticalInsight.weeklyAnalysis ? (
             <div className="ai-insight-card" style={{ 
-              maxWidth: '320px', 
+              maxWidth: '350px', 
               background: 'white', 
-              padding: '16px', 
-              borderRadius: '16px', 
-              boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+              padding: '24px', 
+              borderRadius: '20px', 
+              boxShadow: '0 10px 40px rgba(0,0,0,0.08)',
+              border: '1px solid #eef2ff',
               display: 'flex',
               flexDirection: 'column',
-              gap: '8px'
+              gap: '16px',
+              position: 'relative',
+              overflow: 'hidden'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
-                {getAiIndicator(criticalInsight.type)}
-                <span style={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>AI Intelligence Active</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '800', color: '#6366f1', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                  <IconBrain size={18} /> Performance Intelligence (Week {currentWeekNum})
+                </div>
+                <button 
+                  onClick={() => setCriticalInsight(null)} 
+                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+                >
+                  <IconX size={16}/>
+                </button>
               </div>
-              <p style={{ fontSize: '14px', color: '#1e293b', lineHeight: '1.4', margin: 0, fontWeight: 500 }}>
-                {criticalInsight.text}
-              </p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ borderLeft: '3px solid #ef4444', paddingLeft: '12px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#ef4444', textTransform: 'uppercase', marginBottom: '2px' }}>Identified Problem</div>
+                  <div style={{ fontSize: '14px', color: '#1e293b', fontWeight: '600' }}>{criticalInsight.weeklyAnalysis.problem}</div>
+                </div>
+
+                <div style={{ borderLeft: '3px solid #6366f1', paddingLeft: '12px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#6366f1', textTransform: 'uppercase', marginBottom: '2px' }}>Data-Backed Reason</div>
+                  <div style={{ fontSize: '13px', color: '#64748b', lineHeight: '1.5' }}>{criticalInsight.weeklyAnalysis.reason}</div>
+                </div>
+
+                <div style={{ borderLeft: '3px solid #10b981', paddingLeft: '12px', backgroundColor: '#f0fdf4', padding: '10px', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#10b981', textTransform: 'uppercase', marginBottom: '4px' }}>Live AI Suggestion</div>
+                  <div style={{ fontSize: '13px', color: '#065f46', fontWeight: '500', lineHeight: '1.5' }}>{criticalInsight.weeklyAnalysis.suggestion}</div>
+                </div>
+              </div>
+
               <div className="ai-glow"></div>
+            </div>
+          ) : (
+            <div className="ai-insight-card" style={{ 
+              maxWidth: '350px', 
+              background: '#f8fafc', 
+              padding: '24px', 
+              borderRadius: '20px', 
+              border: '2px dashed #e2e8f0',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              gap: '12px',
+              justifyContent: 'center'
+            }}>
+               <IconBrain size={32} color="#94a3b8" />
+               <div style={{ fontSize: '14px', fontWeight: '600', color: '#64748b' }}>AI Intelligence Offline</div>
+               <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>Deploy AI Analytics manually to analyze your 1-week performance patterns and save tokens.</p>
+                 <button 
+                  onClick={handleDeployAI}
+                  disabled={isAiGenerating || loading}
+                  className="deploy-btn"
+                  style={{ 
+                    marginTop: '12px',
+                    backgroundColor: isAiGenerating ? '#94a3b8' : '#6366f1',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 20px',
+                    borderRadius: '12px',
+                    fontWeight: '700',
+                    fontSize: '12px',
+                    cursor: isAiGenerating ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)'
+                  }}
+                 >
+                   {isAiGenerating ? "Generating Insights..." : `Deploy AI Trace Analysis (${selectedModule})`}
+                 </button>
             </div>
           )}
         </div>
@@ -346,22 +547,7 @@ function StudentAnalytics() {
 
         {/* MODULE SELECTOR CHIPS */}
         <div className="module-selector-chips" style={{ display: 'flex', gap: '10px', marginTop: '24px', flexWrap: 'wrap' }}>
-          <button 
-            onClick={() => setSelectedModule('Overall')}
-            style={{
-              padding: '8px 20px',
-              borderRadius: '20px',
-              border: 'none',
-              background: selectedModule === 'Overall' ? '#1e293b' : '#f1f5f9',
-              color: selectedModule === 'Overall' ? 'white' : '#64748b',
-              fontWeight: '700',
-              fontSize: '13px',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-          >
-            All Modules
-          </button>
+
           {enrolledModules.map(mod => (
             <button 
               key={mod}
@@ -421,9 +607,29 @@ function StudentAnalytics() {
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', alignSelf: 'flex-end', paddingTop: '10px' }}>
-                <button className="review-btn" onClick={handleLock} style={{ padding: '10px 20px', fontSize: '14px', backgroundColor: locked ? '#f44336' : confirmStep ? '#ff9800' : '#01b574', color: '#fff', border: 'none', borderRadius: '20px', cursor: 'pointer', fontWeight: 600 }}>
-                  {locked ? "Unlock Targets 🔓" : confirmStep ? "Confirm Lock 🔒" : "Lock Targets"}
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'center', alignSelf: 'flex-end', paddingTop: '10px' }}>
+                {locked && (
+                  <div style={{ fontSize: '12px', color: locked.unlockCount >= 2 ? '#ef4444' : '#64748b', fontWeight: '600', textAlign: 'right' }}>
+                    {locked.unlockCount >= 2 ? '🔒 Changes Exhausted' : `🔓 ${2 - locked.unlockCount} edits remaining`}
+                  </div>
+                )}
+                <button 
+                  className="review-btn" 
+                  onClick={handleLock} 
+                  disabled={!!locked && locked.unlockCount >= 2}
+                  style={{ 
+                    padding: '10px 24px', 
+                    fontSize: '14px', 
+                    backgroundColor: (locked && locked.unlockCount >= 2) ? '#e2e8f0' : (confirmStep ? '#f59e0b' : (locked ? '#64748b' : '#6366f1')), 
+                    color: (locked && locked.unlockCount >= 2) ? '#94a3b8' : '#fff', 
+                    border: 'none', 
+                    borderRadius: '20px', 
+                    cursor: (locked && locked.unlockCount >= 2) ? 'default' : 'pointer', 
+                    fontWeight: 700,
+                    boxShadow: (locked && locked.unlockCount >= 2) ? 'none' : '0 4px 12px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  {locked ? (confirmStep ? "Confirm Unlock 🔓" : "Unlock Targets") : (confirmStep ? "Confirm Lock 🔒" : "Commit Targets")}
                 </button>
               </div>
             </div>
@@ -437,7 +643,7 @@ function StudentAnalytics() {
             transition={{ delay: 0.2 }}
           >
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-               <h3 className="overview-card-header" style={{marginBottom: 0}}>Current Week Progress ({selectedModule})</h3>
+               <h3 className="overview-card-header" style={{marginBottom: 0}}>Current Week Progress (Week {currentWeekNum}) - {selectedModule}</h3>
                <button className="review-btn" onClick={runValidation} style={{ padding: '8px 16px', fontSize: '13px', backgroundColor: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '20px', cursor: 'pointer', fontWeight: 600 }}>
                  Run Live Validation
                </button>
@@ -503,7 +709,7 @@ function StudentAnalytics() {
                 <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px' }}>Notes Taking & Generating Logic</div>
                 <ul className="topic-bullet-list" style={{ marginBottom: '16px' }}>
                   <li>Quiz Consistency: {currentWeek.quiz >= activeQuiz ? 'High' : 'Improving'}</li>
-                  <li>Analysis Completion: 85%</li>
+                  <li>Analysis Completion: {currentWeek.att >= activeAtt ? 'Synced (100%)' : 'Pending (40%)'}</li>
                 </ul>
                 <button className="review-btn" onClick={() => navigate('/notes-ai')} style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)', border: 'none' }}>
                   Start Integrated Review
@@ -513,7 +719,55 @@ function StudentAnalytics() {
           </motion.div>
 
           {/* PERFORMANCE TRACK & INSIGHTS (Module Specific) */}
-          <div className="overview-card" style={{ marginBottom: '24px' }}>
+          <div className="overview-card" style={{ marginBottom: '24px', position: 'relative' }}>
+             
+             {/* LOCKED OVERLAY for Manual Trigger */}
+             {(!deepDive || deepDive.totalAttempts === 0) && selectedModule !== 'Overall' && (
+               <div style={{
+                 position: 'absolute',
+                 inset: 0,
+                 background: 'rgba(255,255,255,0.92)',
+                 backdropFilter: 'blur(4px)',
+                 zIndex: 10,
+                 borderRadius: '16px',
+                 display: 'flex',
+                 flexDirection: 'column',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 padding: '40px',
+                 textAlign: 'center'
+               }}>
+                  <div style={{ 
+                    padding: '16px', 
+                    borderRadius: '50%', 
+                    background: '#f1f5f9', 
+                    marginBottom: '20px',
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.05)'
+                  }}>
+                    <IconBrain size={48} color="#6366f1" />
+                  </div>
+                  <h3 style={{ marginBottom: '8px', color: '#1e293b' }}>Intelligence Report Locked</h3>
+                  <p style={{ maxWidth: '400px', color: '#64748b', fontSize: '14px', marginBottom: '24px' }}>
+                    Deep-dive pattern analysis for <strong>{selectedModule}</strong> requires manual deployment. This saves your daily AI credits and ensures data is synced.
+                  </p>
+                  <button 
+                    onClick={handleDeployAI}
+                    disabled={isAiGenerating}
+                    style={{ 
+                      padding: '12px 32px', 
+                      background: 'var(--primary)', 
+                      color: 'white', 
+                      borderRadius: '12px', 
+                      border: 'none', 
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+                    }}>
+                    {isAiGenerating ? 'Deploying Trace Analysis...' : 'Deploy AI Intelligence now'}
+                  </button>
+               </div>
+             )}
+
              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 className="overview-card-header" style={{ marginBottom: 0 }}>
                   {selectedModule === 'Overall' ? 'Overall Weekly Learning Report' : `Weekly Learning Report: ${selectedModule}`}
@@ -528,20 +782,24 @@ function StudentAnalytics() {
                       <div className="box-header"><IconAlertTriangle size={18} color="#ef4444" /> <span>Critical: Logic Bottlenecks</span></div>
                       <p className="box-desc">These specific questions have the highest failure rates in your latest quizzes.</p>
                       <ul className="failing-questions-list">
-                         {(deepDive?.hardestQuestions || [
-                           { text: "What is the primary difference between a clustered and non-clustered index?", rate: 65 },
-                           { text: "Explain the BCNF normalization form with an example.", rate: 58 }
-                         ]).map((q, i) => {
-                           const rateVal = q.failureRate !== undefined ? Math.round(q.failureRate) : q.rate;
-                           return (
-                           <li key={i}>
-                             <div className="q-head">
-                                <span className="q-text">{q.text}</span>
-                                <span className="fail-badge">{rateVal}% Failure</span>
-                             </div>
-                             <div className="fail-bar"><div className="fail-fill" style={{ width: `${rateVal}%` }}></div></div>
-                           </li>
-                         )})}
+                         {deepDive?.hardestQuestions?.length > 0 ? (
+                           deepDive.hardestQuestions.map((q, i) => {
+                             const rateVal = q.failureRate !== undefined ? Math.round(q.failureRate) : q.rate;
+                             return (
+                             <li key={i}>
+                               <div className="q-head">
+                                  <span className="q-text">{q.text}</span>
+                                  <span className="fail-badge">{rateVal}% Failure</span>
+                               </div>
+                               <div className="fail-bar"><div className="fail-fill" style={{ width: `${rateVal}%` }}></div></div>
+                             </li>
+                           )})
+                         ) : (
+                           <div style={{ padding: '20px', textAlign: 'center', opacity: 0.6 }}>
+                              <IconBrain size={32} style={{ marginBottom: '8px' }} />
+                              <p style={{ fontSize: '12px' }}>AI is currently identifying logic patterns for <strong>{selectedModule}</strong>. Complete more Week 5 quizzes to trigger deep analysis.</p>
+                           </div>
+                         )}
                       </ul>
                    </div>
 
@@ -550,13 +808,10 @@ function StudentAnalytics() {
                       <div className="box-header"><IconCheck size={18} color="#10b981" /> <span>High Mastery Subtopics</span></div>
                       <p className="box-desc">Modules and topics where you've demonstrated consistency above 90%.</p>
                       <div className="mastery-chips">
-                         {deepDive ? (
+                         {deepDive?.bestSubtopic ? (
                            <span className="chip green">{deepDive.bestSubtopic}</span>
                          ) : (
-                           <>
-                             <span className="chip green">ER Diagrams</span>
-                             <span className="chip green">Basic SQL</span>
-                           </>
+                           <div style={{ fontSize: '12px', opacity: 0.6 }}>No mastery clusters identified yet for {selectedModule}.</div>
                          )}
                       </div>
                    </div>
@@ -593,7 +848,7 @@ function StudentAnalytics() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <h3 className="overview-card-header">Historical Performance Track ({selectedModule})</h3>
+            <h3 className="overview-card-header">🚀 AI Weekly Logic Trace Analysis ({selectedModule || 'Loading...'})</h3>
             
             {!error && weeklyHistory.length > 0 && (
               <div style={{ height: '400px', width: '100%', marginBottom: '40px', background: 'white', padding: '20px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
@@ -614,6 +869,11 @@ function StudentAnalytics() {
                     <YAxis unit="%" domain={[0, 100]} />
                     <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                     <Legend verticalAlign="top" height={36} />
+                    
+                    {/* Visual Threshold Target Lines */}
+                    <ReferenceLine y={activeAtt} label={{ position: 'right', value: 'Att Target', fill: '#4f46e5', fontSize: 10, fontWeight: 700 }} stroke="#4f46e5" strokeDasharray="3 3" />
+                    <ReferenceLine y={activeQuiz} label={{ position: 'left', value: 'Quiz Target', fill: '#10b981', fontSize: 10, fontWeight: 700 }} stroke="#10b981" strokeDasharray="3 3" />
+
                     <Area type="monotone" dataKey="attendance.actual" name="Attendance Achievement" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorAtt)" />
                     <Area type="monotone" dataKey="quiz.actual" name="Quiz Mastery" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorQuiz)" />
                   </AreaChart>
@@ -698,19 +958,64 @@ function StudentAnalytics() {
 
                   {/* AI Suggestion */}
                   <div className="ai-insight-card" style={{ 
-                    padding: '12px 16px', 
+                    padding: '16px', 
                     background: '#eff6ff', 
                     borderRadius: '10px', 
                     borderLeft: `4px solid ${week.aiInsight?.type === 'WARNING' ? '#ef4444' : week.aiInsight?.type === 'ACTION' ? '#f59e0b' : '#3b82f6'}`,
-                    fontSize: '14px',
+                    fontSize: '13px',
                     color: '#1e40af',
-                    lineHeight: '1.5',
+                    lineHeight: '1.6',
                     display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '10px'
+                    flexDirection: 'column',
+                    gap: '12px',
+                    position: 'relative',
+                    overflow: 'hidden'
                   }}>
-                    {getAiIndicator(week.aiInsight?.type)}
-                    <span><strong>AI Logic Trace:</strong> {week.aiInsight?.text || "Analyzing historical patterns..."}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      {getAiIndicator(week.aiInsight?.type)}
+                      AI Weekly Logic Trace Analysis
+                    </div>
+                    
+                    {week.aiInsight?.weeklyAnalysis ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ opacity: 0.9 }}><strong>Issue:</strong> {week.aiInsight.weeklyAnalysis.problem}</div>
+                        <div style={{ opacity: 0.8, fontSize: '12px', background: 'rgba(255,255,255,0.4)', padding: '8px', borderRadius: '6px' }}>
+                          <strong>Reason:</strong> {week.aiInsight.weeklyAnalysis.reason}
+                        </div>
+                        <div style={{ color: '#10b981', fontWeight: '700' }}>
+                          <strong>AI Suggestion:</strong> {week.aiInsight.weeklyAnalysis.suggestion}
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <span style={{ fontStyle: 'italic', opacity: 0.8 }}>{week.aiInsight?.text || "Detailed pattern analysis missing for this week."}</span>
+                        {Number(week.week) === currentWeekNum && (
+                          <button 
+                            onClick={() => handleDeployAiTrace(week.week, idx)}
+                            disabled={isDeploying[idx]}
+                            className="deploy-btn"
+                            style={{
+                              width: 'fit-content',
+                              padding: '10px 20px',
+                              background: '#3b82f6',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                              fontWeight: '800',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)'
+                            }}
+                          >
+                            <IconBrain size={16} />
+                            {isDeploying[idx] ? "Synthesizing Logic Trace..." : "🚀 Deploy Weekly Logic Trace"}
+                          </button>
+                        )}
+                      </div>
+                    )}
                     <div className="ai-glow"></div>
                   </div>
                 </motion.div>
