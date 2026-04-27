@@ -61,7 +61,17 @@ function NotesAI() {
           "It fundamentally relies on using algorithms to parse data, learn from it, and then make a determination or prediction.",
           "Data preprocessing and building pipelines are core components before any model training can begin."
         ],
-        
+        'Key Points': [
+          "Linear Regression is used for predicting numerical values.",
+          "Decision Trees are primarily for classification.",
+          "Neural Networks handle complex pattern recognition.",
+          "Data Collection, Preprocessing, and Model Training are the essential phases of ML development."
+        ],
+        Definitions: [
+          "Artificial Intelligence (AI): The theory and development of computer systems able to perform tasks that normally require human intelligence.",
+          "Data Preprocessing: The process of cleaning and transforming raw data into a useful and understandable format.",
+          "Model Training: The phase where the learning algorithm is applied to the training data."
+        ]
       });
     }, 2500);
   };
