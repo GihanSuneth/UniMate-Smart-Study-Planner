@@ -52,7 +52,19 @@ function NotesAI() {
     setIsGenerating(true);
     setGeneratedNotes(null);
 
-  
+    // Mock AI API Call
+    setTimeout(() => {
+      setIsGenerating(false);
+      setGeneratedNotes({
+        Summary: [
+          "Machine Learning is a subset of AI where computers learn from data and make decisions with minimal human intervention.",
+          "It fundamentally relies on using algorithms to parse data, learn from it, and then make a determination or prediction.",
+          "Data preprocessing and building pipelines are core components before any model training can begin."
+        ],
+        
+      });
+    }, 2500);
+  };
 
   const handleCopy = () => {
     if (!generatedNotes) return;
