@@ -106,6 +106,7 @@ function Attendance() {
       </div>
     </div>
   );
+  
 }
 
 export default Attendance;
