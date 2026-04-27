@@ -274,7 +274,7 @@ exports.generateAiQuiz = async (req, res) => {
 
     if (questionsRaw.length === 0) {
       return res.status(500).json({ message: 'AI returned an invalid data structure. Please try again.' });
-    }
+    }// The AI might return questions in various formats, so we need to be flexible in how we parse them.
 
     // Format for frontend: Gemini returns [{question, options, correctAnswer}]
     // Scavenge for varied keys (question/text/qText and options/choices/answers)
