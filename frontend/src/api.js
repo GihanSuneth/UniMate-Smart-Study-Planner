@@ -10,6 +10,9 @@ export const API_ENDPOINTS = {
   AUTH: `${BASE_URL}/auth`,
   ATTENDANCE: `${BASE_URL}/attendance`,
   ANALYTICS: `${BASE_URL}/analytics`,
+  QUIZZES: `${BASE_URL}/quizzes`,
+  AI: `${BASE_URL}/ai`,
+  QR: `${BASE_URL}/qr`,
 };
 
 export default { BASE_URL, API_ENDPOINTS };

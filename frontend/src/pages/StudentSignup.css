@@ -145,6 +145,25 @@
   appearance: none;
 }
 
+.eye-btn {
+  position: absolute;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.2s;
+  z-index: 15;
+}
+
+.eye-btn:hover {
+  color: var(--primary, #6366f1);
+}
+
 .input-wrapper input:focus,
 .input-wrapper select:focus {
   outline: none;
