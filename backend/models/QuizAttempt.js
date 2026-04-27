@@ -6,9 +6,13 @@ const quizAttemptSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  quiz: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Quiz',
+    required: true,
+  },
   module: {
     type: String,
-    enum: ['Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering'],
     required: true,
   },
   date: {
@@ -25,7 +29,22 @@ const quizAttemptSchema = new mongoose.Schema({
     required: true,
     min: 0,
     max: 100
-  }
+  },
+  correctAnswers: {
+    type: Number,
+    required: true,
+    default: 0
+  },
+  totalQuestions: {
+    type: Number,
+    required: true,
+    default: 0
+  },
+  questionResults: [{
+    questionText: String,
+    selectedText: String,
+    isCorrect: Boolean
+  }]
 }, {
   timestamps: true,
 });

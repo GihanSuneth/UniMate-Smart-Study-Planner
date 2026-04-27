@@ -124,6 +124,30 @@
   border-color: var(--primary);
 }
 
+.eye-btn {
+  position: absolute;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.2s;
+  z-index: 5;
+}
+
+.eye-btn:hover {
+  color: var(--primary);
+}
+
+.input-wrapper input[type="password"],
+.input-wrapper input[type="text"] {
+  padding-right: 44px;
+}
+
 .form-actions {
   display: flex;
   justify-content: space-between;

@@ -8,7 +8,15 @@ const attendanceSchema = new mongoose.Schema({
   },
   module: {
     type: String,
-    enum: ['Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering'],
+    enum: [
+      'Network Design and Modeling', 
+      'Database Systems', 
+      'Operating Systems', 
+      'Data Structures and Algorithms', 
+      'Data Science and Analytics',
+      'Programming Applications', 
+      'Software Engineering' // Keep old ones for safety but prioritized new ones
+    ],
     required: true,
   },
   date: {
@@ -21,7 +29,7 @@ const attendanceSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Present', 'Absent'],
+    enum: ['Present', 'Absent', 'Excused'],
     required: true,
   }
 }, {
