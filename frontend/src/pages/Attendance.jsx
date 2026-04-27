@@ -2,6 +2,7 @@ import React from 'react';
 import { IconCheck, IconX, IconUser, IconMail, IconMailOpened, IconEdit } from '@tabler/icons-react';
 import './Attendance.css';
 
+
 import actionFigure2Img from '../images/action-figure-2.png';
 import qrSvg from '../images/qr.svg';
 
