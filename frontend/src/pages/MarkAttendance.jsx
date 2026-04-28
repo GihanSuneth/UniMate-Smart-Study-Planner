@@ -3,12 +3,47 @@ import { useNavigate } from 'react-router-dom';
 import { IconArrowLeft, IconQrcode, IconScan } from '@tabler/icons-react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 import { BASE_URL } from '../api';
 
 function MarkAttendance() {
   const navigate = useNavigate();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const codeParam = urlParams.get('code');
+    if (codeParam) {
+      setCode(codeParam);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    let scanner = null;
+    if (showScanner) {
+      scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 250} });
+      scanner.render(
+        (decodedText) => {
+          setCode(decodedText);
+          setShowScanner(false);
+          // Wait for state to update, then submit
+          setTimeout(() => {
+            document.getElementById('submit-attendance-btn').click();
+          }, 500);
+        },
+        (error) => {
+          // ignore scan errors, they happen continuously until a good read
+        }
+      );
+    }
+    return () => {
+      if (scanner) {
+        scanner.clear().catch(error => console.error("Failed to clear html5QrcodeScanner. ", error));
+      }
+    };
+  }, [showScanner]);
 
   const handleMarkAttendance = async (e) => {
     e.preventDefault();
@@ -25,13 +60,14 @@ function MarkAttendance() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${BASE_URL}/attendance/mark`, {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BASE_URL}/qr/mark-attendance`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}` // Optional based on auth middleware
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ studentId, code }),
+        body: JSON.stringify({ sessionToken: code }),
       });
 
       const data = await response.json();
@@ -104,8 +140,34 @@ function MarkAttendance() {
             />
           </div>
 
+          {!showScanner ? (
+            <button 
+              type="button" 
+              onClick={() => setShowScanner(true)}
+              style={{
+                padding: '12px', background: '#f1f5f9', color: '#4f46e5',
+                border: '1px solid #c7d2fe', borderRadius: '12px', fontSize: '15px', fontWeight: '600',
+                cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px'
+              }}
+            >
+              <IconScan size={20} /> Open Camera to Scan QR
+            </button>
+          ) : (
+            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+              <div id="reader" style={{ width: '100%', marginBottom: '16px' }}></div>
+              <button 
+                type="button" 
+                onClick={() => setShowScanner(false)}
+                style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', backgroundColor: '#e2e8f0', color: '#64748b', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Cancel Scanner
+              </button>
+            </div>
+          )}
+
           <button 
             type="submit" 
+            id="submit-attendance-btn"
             disabled={loading}
             style={{
               padding: '16px', background: '#4f46e5', color: '#fff',

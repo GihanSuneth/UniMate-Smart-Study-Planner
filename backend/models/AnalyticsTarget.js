@@ -4,7 +4,6 @@ const analyticsTargetSchema = new mongoose.Schema({
   student: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
   },
   week: {
     type: Number,
@@ -25,13 +24,25 @@ const analyticsTargetSchema = new mongoose.Schema({
   isLocked: {
     type: Boolean,
     default: false,
+  },
+  module: {
+    type: String,
+    default: 'Overall'
+  },
+  unlockCount: {
+    type: Number,
+    default: 0
+  },
+  aiInsight: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
   }
 }, {
   timestamps: true,
 });
 
-// Compound index to ensure uniqueness per student per week
-analyticsTargetSchema.index({ student: 1, week: 1 }, { unique: true });
+// Compound index to ensure uniqueness per student per week per module
+analyticsTargetSchema.index({ student: 1, week: 1, module: 1 }, { unique: true });
 
 const AnalyticsTarget = mongoose.model('AnalyticsTarget', analyticsTargetSchema);
 module.exports = AnalyticsTarget;

@@ -1,5 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { IconShieldLock, IconUsers, IconCalendarStats, IconChartPie, IconRefresh } from '@tabler/icons-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  IconShieldLock, 
+  IconUsers, 
+  IconCalendarStats, 
+  IconChartPie, 
+  IconRefresh, 
+  IconUpload, 
+  IconTrash, 
+  IconEdit, 
+  IconX,
+  IconCheck,
+  IconLock,
+  IconLockOpen
+} from '@tabler/icons-react';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { BASE_URL } from '../api';
 import './AdminPanel.css';
 
@@ -7,13 +22,29 @@ function AdminPanel() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Filters
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [yearFilter, setYearFilter] = useState('all');
+  const [semesterFilter, setSemesterFilter] = useState('all');
 
-  const [attendanceRecords] = useState([
-    { id: 1, student: 'John Doe', course: 'Computer Science 101', date: 'Oct 24, 2026', status: 'Present' },
-    { id: 2, student: 'Alice Johnson', course: 'Data Structures', date: 'Oct 24, 2026', status: 'Absent' },
-    { id: 3, student: 'Michael Brown', course: 'Machine Learning', date: 'Oct 23, 2026', status: 'Present' },
-    { id: 4, student: 'Sarah Adams', course: 'Web Development', date: 'Oct 23, 2026', status: 'Present' },
-  ]);
+  // Edit Modal State
+  const [editingUser, setEditingUser] = useState(null);
+  const [editForm, setEditForm] = useState({
+    role: '',
+    academicYear: '',
+    semester: '',
+    assignedModules: '',
+    status: ''
+  });
+
+  // Sensitive Data State
+  const [verifyingUser, setVerifyingUser] = useState(null);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [tempPassword, setTempPassword] = useState('');
+  const [revealedUsers, setRevealedUsers] = useState({}); // { userId: true }
+
+  const fileInputRef = useRef(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -29,9 +60,11 @@ function AdminPanel() {
         setUsers(data);
       } else {
         setError(data.message || 'Failed to fetch users');
+        toast.error(data.message || 'Failed to fetch users');
       }
     } catch (err) {
       setError('Backend server not reachable');
+      toast.error('Backend server not reachable');
     } finally {
       setLoading(false);
     }
@@ -51,16 +84,16 @@ function AdminPanel() {
         }
       });
       if (response.ok) {
-        fetchUsers(); // Refresh list
+        toast.success('User approved');
+        fetchUsers();
       }
     } catch (err) {
-      console.error('Approve failed', err);
+      toast.error('Approve failed');
     }
   };
 
   const handleReject = async (id) => {
-    if (!window.confirm("Are you sure you want to reject this signup request?")) return;
-    
+    if (!window.confirm("Are you sure you want to reject this request?")) return;
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${BASE_URL}/auth/reject/${id}`, {
@@ -70,20 +103,220 @@ function AdminPanel() {
         }
       });
       if (response.ok) {
-        fetchUsers(); // Refresh list
+        toast.success('User rejected');
+        fetchUsers();
       }
     } catch (err) {
-      console.error('Reject failed', err);
+      toast.error('Reject failed');
     }
   };
 
-  const pendingReqs = users.filter(u => u.status === 'pending');
-  const activeUsers = users.filter(u => u.status === 'approved');
-  const rejectedUsers = users.filter(u => u.status === 'rejected');
-
-  const handleRoleChange = (id, newRole) => {
-    // Role change logic could be added here
+  const handleDelete = async (user) => {
+    if (user.role === 'admin') {
+      toast.error('Admin users cannot be deleted.');
+      return;
+    }
+    if (!window.confirm("FATAL: Delete this user permanently?")) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BASE_URL}/auth/${user._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        toast.success('User deleted permanently');
+        fetchUsers();
+      } else {
+        const data = await response.json();
+        toast.error(data.message || 'Delete failed');
+      }
+    } catch (err) {
+      toast.error('Delete failed');
+    }
   };
+
+  const handleVerifyPassword = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BASE_URL}/auth/verify-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ password: adminPassword })
+      });
+      if (response.ok) {
+        setRevealedUsers(prev => ({ ...prev, [verifyingUser._id]: true }));
+        setVerifyingUser(null);
+        setAdminPassword('');
+        toast.success('Identity verified. Data unlocked.');
+      } else {
+        toast.error('Invalid admin password');
+      }
+    } catch (err) {
+      toast.error('Verification failed');
+    }
+  };
+
+  const handleResetPassword = async (userId, newPassword) => {
+    if (!newPassword) {
+      toast.error('Please enter a temporary password');
+      return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BASE_URL}/auth/admin/reset-password/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ newPassword })
+      });
+      if (response.ok) {
+        toast.success('Temporary password set successfully');
+        setTempPassword('');
+        // Toggle view back
+        setRevealedUsers(prev => ({ ...prev, [userId]: false }));
+      } else {
+        toast.error('Failed to reset password');
+      }
+    } catch (err) {
+      toast.error('Error during password reset');
+    }
+  };
+
+  const openEditModal = (user) => {
+    setEditingUser(user);
+    setEditForm({
+      role: user.role,
+      academicYear: user.academicYear || '',
+      semester: user.semester || '',
+      assignedModules: (user.assignedModules || []).join(', '),
+      status: user.status
+    });
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const payload = {
+        ...editForm,
+        assignedModules: editForm.assignedModules.split(',').map(m => m.trim()).filter(m => m)
+      };
+      const response = await fetch(`${BASE_URL}/auth/admin/update/${editingUser._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (response.ok) {
+        toast.success('User details updated');
+        setEditingUser(null);
+        fetchUsers();
+      }
+    } catch (err) {
+      toast.error('Update failed');
+    }
+  };
+
+  const downloadCSVTemplate = () => {
+    const headers = ['username', 'email', 'fullName', 'role', 'academicYear', 'semester', 'assignedModules'];
+    const sampleData = [
+      'jdoe101,jdoe@unimate.com,John Doe,student,Year 1,Semester 2,Programming Fundamentals;Web Basics',
+      'smith_l,smith@unimate.com,Prof. Smith,Lecturer,,,Advanced Database Systems;Cloud Computing'
+    ];
+    const csvContent = [headers.join(','), ...sampleData].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'unimate_bulk_import_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.info('Standard template downloaded. Use semicolon (;) to separate multiple modules.');
+  };
+
+  const handleBulkUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const csvData = event.target.result;
+      const lines = csvData.split('\n');
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      
+      const jsonUsers = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        if (values.length < 2) return null;
+        
+        const userObj = {};
+        headers.forEach((header, i) => {
+          if (header === 'assignedmodules') {
+            userObj.assignedModules = values[i] ? values[i].split(';').map(m => m.trim()) : [];
+          } else {
+            userObj[header] = values[i];
+          }
+        });
+        return userObj;
+      }).filter(u => u && u.username);
+
+      if (jsonUsers.length === 0) {
+        toast.error('No valid user data found in CSV');
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${BASE_URL}/auth/bulk-update`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ users: jsonUsers })
+        });
+        const result = await response.json();
+        if (response.ok) {
+          toast.success(`Bulk Upload Done! Created: ${result.results.created}, Updated: ${result.results.updated}`);
+          if (result.results.errors.length > 0) {
+            console.error('Bulk errors:', result.results.errors);
+            toast.warning(`Some users had errors. Check console.`);
+          }
+          fetchUsers();
+        } else {
+          toast.error(result.message || 'Bulk upload failed');
+        }
+      } catch (err) {
+        toast.error('Operation failed');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = null; // Reset input
+  };
+
+  const filteredUsers = users.filter(u => {
+    if (!u) return false;
+    
+    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+    const matchesYear = yearFilter === 'all' || u.academicYear === yearFilter;
+    const matchesSemester = semesterFilter === 'all' || u.semester === semesterFilter;
+    
+    return matchesRole && matchesYear && matchesSemester;
+  });
+
+  const pendingReqs = filteredUsers.filter(u => u.status === 'pending');
+  const processedUsers = filteredUsers.filter(u => u.status !== 'pending');
 
   if (loading && users.length === 0) {
     return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading Admin Panel...</div>;
@@ -91,38 +324,97 @@ function AdminPanel() {
 
   return (
     <div className="admin-panel-page">
+      <ToastContainer position="top-right" autoClose={4000} />
       <div className="admin-header">
-        <h1>Admin Control Panel</h1>
-        <p>Manage users, view system-wide attendance, and monitor analytics.</p>
+        <div className="header-text">
+          <h1>Admin Control Panel</h1>
+          <p>Manage users, bulk import data, and monitor student academic progression.</p>
+        </div>
+        <div className="header-actions">
+          <button className="btn-refresh" onClick={fetchUsers} title="Refresh Data">
+            <IconRefresh size={20} />
+          </button>
+          <button className="btn-bulk" onClick={downloadCSVTemplate} title="Get Template">
+             Download Template
+          </button>
+          <button className="btn-bulk primary" onClick={() => fileInputRef.current.click()}>
+            <IconUpload size={20} /> Bulk CSV Import
+          </button>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleBulkUpload} 
+            accept=".csv" 
+            style={{ display: 'none' }} 
+          />
+        </div>
+      </div>
+
+      {/* Filters Bar */}
+      <div className="filters-bar">
+
+        <div className="filter-group">
+          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="filter-select">
+            <option value="all">All Roles</option>
+            <option value="student">Students</option>
+            <option value="Lecturer">Lecturers</option>
+          </select>
+        </div>
+        <div className="filter-group">
+          <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} className="filter-select">
+            <option value="all">All Years</option>
+            <option value="Year 1">Year 1</option>
+            <option value="Year 2">Year 2</option>
+            <option value="Year 3">Year 3</option>
+            <option value="Year 4">Year 4</option>
+          </select>
+        </div>
+        <div className="filter-group">
+          <select value={semesterFilter} onChange={(e) => setSemesterFilter(e.target.value)} className="filter-select">
+            <option value="all">All Semesters</option>
+            <option value="Semester 1">Semester 1</option>
+            <option value="Semester 2">Semester 2</option>
+          </select>
+        </div>
       </div>
 
       <div className="admin-grid">
-        {/* Pending Lecturer Requests */}
+        {/* Pending Requests */}
         {pendingReqs.length > 0 && (
-          <div className="admin-card full-width" style={{ border: '1px solid #eab308', backgroundColor: '#fefce8' }}>
-            <div className="card-header" style={{ borderBottomColor: '#fef08a' }}>
-              <h3 style={{ color: '#854d0e' }}><IconUsers size={20} className="header-icon" /> Pending Lecturer Signups</h3>
+          <div className="admin-card full-width pending-users-card">
+            <div className="card-header">
+              <h3><IconUsers size={20} className="header-icon" /> Pending Approvals ({pendingReqs.length})</h3>
             </div>
             <div className="users-table-container">
               <table className="admin-table">
                 <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Lecturer ID</th>
-                    <th>Email</th>
+                    <th>Portal ID</th>
+                    <th>Full Name</th>
+                    <th>Email Address</th>
+                    <th>Role</th>
                     <th>Actions</th>
-                  </tr>
                 </thead>
                 <tbody>
                    {pendingReqs.map(req => (
                     <tr key={req._id}>
-                      <td><strong>{req.username}</strong></td>
-                      <td>{req.role}</td>
-                      <td>{req.email}</td>
+                      <td><span className="portal-id-badge">{req.portalId || '---'}</span></td>
+                      <td>{req.fullName || 'N/A'}</td>
                       <td>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={() => handleApprove(req._id)} style={{ padding: '6px 12px', background: 'var(--success)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}>Approve</button>
-                          <button onClick={() => handleReject(req._id)} style={{ padding: '6px 12px', background: 'var(--danger)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}>Reject</button>
+                        <div className="reveal-cell">
+                          {revealedUsers[req._id] ? (
+                            <span className="revealed-text">{req.email}</span>
+                          ) : (
+                            <button className="btn-reveal" onClick={() => setVerifyingUser(req)}>
+                              <IconLock size={14} /> Reveal Email
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td><span className="role-badge">{req.role}</span></td>
+                      <td>
+                        <div className="action-buttons">
+                          <button className="btn-approve" onClick={() => handleApprove(req._id)}><IconCheck size={16}/> Approve</button>
+                          <button className="btn-reject" onClick={() => handleReject(req._id)}><IconX size={16}/> Reject</button>
                         </div>
                       </td>
                     </tr>
@@ -133,69 +425,79 @@ function AdminPanel() {
           </div>
         )}
 
-        {/* User Role Assignment Section */}
+        {/* Main Users Management */}
         <div className="admin-card full-width">
           <div className="card-header">
-            <h3><IconUsers size={20} className="header-icon" /> Manage Users & Roles</h3>
+            <h3><IconUsers size={20} className="header-icon" /> Manage Users & Data</h3>
           </div>
           <div className="users-table-container">
             <table className="admin-table">
               <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Email</th>
-                  <th>Current Role</th>
-                  <th>Status</th>
-                </tr>
+                  <th>Portal ID</th>
+                  <th>Full Name / Username</th>
+                  <th>Role</th>
+                  <th>Academic Info</th>
+                  <th>Actions</th>
               </thead>
               <tbody>
-                {activeUsers.map(user => (
+                {processedUsers.map(user => (
                   <tr key={user._id}>
+                    <td><span className="portal-id-badge">{user.portalId || '---'}</span></td>
                     <td>
                       <div className="user-cell">
-                        <div style={{width: 32, height: 32, borderRadius: '50%', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><IconUsers size={16}/></div>
-                        <strong>{user.username}</strong>
+                       <strong>{user.fullName || user.username}</strong>
+                       <span className="username-sub">(@{user.username})</span>
+                        <div className="reveal-container">
+                          {revealedUsers[user._id] ? (
+                            <div className="revealed-details">
+                              <span className="user-email">Email: <strong>{user.email}</strong></span>
+                              <div className="pwd-reset-box">
+                                <input 
+                                  type="text" 
+                                  placeholder="New temp password..." 
+                                  className="mini-input"
+                                  value={tempPassword}
+                                  onChange={(e) => setTempPassword(e.target.value)}
+                                />
+                                <button className="btn-save-mini" onClick={() => handleResetPassword(user._id, tempPassword)}>Set PWD</button>
+                                <button className="btn-cancel-mini" onClick={() => setRevealedUsers(prev => ({ ...prev, [user._id]: false }))}>Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button className="btn-reveal-inline" onClick={() => setVerifyingUser(user)} title="Reveal & Reset">
+                              <IconLock size={12} /> View Details / Reset PWD
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </td>
-                    <td>{user.email}</td>
+                    <td><span className={`role-badge ${user.role.toLowerCase()}`}>{user.role}</span></td>
                     <td>
-                      <span className={`role-badge ${user.role.toLowerCase()}`}>
-                        {user.role}
-                      </span>
+                      {user.role === 'student' ? (
+                        <div className="academic-cell">
+                          <span>{user.academicYear || '-'}</span>
+                          <span className="semester-sub">{user.semester || '-'}</span>
+                        </div>
+                      ) : (
+                        <span className="not-applicable">N/A (Admin/Lecturer)</span>
+                      )}
                     </td>
                     <td>
-                      <span style={{ color: 'var(--success)', fontSize: '12px', fontWeight: 600 }}>Approved</span>
+                      {user.role === 'admin' ? (
+                        <span className="not-applicable">No modules required</span>
+                      ) : (
+                        <div className="modules-cell" title={(user.assignedModules || []).join(', ')}>
+                          {(user.assignedModules || []).length} Modules
+                        </div>
+                      )}
                     </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Attendance Monitoring Section */}
-        <div className="admin-card">
-          <div className="card-header">
-            <h3><IconCalendarStats size={20} className="header-icon" /> Recent Attendance logs</h3>
-          </div>
-          <div className="attendance-table-container">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Student</th>
-                  <th>Course</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {attendanceRecords.map(record => (
-                  <tr key={record.id}>
-                    <td><strong>{record.student}</strong><br/><span style={{fontSize: '12px', color: 'var(--text-secondary)'}}>{record.date}</span></td>
-                    <td>{record.course}</td>
                     <td>
-                      <span className={`attendance-badge ${record.status.toLowerCase()}`}>
-                        {record.status}
-                      </span>
+                      <div className="action-row">
+                        <button className="icon-btn edit" onClick={() => openEditModal(user)} title="Edit Details"><IconEdit size={18}/></button>
+                        {user.role !== 'admin' && (
+                          <button className="icon-btn delete" onClick={() => handleDelete(user)} title="Delete User"><IconTrash size={18}/></button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -203,41 +505,135 @@ function AdminPanel() {
             </table>
           </div>
         </div>
+      </div>
 
-        {/* Analytics Section */}
-        <div className="admin-card">
-          <div className="card-header">
-            <h3><IconChartPie size={20} className="header-icon" /> System Analytics</h3>
-          </div>
-          <div className="analytics-overview">
-            <div className="stat-box">
-              <h4>Total Users</h4>
-              <div className="stat-number">1,452</div>
-              <div className="stat-change up">+12% this month</div>
+      {/* Verification Modal */}
+      {verifyingUser && (
+        <VerificationModal 
+          user={verifyingUser}
+          password={adminPassword}
+          setPassword={setAdminPassword}
+          onConfirm={handleVerifyPassword}
+          onCancel={() => { setVerifyingUser(null); setAdminPassword(''); }}
+        />
+      )}
+
+      {/* Edit Modal */}
+      {editingUser && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Edit User: {editingUser.username}</h2>
+              <button className="close-btn" onClick={() => setEditingUser(null)}><IconX size={20}/></button>
             </div>
-            <div className="stat-box">
-              <h4>Avg. Attendance</h4>
-              <div className="stat-number">86%</div>
-              <div className="stat-change up">+4% this week</div>
-            </div>
-            <div className="stat-box">
-              <h4>Notes Generated</h4>
-              <div className="stat-number">8,940</div>
-              <div className="stat-change up">+42% this month</div>
-            </div>
-            <div className="stat-box">
-              <h4>Active Quizzes</h4>
-              <div className="stat-number">342</div>
-              <div className="stat-change down">-2% this week</div>
-            </div>
-            <div className="stat-box" style={{gridColumn: '2 / -1'}}>
-              <h4>System Health</h4>
-              <div className="stat-number" style={{color: 'var(--success)'}}>100% Operational</div>
-              <div className="stat-change">No issues reported</div>
-            </div>
+            <form onSubmit={handleUpdate}>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Role</label>
+                  <select 
+                    value={editForm.role} 
+                    onChange={(e) => setEditForm({...editForm, role: e.target.value})}
+                    className="modal-input"
+                  >
+                    <option value="student">Student</option>
+                    <option value="Lecturer">Lecturer</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Status</label>
+                  <select 
+                    value={editForm.status} 
+                    onChange={(e) => setEditForm({...editForm, status: e.target.value})}
+                    className="modal-input"
+                  >
+                    <option value="approved">Approved</option>
+                    <option value="pending">Pending</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+                {editForm.role === 'student' && (
+                  <>
+                    <div className="form-group">
+                      <label>Academic Year</label>
+                      <select 
+                        value={editForm.academicYear} 
+                        onChange={(e) => setEditForm({...editForm, academicYear: e.target.value})}
+                        className="modal-input"
+                      >
+                        <option value="">Select Year</option>
+                        <option value="Year 1">Year 1</option>
+                        <option value="Year 2">Year 2</option>
+                        <option value="Year 3">Year 3</option>
+                        <option value="Year 4">Year 4</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Semester</label>
+                      <select 
+                        value={editForm.semester} 
+                        onChange={(e) => setEditForm({...editForm, semester: e.target.value})}
+                        className="modal-input"
+                      >
+                        <option value="">Select Semester</option>
+                        <option value="Semester 1">Semester 1</option>
+                        <option value="Semester 2">Semester 2</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+                <div className="form-group full-width">
+                  <label>Assigned Modules (Comma separated)</label>
+                  <textarea 
+                    value={editForm.assignedModules} 
+                    onChange={(e) => setEditForm({...editForm, assignedModules: e.target.value})}
+                    className="modal-textarea"
+                    placeholder="e.g. Computer Science 101, Data Structures"
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn-cancel" onClick={() => setEditingUser(null)}>Cancel</button>
+                <button type="submit" className="btn-save-modal">Save Changes</button>
+              </div>
+            </form>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
 
+// Sub-component for Admin Verification Modal
+function VerificationModal({ user, password, setPassword, onConfirm, onCancel }) {
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content small-modal">
+        <div className="modal-header">
+          <h2>Verify Admin Identity</h2>
+          <button className="close-btn" onClick={onCancel}><IconX size={20}/></button>
+        </div>
+        <div className="verification-notice">
+          <p>Confirm your admin password to view sensitive data for <strong>{user.username}</strong>.</p>
+        </div>
+        <form onSubmit={onConfirm}>
+          <div className="form-group">
+            <label>Your Admin Password</label>
+            <input 
+              type="password" 
+              className="modal-input"
+              placeholder="Enter your password..."
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn-cancel" onClick={onCancel}>Cancel</button>
+            <button type="submit" className="btn-save-modal">Verify & Reveal</button>
+          </div>
+        </form>
       </div>
     </div>
   );

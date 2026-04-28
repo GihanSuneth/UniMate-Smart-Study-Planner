@@ -6,7 +6,8 @@ const User = require('../models/User');
 // @route   POST /api/attendance
 // @access  Private
 exports.addAttendance = async (req, res) => {
-  const { student, module, date, week, status } = req.body;
+  const { module, date, week, status } = req.body;
+  const student = req.user._id;
 
   try {
     const attendance = await Attendance.create({
@@ -79,13 +80,14 @@ exports.getStudentAttendance = async (req, res) => {
 // @route   POST /api/attendance/session
 // @access  Private (Lecturer)
 exports.createSession = async (req, res) => {
-  const { lecturer, module, week } = req.body;
+  const { module, week } = req.body;
+  const lecturerId = req.user._id;
   // Generate random 6 character code
   const uniqueCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
   try {
     const session = await AttendanceSession.create({
-      lecturer,
+      lecturer: lecturerId,
       module,
       week,
       uniqueCode,
@@ -101,7 +103,8 @@ exports.createSession = async (req, res) => {
 // @route   POST /api/attendance/mark
 // @access  Private (Student)
 exports.markAttendance = async (req, res) => {
-  const { studentId, code } = req.body;
+  const { code } = req.body;
+  const studentId = req.user._id;
 
   try {
     const session = await AttendanceSession.findOne({ uniqueCode: code.toUpperCase(), isActive: true });
@@ -142,11 +145,14 @@ exports.getModuleAttendance = async (req, res) => {
   const { moduleName } = req.params;
 
   try {
-    // Note: To get student details, we populate the student reference
-    const records = await Attendance.find({ module: moduleName }).populate('student', 'username email');
+    // Note: To get student details, we populate the student reference including portalId and role
+    const records = await Attendance.find({ module: moduleName })
+      .populate('student', 'username email portalId role');
     
-    // Group logic to figure out total unique students and proportion can be done here or on frontend.
-    res.json(records);
+    // Filter to only include student attendance records (exclude lecturers/admins)
+    const studentRecords = records.filter(r => r.student && r.student.role === 'student');
+    
+    res.json(studentRecords);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -166,6 +172,63 @@ exports.endSession = async (req, res) => {
     await session.save();
     
     res.json({ message: 'Session ended successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getActiveSessions = async (req, res) => {
+  try {
+    const activeSessions = await AttendanceSession.find({ isActive: true })
+      .select('-uniqueCode') // 🛡️ Security: Enforce QR scan / manual entry for demo
+      .populate('lecturer', 'username email');
+    res.json(activeSessions);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+// @desc    Get total enrollment count for a module/semester
+// @route   GET /api/attendance/enrollment-count
+// @access  Private (Lecturer)
+exports.getEnrollmentCount = async (req, res) => {
+  const { module, year, semester } = req.query;
+  try {
+    const filter = { role: 'student' };
+    if (module) filter.assignedModules = module;
+    if (year) filter.academicYear = year;
+    if (semester) filter.semester = semester;
+
+    const count = await User.countDocuments(filter);
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+// @desc    Manually override attendance status
+// @route   PUT /api/attendance/override
+// @access  Private (Lecturer)
+exports.updateAttendanceStatus = async (req, res) => {
+  const { studentId, module, week, status } = req.body;
+  try {
+    if (week < 5) {
+      return res.status(400).json({ message: 'Attendance status cannot be modified for past academic weeks' });
+    }
+    let attendance = await Attendance.findOne({ student: studentId, module, week });
+    
+    if (attendance) {
+      attendance.status = status;
+      await attendance.save();
+    } else {
+      attendance = await Attendance.create({
+        student: studentId,
+        module,
+        week,
+        status,
+        date: new Date()
+      });
+    }
+
+    res.json({ message: `Attendance updated to ${status}`, attendance });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
