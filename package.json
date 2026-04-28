@@ -8,6 +8,7 @@
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
     "seed": "npm run seed --prefix backend",
     "test:playwright": "npx playwright test",
+    "test:integration": "npx playwright test playwright-tests/integration.spec.js",
     "test:playwright:report": "npx playwright show-report"
   },
   "devDependencies": {
