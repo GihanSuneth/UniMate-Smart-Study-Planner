@@ -31,19 +31,11 @@ const authRoutes = require("./routes/authRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const quizRoutes = require("./routes/quizRoutes");
-const activityRoutes = require("./routes/activityRoutes");
-const noteRoutes = require("./routes/noteRoutes");
-const aiRoutes = require("./routes/ai.routes");
-const qrRoutes = require("./routes/qr.routes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/quizzes", quizRoutes);
-app.use("/api/activity", activityRoutes);
-app.use("/api/notes", noteRoutes);
-app.use("/api/ai", aiRoutes);
-app.use("/api/qr", qrRoutes);
 
 app.get("/", (req, res) => {
   res.send("UniMate Backend Running");

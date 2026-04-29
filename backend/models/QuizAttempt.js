@@ -39,12 +39,7 @@ const quizAttemptSchema = new mongoose.Schema({
     type: Number,
     required: true,
     default: 0
-  },
-  questionResults: [{
-    questionText: String,
-    selectedText: String,
-    isCorrect: Boolean
-  }]
+  }
 }, {
   timestamps: true,
 });
