@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  IconClock, 
-  IconCheckbox, 
-  IconAlertTriangle, 
-  IconRotateClockwise, 
-  IconGraph, 
+import {
+  IconClock,
+  IconCheckbox,
+  IconAlertTriangle,
+  IconRotateClockwise,
+  IconGraph,
   IconListNumbers,
   IconBulb,
   IconBrain,
@@ -52,7 +52,7 @@ function StudentQuizValidator() {
     try {
       const url = `${API_ENDPOINTS.QUIZZES}?module=${selectedModule}&academicYear=${selectedYear}&week=${selectedWeek}`;
       const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       if (response.ok) {
         const data = await response.json();
@@ -69,13 +69,15 @@ function StudentQuizValidator() {
     try {
       const url = `${API_ENDPOINTS.QUIZZES}/attempts/history?module=${selectedModule}&academicYear=${selectedYear}&week=${selectedWeek}`;
       const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       if (response.ok) {
         const data = await response.json();
         setPastAttempts(data);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   // Quiz flow handlers
@@ -89,7 +91,7 @@ function StudentQuizValidator() {
     if (!attempt.quiz || !attempt.quiz._id) return;
     try {
       const response = await fetch(`${API_ENDPOINTS.QUIZZES}/${attempt.quiz._id}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       if (response.ok) {
         const fullQuiz = await response.json();
@@ -97,9 +99,9 @@ function StudentQuizValidator() {
         setResult(attempt);
         const dummyAnswers = {};
         fullQuiz.questions.forEach((q, qIdx) => {
-          const res = attempt.questionResults && attempt.questionResults.find(qr => qr.questionText === q.text);
+          const res = attempt.questionResults && attempt.questionResults.find((qr) => qr.questionText === q.text);
           if (res) {
-            const matchedOptIdx = q.options.findIndex(o => o.text === res.selectedText);
+            const matchedOptIdx = q.options.findIndex((o) => o.text === res.selectedText);
             dummyAnswers[qIdx] = matchedOptIdx !== -1 ? matchedOptIdx : 0;
           } else {
             dummyAnswers[qIdx] = 0;
@@ -108,7 +110,9 @@ function StudentQuizValidator() {
         setCurrentAnswers(dummyAnswers);
         window.scrollTo(0, 0);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleOptionSelect = (qIdx, oIdx) => {
@@ -125,7 +129,7 @@ function StudentQuizValidator() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
           answers: activeQuiz.questions.map((_, i) => ({
@@ -158,14 +162,14 @@ function StudentQuizValidator() {
     const q = activeQuiz.questions[qIdx];
     const userChoiceIdx = currentAnswers[qIdx];
     const userChoice = q.options[userChoiceIdx]?.text || 'No Answer';
-    const correctChoice = q.options.find(o => o.isCorrect)?.text || 'N/A';
+    const correctChoice = q.options.find((o) => o.isCorrect)?.text || 'N/A';
     setIsExplaining(qIdx);
     try {
       const response = await fetch(`${API_ENDPOINTS.ANALYTICS}/justify`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
           questionText: q.text,
@@ -175,14 +179,14 @@ function StudentQuizValidator() {
       });
       if (response.ok) {
         const data = await response.json();
-        setExplanations(prev => ({ ...prev, [qIdx]: data.explanation }));
+        setExplanations((prev) => ({ ...prev, [qIdx]: data.explanation }));
       } else if (response.status === 429) {
-        toast.warning("Gemini AI Quota Exceeded. Please wait 60 seconds before retrying.");
+        toast.warning('Gemini AI Quota Exceeded. Please wait 60 seconds before retrying.');
       }
-    } catch (err) { 
-      console.error(err); 
-    } finally { 
-      setIsExplaining(null); 
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsExplaining(null);
     }
   };
 
@@ -195,7 +199,7 @@ function StudentQuizValidator() {
         return {
           questionText: q.text,
           selectedAnswer: q.options[userChoiceIdx]?.text || 'No Answer',
-          correctAnswer: q.options.find(o => o.isCorrect)?.text || 'N/A'
+          correctAnswer: q.options.find((o) => o.isCorrect)?.text || 'N/A'
         };
       });
 
@@ -203,7 +207,7 @@ function StudentQuizValidator() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({ questions: batchData })
       });
@@ -215,13 +219,13 @@ function StudentQuizValidator() {
           newExplanations[idx] = exp;
         });
         setExplanations(newExplanations);
-        toast.success("Master AI Briefing complete!");
+        toast.success('Master AI Briefing complete!');
       } else if (response.status === 429) {
-        toast.warning("Gemini AI Quota Exceeded. Try again in 60s.");
+        toast.warning('Gemini AI Quota Exceeded. Try again in 60s.');
       }
     } catch (error) {
       console.error('Error fetching batch briefing:', error);
-      toast.error("Failed to generate master briefing.");
+      toast.error('Failed to generate master briefing.');
     } finally {
       setIsExplainingAll(false);
     }
@@ -240,18 +244,21 @@ function StudentQuizValidator() {
         <div className="quiz-main-card">
           <div className="topic-selector-row" style={{ display: 'flex', gap: '20px', padding: '16px 24px', backgroundColor: '#fcfdfe', borderBottom: '1px solid #eee' }}>
             <div>
-               <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '4px' }}>Module</span>
-               <select className="dropdown" style={{ width: '220px', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }} value={selectedModule} onChange={(e) => setSelectedModule(e.target.value)}>
-                 <option value="">Select Module</option>
-                 {modules.map(m => <option key={m} value={m}>{m}</option>)}
-               </select>
+              <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '4px' }}>Module</span>
+              <select className="dropdown" style={{ width: '220px', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }} value={selectedModule} onChange={(e) => setSelectedModule(e.target.value)}>
+                <option value="">Select Module</option>
+                {modules.map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
             </div>
             <div>
-               <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '4px' }}>Year</span>
-               <select className="dropdown" style={{ width: '120px', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }} value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
-                 <option value="All">All Years</option>
-                 <option value="Year 1">Year 1</option><option value="Year 2">Year 2</option><option value="Year 3">Year 3</option><option value="Year 4">Year 4</option>
-               </select>
+              <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '4px' }}>Year</span>
+              <select className="dropdown" style={{ width: '120px', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }} value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+                <option value="All">All Years</option>
+                <option value="Year 1">Year 1</option>
+                <option value="Year 2">Year 2</option>
+                <option value="Year 3">Year 3</option>
+                <option value="Year 4">Year 4</option>
+              </select>
             </div>
           </div>
           <div className="quiz-list-container" style={{ padding: '32px' }}>
@@ -262,28 +269,29 @@ function StudentQuizValidator() {
               </h2>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px' }}>
-              {quizzes.filter(q => q.week === 5).length > 0 ? 
-                quizzes.filter(q => q.week === 5).map((quiz) => (
-                <div key={quiz._id} className="quiz-card" style={{ padding: '24px', border: '1px solid #6366f1', borderRadius: '16px', background: '#f5f3ff' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', color: '#6366f1' }}>{quiz.module}</span>
-                    <span style={{ fontSize: '11px', fontWeight: '800', background: '#eef2ff', color: '#4f46e5', padding: '2px 8px', borderRadius: '4px' }}>WEEK 5</span>
+              {quizzes.filter((q) => q.week === 5).length > 0 ? (
+                quizzes.filter((q) => q.week === 5).map((quiz) => (
+                  <div key={quiz._id} className="quiz-card" style={{ padding: '24px', border: '1px solid #6366f1', borderRadius: '16px', background: '#f5f3ff' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', color: '#6366f1' }}>{quiz.module}</span>
+                      <span style={{ fontSize: '11px', fontWeight: '800', background: '#eef2ff', color: '#4f46e5', padding: '2px 8px', borderRadius: '4px' }}>WEEK 5</span>
+                    </div>
+                    <h3 style={{ marginBottom: '16px', fontSize: '18px' }}>{quiz.title}</h3>
+                    <button onClick={() => startQuiz(quiz)} className="start-quiz-btn" style={{ width: '100%', padding: '12px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700' }}>Start Quiz Now</button>
                   </div>
-                  <h3 style={{ marginBottom: '16px', fontSize: '18px' }}>{quiz.title}</h3>
-                  <button onClick={() => startQuiz(quiz)} className="start-quiz-btn" style={{ width: '100%', padding: '12px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700' }}>Start Quiz Now</button>
-                </div>
-              )) : (
+                ))
+              ) : (
                 <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', border: '1.5px dashed #e2e8f0', borderRadius: '16px', gridColumn: '1 / -1' }}>
                   No active quizzes released for Week 5 yet.
                 </div>
               )}
             </div>
 
-            {quizzes.filter(q => q.week < 5).length > 0 && (
+            {quizzes.filter((q) => q.week < 5).length > 0 && (
               <div style={{ marginTop: '48px' }}>
                 <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#64748b', marginBottom: '16px' }}>Academic Archive (Expired Quizzes)</h2>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                  {quizzes.filter(q => q.week < 5).map((quiz) => (
+                  {quizzes.filter((q) => q.week < 5).map((quiz) => (
                     <div key={quiz._id} className="quiz-card" style={{ padding: '20px', border: '1px solid #e2e8f0', borderRadius: '12px', opacity: 0.7, background: '#f8fafc' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <span style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8' }}>WEEK {quiz.week}</span>
@@ -334,14 +342,14 @@ function StudentQuizValidator() {
               <div style={{ fontSize: '48px', fontWeight: '800' }}>{score}%</div>
               <div style={{ fontWeight: '700', color: '#64748b' }}>{correct} / {total} Correct</div>
             </div>
-            
-            <button 
-              onClick={handleExplainAll} 
+
+            <button
+              onClick={handleExplainAll}
               disabled={isExplainingAll || Object.keys(explanations).length === activeQuiz.questions.length}
               style={{ padding: '12px 32px', background: '#6366f1', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)', cursor: 'pointer' }}
             >
               <IconBrain size={20} />
-              {isExplainingAll ? "Synthesizing Briefings..." : "Master AI Briefing (One-Tap All)"}
+              {isExplainingAll ? 'Synthesizing Briefings...' : 'Master AI Briefing (One-Tap All)'}
             </button>
           </div>
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>
@@ -349,7 +357,7 @@ function StudentQuizValidator() {
               <div key={i} style={{ marginBottom: '24px', padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                 <p style={{ fontWeight: '700', marginBottom: '12px' }}>{q.text}</p>
                 <div style={{ fontSize: '14px', marginBottom: '8px' }}>Your Answer: {q.options[currentAnswers[i]]?.text || 'None'}</div>
-                <div style={{ fontSize: '14px', color: '#10b981', fontWeight: '600' }}>Correct Answer: {q.options.find(o => o.isCorrect)?.text}</div>
+                <div style={{ fontSize: '14px', color: '#10b981', fontWeight: '600' }}>Correct Answer: {q.options.find((o) => o.isCorrect)?.text}</div>
                 {explanations[i] && (
                   <div style={{ marginTop: '12px', padding: '12px', background: '#eef2ff', borderRadius: '8px', fontSize: '13px', borderLeft: '4px solid #6366f1' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', color: '#6366f1', fontWeight: '700', fontSize: '11px' }}>
@@ -383,8 +391,8 @@ function StudentQuizValidator() {
             <p style={{ marginBottom: '16px' }}>{q?.text || 'Loading question...'}</p>
             <div style={{ display: 'grid', gap: '10px' }}>
               {(q?.options || []).map((opt, oi) => (
-                <div 
-                  key={oi} 
+                <div
+                  key={oi}
                   onClick={() => handleOptionSelect(i, oi)}
                   style={{ padding: '16px', border: '1.5px solid', borderColor: currentAnswers[i] === oi ? '#4f46e5' : '#e2e8f0', borderRadius: '10px', cursor: 'pointer', backgroundColor: currentAnswers[i] === oi ? '#f5f3ff' : 'white' }}
                 >

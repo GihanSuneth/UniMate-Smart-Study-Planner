@@ -30,8 +30,5 @@ router.route('/:id')
 
 router.put('/:id/publish', protect, publishQuiz);
 router.post('/:id/attempt', protect, submitAttempt);
-router.get('/attempts/history', protect, getStudentAttempts);
-router.get('/attempts/module/:moduleCode', protect, getModuleAttempts);
-router.post('/generate-ai', protect, generateAiQuiz);
 
 module.exports = router;

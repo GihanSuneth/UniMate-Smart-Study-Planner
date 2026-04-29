@@ -1,7 +1,5 @@
 const Quiz = require('../models/Quiz');
 const QuizAttempt = require('../models/QuizAttempt');
-const User = require('../models/User');
-const geminiService = require('../services/gemini.service');
 const mongoose = require('mongoose');
 
 // Quiz Controller
@@ -43,7 +41,7 @@ exports.createQuiz = async (req, res) => {
 // @route   GET /api/quizzes
 // @access  Private
 exports.getQuizzes = async (req, res) => {
-  const { module, academicYear, week } = req.query;
+  const { module } = req.query;
   const filter = {};
 
   if (module && module !== 'All') filter.module = module;
@@ -115,21 +113,9 @@ exports.updateQuiz = async (req, res) => {
 // @route   PUT /api/quizzes/:id/publish
 // @access  Private/Lecturer
 exports.publishQuiz = async (req, res) => {
-  const { password } = req.body;
   try {
-    if (!password) {
-      return res.status(400).json({ message: 'Security re-confirmation required: Password is missing.' });
-    }
-
     const quiz = await Quiz.findById(req.params.id);
     if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
-
-    // Verify password
-    const user = await User.findById(req.user._id);
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid password. Publishing aborted.' });
-    }
 
     if (quiz.questions.length < quiz.questionCount) {
       return res.status(400).json({ message: `Need to add ${quiz.questionCount} questions before publishing` });
@@ -158,7 +144,6 @@ exports.submitAttempt = async (req, res) => {
     }
 
     let correctCount = 0;
-    const questionResults = [];
     quiz.questions.forEach((q, idx) => {
       // Each answer points to an option index from the submitted payload.
       const studentAnswer = answers[idx];
@@ -184,8 +169,7 @@ exports.submitAttempt = async (req, res) => {
       week: week || quiz.week || 1,
       score,
       correctAnswers: correctCount,
-      totalQuestions: quiz.questions.length,
-      questionResults
+      totalQuestions: quiz.questions.length
     });
 
     const responseData = attempt.toObject();

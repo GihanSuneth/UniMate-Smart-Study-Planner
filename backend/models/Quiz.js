@@ -8,15 +8,7 @@ const quizSchema = new mongoose.Schema({
   module: {
     type: String,
     required: true,
-    enum: [
-      'Network Design and Modeling', 
-      'Database Systems', 
-      'Operating Systems', 
-      'Data Structures and Algorithms', 
-      'Data Science and Analytics',
-      'Programming Applications', 
-      'Software Engineering'
-    ],
+    enum: ['Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering'],
   },
   academicYear: {
     type: String,
