@@ -1,8 +1,12 @@
 const geminiService = require('../services/gemini.service');
 
+// AI Controller
+
 exports.processAIRequest = async (req, res) => {
   const { type, data } = req.body;
 
+  // The generic AI endpoint expects both a content type and the payload that
+  // belongs to that type.
   if (!type || !data) {
     return res.status(400).json({ message: "Type and data are required" });
   }

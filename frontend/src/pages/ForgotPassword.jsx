@@ -6,13 +6,18 @@ import mascot1 from '../images/action-figure-1.png';
 import 'react-toastify/dist/ReactToastify.css';
 import './Login.css';
 
+// Forgot Password Page
+
 function ForgotPassword() {
   const navigate = useNavigate();
+
+  // Page state
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  // Form handler
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!email) {
@@ -39,6 +44,7 @@ function ForgotPassword() {
     navigate(-1); // Go back to the previous page (e.g., login)
   };
 
+  // Render
   return (
     <div className="login-page">
       <ToastContainer position="top-right" autoClose={3000} />

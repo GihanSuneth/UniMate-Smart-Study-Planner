@@ -6,7 +6,10 @@ import {
 } from '@tabler/icons-react';
 import './Analytics.css';
 
+// Analytics Demo Page
+
 function Analytics() {
+  // Render
   return (
     <div className="analytics-page">
       <div className="page-header">

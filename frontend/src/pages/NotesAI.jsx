@@ -3,7 +3,10 @@ import { IconCloudUpload, IconPlus, IconDeviceFloppy, IconDotsVertical, IconDown
 import './NotesAI.css';
 import actionFigureImg from '../images/action-figure-1.png';
 
+// Notes AI Demo Page
+
 function NotesAI() {
+  // Page state
   const [file, setFile] = useState(null);
   const [textNotes, setTextNotes] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -13,6 +16,7 @@ function NotesAI() {
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef(null);
 
+  // File and generation handlers
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
@@ -89,6 +93,7 @@ function NotesAI() {
     alert("Downloading PDF... (Mock logic)");
   };
 
+  // Render
   return (
     <div className="notes-ai-page">
       <div className="page-header">

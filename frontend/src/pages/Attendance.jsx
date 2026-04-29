@@ -5,7 +5,10 @@ import './Attendance.css';
 import actionFigure2Img from '../images/action-figure-2.png';
 import qrSvg from '../images/qr.svg';
 
+// Attendance Demo Page
+
 function Attendance() {
+  // Render
   return (
     <div className="attendance-page">
       <div className="page-header">

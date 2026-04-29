@@ -3,7 +3,10 @@ import { IconCheck, IconChevronDown, IconBulb, IconArrowRight } from '@tabler/ic
 import './QuizValidator.css';
 import actionFigure3Img from '../images/action-figure-3.png';
 
+// Quiz Validator Demo Page
+
 function QuizValidator() {
+  // Render
   return (
     <div className="quiz-validator-page">
       <div className="page-header">

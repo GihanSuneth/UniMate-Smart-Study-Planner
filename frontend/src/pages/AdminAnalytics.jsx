@@ -15,7 +15,10 @@ import 'react-toastify/dist/ReactToastify.css';
 import { BASE_URL } from '../api';
 import './AdminAnalytics.css';
 
+// Admin Analytics Page
+
 function AdminAnalytics() {
+  // Page state
   const [activeTab, setActiveTab] = useState('students');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
@@ -28,6 +31,7 @@ function AdminAnalytics() {
   const semesters = ['All', 'Semester 1', 'Semester 2'];
   const availableModules = ['Network Design and Modeling', 'Database Systems', 'Operating Systems', 'Data Structures and Algorithms', 'Data Science and Analytics'];
 
+  // Data loading
   useEffect(() => {
     fetchStats();
   }, []);
@@ -61,7 +65,7 @@ function AdminAnalytics() {
     });
   };
 
-  // Filter Logic (Calculated locally for responsiveness)
+  // Local filter helpers keep the UI responsive without extra requests.
   const getFilteredStudentStats = () => {
     if (!stats) return { total: 0, active: 0 };
     let filtered = stats.students.breakdown;
@@ -82,6 +86,7 @@ function AdminAnalytics() {
     return { total: stats.lecturers.total, active: stats.lecturers.active };
   };
 
+  // Render helpers
   const renderStudentView = () => {
     const data = getFilteredStudentStats();
     const activeRate = data.total > 0 ? (data.active / data.total) * 100 : 0;
@@ -217,6 +222,7 @@ function AdminAnalytics() {
 
   if (loading || !stats) return <div className="loading-state">Initializing Portal Analytics...</div>;
 
+  // Render
   return (
     <div className="admin-analytics-page">
       <ToastContainer position="top-right" autoClose={3000} />

@@ -11,7 +11,10 @@ import { BASE_URL } from '../api';
 import './NotesAI.css';
 import actionFigureImg from '../images/action-figure-1.png';
 
+// Lecturer Notes AI Page
+
 function LecturerNotesAI() {
+  // Page state
   const [file, setFile] = useState(null);
   const [textNotes, setTextNotes] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -25,6 +28,7 @@ function LecturerNotesAI() {
   const [history, setHistory] = useState([]);
   const [filterModule, setFilterModule] = useState('All');
 
+  // History and profile loading
   const fetchHistory = async () => {
     try {
       const response = await fetch(`${BASE_URL}/notes?module=${filterModule}&type=teaching_prep`, {
@@ -74,6 +78,7 @@ function LecturerNotesAI() {
 
   const [fileContent, setFileContent] = useState('');
 
+  // File and generation handlers
   const processFile = (fileObj) => {
     setFile(fileObj);
     setError('');
@@ -238,6 +243,7 @@ function LecturerNotesAI() {
     }
   };
 
+  // Render
   return (
     <div className="notes-ai-page">
       <AnimatePresence>
@@ -274,7 +280,7 @@ function LecturerNotesAI() {
       </div>
 
       <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', justifyContent: 'center' }}>
-        <div className="main-content" style={{ flex: 1, maxWidth: '1200px', minWidth: 0 }}>
+        <div className="notes-container" style={{ flex: 1, maxWidth: '1200px', minWidth: 0 }}>
           <div className="upload-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '48px', padding: '40px', backgroundColor: 'var(--bg-card)', borderRadius: '16px', boxShadow: 'var(--shadow-card)', marginBottom: '24px' }}>
           
           <div style={{ display: 'flex', flexDirection: 'column' }}>
