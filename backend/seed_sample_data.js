@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const User = require('./models/User');
+const Quiz = require('./models/Quiz');
 const Attendance = require('./models/Attendance');
 const AnalyticsTarget = require('./models/AnalyticsTarget');
 const QuizAttempt = require('./models/QuizAttempt');
@@ -11,19 +12,43 @@ async function seedData() {
     await mongoose.connect(mongoUri);
     console.log('MongoDB Connected for Mass Seeding (Quiz + Attendance)...');
 
-    // 1. Find ALL student users
+    // 1. Find ALL student users and ONE lecturer for quiz ownership
     const students = await User.find({ role: 'student' });
+    const lecturer = await User.findOne({ role: { $in: ['Lecturer', 'admin'] } });
     
     if (students.length === 0) {
       console.log('No students found in database. Please register a student first.');
       process.exit(0);
     }
+    if (!lecturer) {
+      console.log('No lecturer/admin found to own quizzes. Creating a fallback lecturer...');
+    }
+    const lecturerId = lecturer ? lecturer._id : (await User.create({ username: 'SeedLecturer', email: 'seed@unimate.com', password: 'password', role: 'Lecturer', status: 'approved' }))._id;
 
     console.log(`Found ${students.length} students. Starting bulk data generation...`);
 
     const modules = ['Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering'];
     
-    // Arrays to collect data for bulk insertion
+    // 2. Pre-create Quizzes for each module and week
+    const quizMap = {}; // { 'module-week': _id }
+    console.log('Creating reference quizzes...');
+    await Quiz.deleteMany({}); // Reset quizzes for seed
+    
+    for (const mod of modules) {
+      for (let week = 1; week <= 5; week++) {
+        const quiz = await Quiz.create({
+          title: `${mod} - Week ${week} Mastery Quiz`,
+          module: mod,
+          academicYear: '2024',
+          week: week,
+          lecturer: lecturerId,
+          questionCount: 10,
+          isPublished: true
+        });
+        quizMap[`${mod}-${week}`] = quiz._id;
+      }
+    }
+
     const attendanceData = [];
     const quizData = [];
     const targetData = [];
@@ -53,11 +78,15 @@ async function seedData() {
 
           // B. Quiz Attempts (2 per module per week)
           for (let q = 1; q <= 2; q++) {
+            const score = 60 + Math.floor(Math.random() * 40);
             quizData.push({
               student: student._id,
+              quiz: quizMap[`${mod}-${week}`], // Required field fixed
               module: mod,
               week: week,
-              score: 60 + Math.floor(Math.random() * 40), // 60-100%
+              score: score,
+              correctAnswers: Math.round(score / 10),
+              totalQuestions: 10,
               date: new Date(Date.now() - (5 - week) * 7 * 24 * 60 * 60 * 1000)
             });
           }

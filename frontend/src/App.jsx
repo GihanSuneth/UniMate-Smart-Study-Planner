@@ -15,6 +15,7 @@ import LecturerAnalytics from './pages/LecturerAnalytics';
 import MarkAttendance from './pages/MarkAttendance';
 import Settings from './pages/Settings';
 import AdminPanel from './pages/AdminPanel';
+import AdminAnalytics from './pages/AdminAnalytics';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import StudentSignup from './pages/StudentSignup';
@@ -22,8 +23,14 @@ import LecturerSignup from './pages/LecturerSignup';
 import ForgotPassword from './pages/ForgotPassword';
 import './index.css';
 
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 function AppLayout() {
-  const [role, setRole] = useState(localStorage.getItem('userRole') || null);
+  const [rawRole, setRole] = useState(localStorage.getItem('userRole') || null);
+  
+  // Normalize role to lower-case for safe route checking, stripping any spaces
+  const role = rawRole ? rawRole.trim().toLowerCase() : null;
 
   useEffect(() => {
     const handleAuthChange = () => {
@@ -62,18 +69,18 @@ function AppLayout() {
             {role === 'student' && <Route path="/mark-attendance" element={<MarkAttendance />} />}
 
             {/* Lecturer Routes */}
-            {role === 'Lecturer' && <Route path="/" element={<LecturerDashboard />} />}
-            {role === 'Lecturer' && <Route path="/notes-ai" element={<LecturerNotesAI />} />}
-            {role === 'Lecturer' && <Route path="/attendance" element={<LecturerAttendance />} />}
-            {role === 'Lecturer' && <Route path="/quiz-validator" element={<LecturerQuizValidator />} />}
-            {role === 'Lecturer' && <Route path="/analytics" element={<LecturerAnalytics />} />}
+            {role === 'lecturer' && <Route path="/" element={<LecturerDashboard />} />}
+            {role === 'lecturer' && <Route path="/notes-ai" element={<LecturerNotesAI />} />}
+            {role === 'lecturer' && <Route path="/attendance" element={<LecturerAttendance />} />}
+            {role === 'lecturer' && <Route path="/quiz-validator" element={<LecturerQuizValidator />} />}
+            {role === 'lecturer' && <Route path="/analytics" element={<LecturerAnalytics />} />}
 
             {/* Admin Routes */}
             {role === 'admin' && <Route path="/admin" element={<AdminPanel />} />}
             {role === 'admin' && <Route path="/" element={<Navigate to="/admin" />} />}
             {role === 'admin' && <Route path="/attendance" element={<LecturerAttendance />} />}
             {role === 'admin' && <Route path="/quiz-validator" element={<LecturerQuizValidator />} />}
-            {role === 'admin' && <Route path="/analytics" element={<LecturerAnalytics />} />}
+            {role === 'admin' && <Route path="/analytics" element={<AdminAnalytics />} />}
             
             {/* Shared Routes */}
             <Route path="/settings" element={<Settings />} />
@@ -90,6 +97,7 @@ function App() {
   return (
     <Router>
       <AppLayout />
+      <ToastContainer position="top-right" autoClose={3000} />
     </Router>
   );
 }

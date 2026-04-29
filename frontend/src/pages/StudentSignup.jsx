@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IconArrowLeft, IconId, IconUser, IconLock, IconCalendarStats, IconDeviceDesktopAnalytics } from '@tabler/icons-react';
+import { IconArrowLeft, IconId, IconUser, IconLock, IconCalendarStats, IconDeviceDesktopAnalytics, IconEye, IconEyeOff } from '@tabler/icons-react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import mascot1 from '../images/action-figure-1.png';
@@ -19,6 +19,7 @@ function StudentSignup() {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const validateForm = () => {
     let newErrors = {};
@@ -69,8 +70,11 @@ function StudentSignup() {
         setLoading(false);
 
         if (response.ok) {
-          // Show toast popup
-          toast.success('Registration request done! You will receive confirmation shortly.');
+          // Show toast popup with Portal ID
+          toast.success(`Welcome! Your Portal ID is ${data.portalId || 'Pending'}. Use this, your email, or username to log in!`, {
+            autoClose: 6000,
+            style: { border: '1px solid #6366f1', borderRadius: '12px' }
+          });
           // Delay navigation by 3.5 seconds
           setTimeout(() => {
             navigate('/login/student');
@@ -197,12 +201,20 @@ function StudentSignup() {
               <div className="input-wrapper">
                 <IconLock size={20} className="input-icon" />
                 <input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   name="password"
                   placeholder="Create a password..."
                   value={formData.password}
                   onChange={handleChange}
                 />
+                <button 
+                  type="button" 
+                  className="eye-btn" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <IconEyeOff size={20} /> : <IconEye size={20} />}
+                </button>
               </div>
               {errors.password && <span className="error-text">{errors.password}</span>}
             </div>

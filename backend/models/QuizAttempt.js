@@ -13,7 +13,6 @@ const quizAttemptSchema = new mongoose.Schema({
   },
   module: {
     type: String,
-    enum: ['Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering'],
     required: true,
   },
   date: {

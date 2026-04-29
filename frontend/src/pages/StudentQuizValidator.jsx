@@ -121,6 +121,23 @@ function StudentQuizValidator() {
               <div style={{ position: 'absolute', bottom: '-10px', right: '-10px', backgroundColor: '#ffd700', padding: '10px', borderRadius: '50%', color: 'white', boxShadow: '0 4px 12px rgba(255, 215, 0, 0.4)' }}>
                 <IconTrophy size={24} />
               </div>
+            )}
+          </div>
+          <div style={{ padding: '0 32px 32px', borderTop: '1px solid #f1f5f9' }}>
+            <h3 style={{ margin: '32px 0 20px' }}>Performed Quizzes (History)</h3>
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {pastAttempts.map((attempt) => (
+                <div key={attempt._id} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                  <div>
+                    <div style={{ fontWeight: '700' }}>{attempt.quiz?.title || 'Quiz'}</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>Score: {attempt.score}% • Week: {attempt.week}</div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                      {new Date(attempt.createdAt || attempt.date).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
+                    </div>
+                  </div>
+                  <button onClick={() => viewJustification(attempt)} style={{ background: 'white', border: '1px solid #e2e8f0', padding: '8px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', color: '#6366f1' }}>Review Quiz Results</button>
+                </div>
+              ))}
             </div>
 
             <h2 style={{ fontSize: '28px', color: 'var(--text-dark)', marginBottom: '12px' }}>Excellent Effort!</h2>

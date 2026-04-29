@@ -1,0 +1,21 @@
+{
+  "name": "unimate-smart-study-planner",
+  "version": "1.0.0",
+  "description": "Unified runner for UniMate Smart Study Planner",
+  "main": "index.js",
+  "scripts": {
+    "install-all": "npm install && npm install --prefix frontend && npm install --prefix backend",
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "seed": "npm run seed --prefix backend",
+    "test:playwright": "npx playwright test",
+    "test:integration": "npx playwright test playwright-tests/integration.spec.js",
+    "test:playwright:report": "npx playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  }
+}

@@ -352,6 +352,58 @@ function LecturerQuizValidator() {
         </div>
       </div>
 
+      {/* Performed Quizzes (Student History) Section */}
+      {filterModule !== 'All' && (
+        <div className="quiz-main-card" style={{ marginTop: '32px', padding: '32px' }}>
+           <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+             <IconRotateClockwise size={24} color="var(--primary)" /> Performed Quizzes (Student History)
+           </h3>
+           <div className="attempts-table-container" style={{ border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                <thead style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
+                  <tr>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', color: '#475569', fontWeight: '600' }}>Student</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', color: '#475569', fontWeight: '600' }}>Quiz Title</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'center', color: '#475569', fontWeight: '600' }}>Score</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'center', color: '#475569', fontWeight: '600' }}>Week</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right', color: '#475569', fontWeight: '600' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {attemptsLoading ? (
+                    <tr><td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading attempts...</td></tr>
+                  ) : studentAttempts.length === 0 ? (
+                    <tr><td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No attempts found for this module.</td></tr>
+                  ) : studentAttempts.map(attempt => (
+                    <tr key={attempt._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ fontWeight: '600', color: '#1e293b' }}>{attempt.student?.username || 'Unknown'}</div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>{attempt.student?.portalId || ''}</div>
+                      </td>
+                      <td style={{ padding: '12px 16px', color: '#475569' }}>{attempt.quiz?.title || 'Deleted Quiz'}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                        <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', backgroundColor: attempt.score >= 75 ? '#dcfce7' : attempt.score >= 40 ? '#fff7ed' : '#fee2e2', color: attempt.score >= 75 ? '#15803d' : attempt.score >= 40 ? '#c2410b' : '#ef4444' }}>
+                          {attempt.score}%
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'center', color: '#64748b' }}>Week {attempt.week}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                        <button 
+                          onClick={() => viewAttemptJustification(attempt)}
+                          style={{ background: 'white', border: '1px solid #e2e8f0', color: '#6366f1', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', transition: '0.2s', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          <IconBulb size={14} /> View Logic Trace
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+           </div>
+        </div>
+      )}
+
+
       {showModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(18, 28, 56, 0.6)', zIndex: 2000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(4px)' }}>
           <div style={{ backgroundColor: 'white', width: '90%', maxWidth: currentStep === 1 ? '500px' : '900px', borderRadius: '20px', padding: '32px', boxShadow: '0 20px 50px rgba(0,0,0,0.3)', maxHeight: '90vh', overflowY: 'auto' }}>

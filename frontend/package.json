@@ -7,15 +7,23 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:playwright": "npx playwright test --config ../playwright.config.js",
+    "test:playwright:report": "npx playwright show-report --config ../playwright.config.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@tabler/icons-react": "^3.40.0",
+    "framer-motion": "^12.4.7",
+    "html5-qrcode": "^2.3.8",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.1",
-    "react-toastify": "^11.0.5"
+    "react-toastify": "^11.0.5",
+    "recharts": "^2.15.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

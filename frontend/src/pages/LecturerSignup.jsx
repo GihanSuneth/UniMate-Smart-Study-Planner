@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IconArrowLeft, IconId, IconUser, IconLock } from '@tabler/icons-react';
+import { IconArrowLeft, IconId, IconUser, IconLock, IconEye, IconEyeOff } from '@tabler/icons-react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import mascot2 from '../images/action-figure-2.png';
@@ -17,6 +17,7 @@ function LecturerSignup() {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const validateForm = () => {
     let newErrors = {};
@@ -64,10 +65,13 @@ function LecturerSignup() {
         setLoading(false);
 
         if (response.ok) {
-          toast.success('Registration request sent! You will receive confirmation shortly.');
+          toast.success(`Welcome! Your Portal ID is ${data.portalId || 'Pending'}. Use this, your email, or username to log in!`, {
+            autoClose: 6000,
+            style: { border: '1px solid #6366f1', borderRadius: '12px' }
+          });
           setTimeout(() => {
             navigate('/login/Lecturer');
-          }, 3500);
+          }, 4500);
         } else {
           setErrors({ general: data.message || 'Signup failed' });
           toast.error(data.message || 'Signup failed');
@@ -162,12 +166,20 @@ function LecturerSignup() {
               <div className="input-wrapper">
                 <IconLock size={20} className="input-icon" />
                 <input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   name="password"
                   placeholder="Create a password..."
                   value={formData.password}
                   onChange={handleChange}
                 />
+                <button 
+                  type="button" 
+                  className="eye-btn" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <IconEyeOff size={20} /> : <IconEye size={20} />}
+                </button>
               </div>
               {errors.password && <span className="error-text">{errors.password}</span>}
             </div>
