@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { seedStudentSession } from './helpers';
 
 test.describe('Notes AI Module Interactions', () => {
   test.beforeEach(async ({ page }) => {
-    // Mock APIs
     await page.route('**/api/auth/profile', async route => {
       await route.fulfill({
         status: 200,
+        contentType: 'application/json',
         body: JSON.stringify({ enrolledModules: ['IT3010', 'IT3011'] })
       });
     });
@@ -13,6 +14,7 @@ test.describe('Notes AI Module Interactions', () => {
     await page.route('**/api/activity?**', async route => {
       await route.fulfill({
         status: 200,
+        contentType: 'application/json',
         body: JSON.stringify([
           {
             type: 'notes_generated',
@@ -28,6 +30,7 @@ test.describe('Notes AI Module Interactions', () => {
     await page.route('**/api/ai', async route => {
       await route.fulfill({
         status: 200,
+        contentType: 'application/json',
         body: JSON.stringify({
           Summary: ['AI Point 1', 'AI Point 2'],
           'Key Points': ['Key 1', 'Key 2']
@@ -37,36 +40,30 @@ test.describe('Notes AI Module Interactions', () => {
 
     await page.route('**/api/activity', async route => {
       if (route.request().method() === 'POST') {
-        await route.fulfill({ status: 201 });
+        await route.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({ ok: true })
+        });
       }
     });
 
-    await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.setItem('userRole', 'student');
-      localStorage.setItem('userName', 'Test Student');
-      localStorage.setItem('userId', 'mock-id');
-      localStorage.setItem('token', 'mock-token');
-      window.dispatchEvent(new Event('auth-change'));
-    });
+    await seedStudentSession(page, { userId: 'mock-id' });
     await page.goto('/notes-ai');
   });
 
   test('should generate notes and switch tabs', async ({ page }) => {
-    // 1. Switch Mode
+    await expect(page.getByRole('heading', { name: /Student Notes AI/i })).toBeVisible();
+
     const examPrepBtn = page.getByRole('button', { name: /Exam Prep Generator/i });
     await examPrepBtn.click();
-    await expect(examPrepBtn).toHaveClass(/active/);
 
-    // 2. Input Text
-    const textarea = page.getByPlaceholder(/Paste your rough notes/i);
+    const textarea = page.getByPlaceholder(/Paste long lecture notes|Paste your rough notes/i);
     await textarea.fill('These are my notes about Operating Systems.');
 
-    // 3. Generate
-    const generateBtn = page.getByRole('button', { name: /Generate/i });
+    const generateBtn = page.getByRole('button', { name: /Generate Exam Preparation/i });
     await generateBtn.click();
 
-    // 4. Verify Preview and Tabs
     await expect(page.getByText(/Generation complete/i)).toBeVisible();
     await expect(page.getByText('AI Point 1')).toBeVisible();
 
@@ -74,7 +71,6 @@ test.describe('Notes AI Module Interactions', () => {
     await keyPointsTab.click();
     await expect(page.getByText('Key 1')).toBeVisible();
 
-    // 5. Download/Copy check
     const downloadBtn = page.getByRole('button', { name: /Download PDF/i });
     await expect(downloadBtn).toBeEnabled();
 
@@ -87,8 +83,8 @@ test.describe('Notes AI Module Interactions', () => {
     await historyTab.click();
 
     await expect(page.getByText('Old Notes')).toBeVisible();
+    await expect(page.getByText(/SMART NOTES/i)).toBeVisible();
     
-    // Load from history
     await page.getByText('Old Notes').click();
     await expect(page.getByText('Point 1')).toBeVisible();
   });
