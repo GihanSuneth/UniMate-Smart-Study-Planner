@@ -16,14 +16,19 @@ import {
 import actionFigureImg from '../images/action-figure-1.png';
 import { BASE_URL } from '../api';
 
+// Lecturer Dashboard Page
+
 function LecturerDashboard() {
   const navigate = useNavigate();
+
+  // Page state
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
 
   const [classStats, setClassStats] = useState(null);
 
+  // Initial dashboard load
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -57,6 +62,7 @@ function LecturerDashboard() {
 
   if (loading) return <div className="loading-container">Loading Dashboard...</div>;
 
+  // Render
   return (
     <>
       <div className="welcome-banner" >

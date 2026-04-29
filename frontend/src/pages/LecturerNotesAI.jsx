@@ -11,7 +11,10 @@ import { BASE_URL } from '../api';
 import './NotesAI.css';
 import actionFigureImg from '../images/action-figure-1.png';
 
+// Lecturer Notes AI Page
+
 function LecturerNotesAI() {
+  // Page state
   const [file, setFile] = useState(null);
   const [textNotes, setTextNotes] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -25,6 +28,7 @@ function LecturerNotesAI() {
   const [history, setHistory] = useState([]);
   const [filterModule, setFilterModule] = useState('All');
 
+  // History and profile loading
   const fetchHistory = async () => {
     try {
       const response = await fetch(`${BASE_URL}/notes?module=${filterModule}&type=teaching_prep`, {
@@ -74,6 +78,7 @@ function LecturerNotesAI() {
 
   const [fileContent, setFileContent] = useState('');
 
+  // File and generation handlers
   const processFile = (fileObj) => {
     setFile(fileObj);
     setError('');
@@ -238,6 +243,7 @@ function LecturerNotesAI() {
     }
   };
 
+  // Render
   return (
     <div className="notes-ai-page">
       <AnimatePresence>

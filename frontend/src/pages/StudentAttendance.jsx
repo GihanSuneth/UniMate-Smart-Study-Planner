@@ -5,10 +5,14 @@ import 'react-toastify/dist/ReactToastify.css';
 import { BASE_URL } from '../api';
 import './Attendance.css';
 
-// Ensure we have access to the logged in student ID
+// Student Attendance Page
+
+// Read the student id once so attendance requests can stay scoped to the
+// logged-in student.
 const studentId = localStorage.getItem('userId');
 
 function StudentAttendance() {
+  // Page state
   const [activeSessions, setActiveSessions] = useState([]);
   const [attendanceData, setAttendanceData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +30,7 @@ function StudentAttendance() {
   const modules = ['All', 'Network Design and Modeling', 'Database Systems', 'Operating Systems', 'Data Structures and Algorithms', 'Data Science and Analytics'];
   const weeks = ['All', ...Array.from({ length: 12 }, (_, i) => (i + 1).toString())];
 
-
+  // Poll active sessions and attendance history together.
   useEffect(() => {
     fetchActiveSessions();
     fetchStudentAttendance();
@@ -38,6 +42,7 @@ function StudentAttendance() {
     return () => clearInterval(interval);
   }, []);
 
+  // Data loading and actions
   const fetchActiveSessions = async () => {
     try {
       const response = await fetch(`${BASE_URL}/attendance/sessions/active`, {
@@ -129,6 +134,7 @@ function StudentAttendance() {
   const totalAssigned = overallPercentage > 0 ? Math.round((totalPresent / overallPercentage) * 100) : totalRecords;
   const totalAbsent = totalAssigned - totalPresent > 0 ? totalAssigned - totalPresent : 0;
 
+  // Render
   return (
     <div className="attendance-page">
       <ToastContainer position="top-right" autoClose={3000} />

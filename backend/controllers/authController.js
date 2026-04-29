@@ -1,7 +1,9 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
-// Generate JWT Token
+// Authentication Controller
+
+// Generate a reusable login token for successful auth flows.
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'unimate_secret', {
     expiresIn: '30d',
@@ -54,7 +56,7 @@ exports.loginUser = async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    // Find user by username, email, or portalId
+    // Allow a single login field to accept username, email, or portal ID.
     const user = await User.findOne({
       $or: [
         { username: username },
@@ -68,7 +70,7 @@ exports.loginUser = async (req, res) => {
         return res.status(401).json({ message: 'Account pending approval by portal admin' });
       }
 
-      // Update lastLogin
+      // Keep the last login time current for dashboard and admin analytics.
       user.lastLogin = new Date();
       await user.save();
 
@@ -136,7 +138,8 @@ exports.getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
     if (user) {
-      // 🚀 Auto-allocation for Demo Sustainability
+      // Demo defaults help new accounts show useful data even before an admin
+      // manually configures every academic field.
       const coreModules = [
         'Network Design and Modeling', 
         'Database System', 
@@ -148,7 +151,7 @@ exports.getUserProfile = async (req, res) => {
       let changed = false;
 
       if (user.role === 'student') {
-        // Enforce 3rd Year, 2nd Sem if not set
+        // Backfill missing student metadata with sensible demo defaults.
         if (!user.academicYear || user.academicYear === '') {
           user.academicYear = '3rd Year';
           changed = true;
@@ -157,13 +160,14 @@ exports.getUserProfile = async (req, res) => {
           user.semester = '2nd Semester';
           changed = true;
         }
-        // Enforce all 5 modules if list is empty
+
+        // Attach the core module set if the student has no enrollments yet.
         if (!user.enrolledModules || user.enrolledModules.length === 0) {
           user.enrolledModules = coreModules;
           changed = true;
         }
       } else if (user.role && user.role.toLowerCase() === 'lecturer') {
-        // Enforce modules for lecturers if list is empty
+        // Give lecturers starter modules so their dashboard is not empty.
         if (!user.assignedModules || user.assignedModules.length === 0) {
           user.assignedModules = [coreModules[0], coreModules[1]]; // Assign Network Design and Database System
           changed = true;
@@ -193,6 +197,8 @@ exports.updateUserProfile = async (req, res) => {
     const user = await User.findById(req.user._id);
 
     if (user) {
+      // Only profile fields are updated here. Authentication and role data stay
+      // under separate protected flows.
       user.fullName = req.body.fullName || user.fullName;
       user.email = req.body.email || user.email;
       if (req.body.profilePic) {

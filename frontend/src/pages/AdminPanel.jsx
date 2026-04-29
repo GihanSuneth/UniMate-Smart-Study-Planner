@@ -18,7 +18,10 @@ import 'react-toastify/dist/ReactToastify.css';
 import { BASE_URL } from '../api';
 import './AdminPanel.css';
 
+// Admin Panel Page
+
 function AdminPanel() {
+  // Page state
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -46,6 +49,7 @@ function AdminPanel() {
 
   const fileInputRef = useRef(null);
 
+  // Data loading
   const fetchUsers = async () => {
     setLoading(true);
     try {
@@ -74,6 +78,7 @@ function AdminPanel() {
     fetchUsers();
   }, []);
 
+  // Admin actions
   const handleApprove = async (id) => {
     try {
       const token = localStorage.getItem('token');
@@ -322,6 +327,7 @@ function AdminPanel() {
     return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading Admin Panel...</div>;
   }
 
+  // Render
   return (
     <div className="admin-panel-page">
       <ToastContainer position="top-right" autoClose={4000} />
@@ -604,7 +610,7 @@ function AdminPanel() {
   );
 }
 
-// Sub-component for Admin Verification Modal
+// Small modal used when an admin reveals sensitive account data.
 function VerificationModal({ user, password, setPassword, onConfirm, onCancel }) {
   return (
     <div className="modal-overlay">

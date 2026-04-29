@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { setTarget, getAnalyticsSummary, getAnalyticsHistory, getAdminStats, getWeeklyLearningReport, getQuizDeepDive, getJustification, getBatchJustification, generateAiInsight } = require('../controllers/analyticsController');
+const { setTarget, getAnalyticsSummary, getAnalyticsHistory, getAdminStats, getWeeklyLearningReport, getQuizDeepDive, generateAiInsight } = require('../controllers/analyticsController');
+const { getJustification, getBatchJustification } = require('../controllers/quizController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
 router.get('/weekly-report', protect, getWeeklyLearningReport);

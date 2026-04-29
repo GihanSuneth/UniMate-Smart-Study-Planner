@@ -10,13 +10,18 @@ const {
   getStudentAttempts,
   getModuleAttempts,
   generateAiQuiz,
-  deleteQuiz
+  deleteQuiz,
+  getJustification,
+  getBatchJustification
 } = require('../controllers/quizController');
 const { protect } = require('../middleware/authMiddleware');
 
 router.route('/')
   .post(protect, createQuiz)
   .get(protect, getQuizzes);
+
+router.post('/justify', protect, getJustification);
+router.post('/justify-batch', protect, getBatchJustification);
 
 router.route('/:id')
   .get(protect, getQuizById)

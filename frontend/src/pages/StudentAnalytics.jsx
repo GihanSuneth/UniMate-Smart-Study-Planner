@@ -12,8 +12,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BASE_URL } from "../api";
 import "./Analytics.css";
 
+// Student Analytics Page
+
 function StudentAnalytics() {
   const navigate = useNavigate();
+
+  // Page state
   const [attThreshold, setAttThreshold] = useState(75);
   const [quizThreshold, setQuizThreshold] = useState(80);
 
@@ -53,6 +57,7 @@ function StudentAnalytics() {
     'IT3014': 'IT3014 - Data Science and Analytics'
   };
 
+  // Small UI helpers keep the render logic easier to read.
   const getModuleName = (code) => moduleNames[code] || code;
 
   // ✅ USE CURRENT LOCKED VALUES IF AVAILABLE for current week validation
@@ -201,6 +206,7 @@ function StudentAnalytics() {
     setTimeout(() => setToast(null), 5000);
   };
 
+  // Analytics loading
   const fetchAnalytics = async () => {
     if (!studentId) {
       setLoading(false);
@@ -300,6 +306,7 @@ function StudentAnalytics() {
     }
   };
  
+  // AI and deployment actions
   const handleDeployAiTrace = async (weekNum, idx) => {
     if (isDeploying[idx]) return;
     setIsDeploying(prev => ({ ...prev, [idx]: true }));
@@ -414,11 +421,13 @@ function StudentAnalytics() {
     }, 600);
   };
 
+  // Initial load and toast cleanup
   useEffect(() => {
     fetchAnalytics();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedModule]);
 
+  // Render loading state
   if (loading) {
     return (
       <div className="analytics-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -428,6 +437,7 @@ function StudentAnalytics() {
     );
   }
 
+  // Render
   return (
     <div className="analytics-page">
 

@@ -2,18 +2,24 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const NodeCache = require("node-cache");
 const crypto = require("crypto");
 
-// Cache implementation with 1-hour TTL
+// Gemini Service
+
+// Keep recent AI outputs in memory to avoid paying the prompt cost repeatedly.
 const aiCache = new NodeCache({ stdTTL: 900 });
 
 class GeminiService {
   constructor() {
-    this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    this.model = this.genAI.getGenerativeModel({
-      model: "gemini-3-flash-preview",
-      generationConfig: {
-        responseMimeType: "application/json",
-      },
-    });
+    // Only build the Gemini client when an API key is available.
+    this.apiKey = process.env.GEMINI_API_KEY;
+    this.genAI = this.apiKey ? new GoogleGenerativeAI(this.apiKey) : null;
+    this.model = this.genAI
+      ? this.genAI.getGenerativeModel({
+          model: "gemini-3-flash-preview",
+          generationConfig: {
+            responseMimeType: "application/json",
+          },
+        })
+      : null;
   }
 
   generateCacheKey(type, data) {
@@ -22,6 +28,7 @@ class GeminiService {
   }
 
   async generateContent(type, data) {
+    // Cached responses make repeated page refreshes much faster and cheaper.
     const cacheKey = this.generateCacheKey(type, data);
     const cachedResponse = aiCache.get(cacheKey);
 
@@ -30,6 +37,7 @@ class GeminiService {
       return cachedResponse;
     }
 
+    // Build a prompt shape that matches the requested AI task.
     let prompt = "";
     switch (type) {
       case "notes":
@@ -171,12 +179,17 @@ class GeminiService {
         throw new Error("Invalid AI type requested");
     }
 
+    if (!this.model) {
+      throw new Error('Missing GEMINI_API_KEY');
+    }
+
     try {
       console.log(`[GeminiService] Calling Gemini API for ${type}...`);
       const result = await this.model.generateContent(prompt);
       const responseText = result.response.text();
 
-      // Robust JSON extraction
+      // Gemini may wrap JSON in prose or code fences, so extract the most likely
+      // JSON block before parsing.
       let cleanText = responseText;
       const startArray = responseText.indexOf('[');
       const startObject = responseText.indexOf('{');
@@ -189,13 +202,13 @@ class GeminiService {
       if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
         cleanText = responseText.substring(startIndex, endIndex + 1);
       } else {
-        // Fallback to existing cleaning if no brackets found
+        // If bracket detection fails, fall back to code-fence cleanup only.
         cleanText = responseText.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
       }
 
       try {
         const parsedData = JSON.parse(cleanText);
-        // Cache the successful response
+        // Cache only valid parsed responses.
         aiCache.set(cacheKey, parsedData);
         return parsedData;
       } catch (parseErr) {

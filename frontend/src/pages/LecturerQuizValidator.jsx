@@ -26,7 +26,10 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './QuizValidator.css';
 
+// Lecturer Quiz Validator Page
+
 function LecturerQuizValidator() {
+  // Page state
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -43,6 +46,12 @@ function LecturerQuizValidator() {
   const [explanations, setExplanations] = useState({});
   const [isExplaining, setIsExplaining] = useState(null);
   const [showResultModal, setShowResultModal] = useState(false);
+  const [attemptFilters, setAttemptFilters] = useState({
+    studentId: '',
+    quizTitle: '',
+    module: 'All',
+    week: 'All'
+  });
   
   
   // Dashboard Filtering
@@ -84,6 +93,7 @@ function LecturerQuizValidator() {
   const [modules, setModules] = useState([]);
   const [userProfile, setUserProfile] = useState(null);
 
+  // Profile and data loading
   useEffect(() => {
     fetchUserProfile();
   }, []);
@@ -98,6 +108,10 @@ function LecturerQuizValidator() {
         setUserProfile(data);
         const assigned = data.assignedModules || [];
         setModules(assigned);
+        setAttemptFilters(prev => ({
+          ...prev,
+          module: assigned[0] || 'All'
+        }));
         if (assigned.length > 0) {
           setFilterModule(assigned[0]);
           setQuizForm(prev => ({ ...prev, module: assigned[0] }));
@@ -113,9 +127,6 @@ function LecturerQuizValidator() {
   useEffect(() => {
     if (modules.length > 0) {
       fetchQuizzes();
-      if (filterModule !== 'All') {
-        fetchStudentAttempts();
-      }
     } else if (userProfile) {
       // If profile is fetched but modules are empty, still stop loading
       setLoading(false);
@@ -123,10 +134,28 @@ function LecturerQuizValidator() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterModule, filterYear, filterSemester, filterWeek, modules]);
 
+  useEffect(() => {
+    if (modules.length > 0) {
+      fetchStudentAttempts();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modules, attemptFilters]);
+
   const fetchStudentAttempts = async () => {
     setAttemptsLoading(true);
     try {
-      const response = await fetch(`${API_ENDPOINTS.QUIZZES}/attempts/module/${encodeURIComponent(filterModule)}`, {
+      const params = new URLSearchParams();
+
+      if (attemptFilters.studentId.trim()) params.set('studentId', attemptFilters.studentId.trim());
+      if (attemptFilters.quizTitle.trim()) params.set('quizTitle', attemptFilters.quizTitle.trim());
+      if (attemptFilters.module && attemptFilters.module !== 'All') params.set('module', attemptFilters.module);
+      if (attemptFilters.week && attemptFilters.week !== 'All') params.set('week', attemptFilters.week);
+
+      const routeModule = attemptFilters.module || 'All';
+      const query = params.toString();
+      const url = `${API_ENDPOINTS.QUIZZES}/attempts/module/${encodeURIComponent(routeModule)}${query ? `?${query}` : ''}`;
+
+      const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (response.ok) {
@@ -140,6 +169,7 @@ function LecturerQuizValidator() {
     }
   };
 
+  // Attempt review tools
   const viewAttemptJustification = async (attempt) => {
     if (!attempt?.quiz?._id) {
       toast.error("Quiz metadata is missing for this attempt.");
@@ -198,6 +228,7 @@ function LecturerQuizValidator() {
     }
   };
 
+  // Quiz management actions
   const fetchQuizzes = async () => {
     setLoading(true);
     try {
@@ -451,6 +482,7 @@ function LecturerQuizValidator() {
 
   // Dashboard logic: Relying on backend filtering in fetchQuizzes()
 
+  // Render
   return (
     <div className="quiz-validator-page">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
@@ -570,11 +602,57 @@ function LecturerQuizValidator() {
       </div>
 
       {/* Performed Quizzes (Student History) Section */}
-      {filterModule !== 'All' && (
+      {modules.length > 0 && (
         <div className="quiz-main-card" style={{ marginTop: '32px', padding: '32px' }}>
            <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
              <IconRotateClockwise size={24} color="var(--primary)" /> Performed Quizzes (Student History)
            </h3>
+           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+             <div>
+               <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '4px' }}>Student ID</span>
+               <input
+                 type="text"
+                 placeholder="Portal ID / username"
+                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                 value={attemptFilters.studentId}
+                 onChange={(e) => setAttemptFilters(prev => ({ ...prev, studentId: e.target.value }))}
+               />
+             </div>
+             <div>
+               <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '4px' }}>Quiz Title</span>
+               <input
+                 type="text"
+                 placeholder="Search title"
+                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                 value={attemptFilters.quizTitle}
+                 onChange={(e) => setAttemptFilters(prev => ({ ...prev, quizTitle: e.target.value }))}
+               />
+             </div>
+             <div>
+               <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '4px' }}>Module</span>
+               <select
+                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                 value={attemptFilters.module}
+                 onChange={(e) => setAttemptFilters(prev => ({ ...prev, module: e.target.value }))}
+               >
+                 <option value="All">All Modules</option>
+                 {modules.map(module => <option key={module} value={module}>{module}</option>)}
+               </select>
+             </div>
+             <div>
+               <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#64748b', display: 'block', marginBottom: '4px' }}>Week</span>
+               <select
+                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                 value={attemptFilters.week}
+                 onChange={(e) => setAttemptFilters(prev => ({ ...prev, week: e.target.value }))}
+               >
+                 <option value="All">All Weeks</option>
+                 {Array.from({ length: 15 }, (_, index) => index + 1).map(week => (
+                   <option key={week} value={String(week)}>Week {week}</option>
+                 ))}
+               </select>
+             </div>
+           </div>
            <div className="attempts-table-container" style={{ border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
                 <thead style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
@@ -590,7 +668,7 @@ function LecturerQuizValidator() {
                   {attemptsLoading ? (
                     <tr><td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading attempts...</td></tr>
                   ) : studentAttempts.length === 0 ? (
-                    <tr><td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No attempts found for this module.</td></tr>
+                    <tr><td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No attempts found for the selected filters.</td></tr>
                   ) : studentAttempts.map(attempt => (
                     <tr key={attempt._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '12px 16px' }}>
