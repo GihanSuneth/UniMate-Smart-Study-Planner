@@ -4,11 +4,12 @@ const Activity = require('../models/Activity');
 // @route   POST /api/activity
 // @access  Private
 exports.logActivity = async (req, res) => {
-  const { type, module, title, content } = req.body;
+  const { type, generatorMode, module, title, content } = req.body;
   try {
     const activity = await Activity.create({
       user: req.user._id,
       type,
+      generatorMode,
       module,
       title,
       content

@@ -159,7 +159,7 @@
   padding: 24px;
   position: relative;
   min-height: 440px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .preview-header {
@@ -217,6 +217,7 @@
 
 .tabs-container {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 12px;
@@ -253,6 +254,8 @@
   flex-direction: column;
   position: relative;
   z-index: 2;
+  overflow: visible;
+  padding-right: 0;
 }
 
 .notes-list {
