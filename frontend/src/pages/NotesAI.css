@@ -158,8 +158,9 @@
   box-shadow: var(--shadow-card);
   padding: 24px;
   position: relative;
-  min-height: 440px;
-  overflow: visible;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
 }
 
 .preview-header {
@@ -250,11 +251,11 @@
 }
 
 .preview-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
   position: relative;
   z-index: 2;
-  overflow: visible;
   padding-right: 0;
 }
 
@@ -273,12 +274,34 @@
 }
 
 .notes-list > li::before {
-  content: "•";
+  content: "✦";
   color: var(--primary);
-  font-size: 24px;
+  font-size: 18px;
   position: absolute;
   left: 0;
-  top: -6px;
+  top: 0;
+  opacity: 0.8;
+}
+
+.notes-list > li {
+  animation: slideInLeft 0.4s ease forwards;
+  opacity: 0;
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.notes-list > li:nth-child(1) { animation-delay: 0.1s; }
+.notes-list > li:nth-child(2) { animation-delay: 0.15s; }
+.notes-list > li:nth-child(3) { animation-delay: 0.2s; }
+.notes-list > li:nth-child(4) { animation-delay: 0.25s; }
+.notes-list > li:nth-child(5) { animation-delay: 0.3s; }
+
+.notes-list > li:hover {
+  background-color: rgba(38, 109, 241, 0.02);
+  border-radius: 8px;
 }
 
 .notes-list ul, .notes-list ol {

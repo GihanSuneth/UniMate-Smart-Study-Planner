@@ -37,6 +37,7 @@ function StudentAnalytics() {
   const [deepDive, setDeepDive] = useState(null);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [isDeploying, setIsDeploying] = useState({}); // Tracking AI deployment per week/index
+  const [activeMission, setActiveMission] = useState(null); // Tracking inline expanded mission
 
   const [toast, setToast] = useState(null);
   const rawId = localStorage.getItem('userId');
@@ -365,10 +366,10 @@ function StudentAnalytics() {
         const data = await response.json();
         setCriticalInsight(data);
         
-        // 🔥 Also fetch Deep Dive now that we have deployed AI
+        // 🔥 Also fetch Deep Dive now that we have deployed AI (scoped to current week)
         if (selectedModule !== 'Overall') {
           try {
-            const deepDiveRes = await fetch(`${BASE_URL}/analytics/quiz-deep-dive/${selectedModule}`, {
+            const deepDiveRes = await fetch(`${BASE_URL}/analytics/quiz-deep-dive/${selectedModule}?week=${currentWeekNum}`, {
               headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
             const deepDiveData = await deepDiveRes.json();
@@ -438,90 +439,6 @@ function StudentAnalytics() {
           <p>Analyzing academic trends and goal alignment {selectedModule !== 'Overall' ? `for ${selectedModule}` : 'across all enrollments'}.</p>
         </div>
           
-          {/* TOP LEVEL AI INSIGHT (GLOBAL) */}
-           {criticalInsight && criticalInsight.weeklyAnalysis ? (
-            <div className="ai-insight-card" style={{ 
-              maxWidth: '350px', 
-              background: 'white', 
-              padding: '24px', 
-              borderRadius: '20px', 
-              boxShadow: '0 10px 40px rgba(0,0,0,0.08)',
-              border: '1px solid #eef2ff',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '800', color: '#6366f1', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                  <IconBrain size={18} /> Performance Intelligence (Week {currentWeekNum})
-                </div>
-                <button 
-                  onClick={() => setCriticalInsight(null)} 
-                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
-                >
-                  <IconX size={16}/>
-                </button>
-              </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ borderLeft: '3px solid #ef4444', paddingLeft: '12px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#ef4444', textTransform: 'uppercase', marginBottom: '2px' }}>Identified Problem</div>
-                  <div style={{ fontSize: '14px', color: '#1e293b', fontWeight: '600' }}>{criticalInsight.weeklyAnalysis.problem}</div>
-                </div>
-
-                <div style={{ borderLeft: '3px solid #6366f1', paddingLeft: '12px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#6366f1', textTransform: 'uppercase', marginBottom: '2px' }}>Data-Backed Reason</div>
-                  <div style={{ fontSize: '13px', color: '#64748b', lineHeight: '1.5' }}>{criticalInsight.weeklyAnalysis.reason}</div>
-                </div>
-
-                <div style={{ borderLeft: '3px solid #10b981', paddingLeft: '12px', backgroundColor: '#f0fdf4', padding: '10px', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#10b981', textTransform: 'uppercase', marginBottom: '4px' }}>Live AI Suggestion</div>
-                  <div style={{ fontSize: '13px', color: '#065f46', fontWeight: '500', lineHeight: '1.5' }}>{criticalInsight.weeklyAnalysis.suggestion}</div>
-                </div>
-              </div>
-
-              <div className="ai-glow"></div>
-            </div>
-          ) : (
-            <div className="ai-insight-card" style={{ 
-              maxWidth: '350px', 
-              background: '#f8fafc', 
-              padding: '24px', 
-              borderRadius: '20px', 
-              border: '2px dashed #e2e8f0',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              textAlign: 'center',
-              gap: '12px',
-              justifyContent: 'center'
-            }}>
-               <IconBrain size={32} color="#94a3b8" />
-               <div style={{ fontSize: '14px', fontWeight: '600', color: '#64748b' }}>AI Intelligence Offline</div>
-               <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>Deploy AI Analytics manually to analyze your 1-week performance patterns and save tokens.</p>
-                 <button 
-                  onClick={handleDeployAI}
-                  disabled={isAiGenerating || loading}
-                  className="deploy-btn"
-                  style={{ 
-                    marginTop: '12px',
-                    backgroundColor: isAiGenerating ? '#94a3b8' : '#6366f1',
-                    color: 'white',
-                    border: 'none',
-                    padding: '8px 20px',
-                    borderRadius: '12px',
-                    fontWeight: '700',
-                    fontSize: '12px',
-                    cursor: isAiGenerating ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)'
-                  }}
-                 >
-                   {isAiGenerating ? "Generating Insights..." : `Deploy AI Trace Analysis (${selectedModule})`}
-                 </button>
-            </div>
-          )}
         </div>
 
         {/* OVERALL PERFORMANCE BOOST CARDS (Hidden if module selected) */}
@@ -537,7 +454,7 @@ function StudentAnalytics() {
                 <div>
                   <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>{stat.label}</div>
                   <div style={{ fontSize: '24px', fontWeight: '800', color: '#1e293b' }}>
-                    {stat.val >= 0 ? '+' : ''}{stat.val.toFixed(0)}{stat.unit}
+                    {stat.val >= 0 ? '+' : ''}{stat.val.toFixed(2)}{stat.unit}
                   </div>
                 </div>
               </div>
@@ -657,7 +574,7 @@ function StudentAnalytics() {
                   <span>Current Attendance</span>
                 </div>
                 <div className="stat-box-value">
-                  <h2>{currentWeek.att}%</h2>
+                  <h2>{currentWeek.att.toFixed(2)}%</h2>
                   <span className={`trend ${getAttendanceState(currentWeek.att, activeAtt) === 'ok' ? 'up' : 'down'}`}>
                     {currentWeek.att >= activeAtt ? "On Track ✓" : "Falling Behind ⛔"}
                   </span>
@@ -682,7 +599,7 @@ function StudentAnalytics() {
                   <span>Current Quiz Avg</span>
                 </div>
                 <div className="stat-box-value">
-                  <h2>{currentWeek.quiz}%</h2>
+                  <h2>{currentWeek.quiz.toFixed(2)}%</h2>
                   <span className={`trend ${getQuizState(currentWeek.quiz, activeQuiz) === 'ok' ? 'up' : 'down'}`}>
                      {currentWeek.quiz >= activeQuiz ? "On Track ✓" : `${activeQuiz - currentWeek.quiz}% below goal`}
                   </span>
@@ -720,7 +637,6 @@ function StudentAnalytics() {
 
           {/* PERFORMANCE TRACK & INSIGHTS (Module Specific) */}
           <div className="overview-card" style={{ marginBottom: '24px', position: 'relative' }}>
-             
              {/* LOCKED OVERLAY for Manual Trigger */}
              {(!deepDive || deepDive.totalAttempts === 0) && selectedModule !== 'Overall' && (
                <div style={{
@@ -737,97 +653,169 @@ function StudentAnalytics() {
                  padding: '40px',
                  textAlign: 'center'
                }}>
-                  <div style={{ 
-                    padding: '16px', 
-                    borderRadius: '50%', 
-                    background: '#f1f5f9', 
-                    marginBottom: '20px',
-                    boxShadow: '0 8px 16px rgba(0,0,0,0.05)'
-                  }}>
+                  <div style={{ padding: '16px', borderRadius: '50%', background: '#f1f5f9', marginBottom: '20px', boxShadow: '0 8px 16px rgba(0,0,0,0.05)' }}>
                     <IconBrain size={48} color="#6366f1" />
                   </div>
                   <h3 style={{ marginBottom: '8px', color: '#1e293b' }}>Intelligence Report Locked</h3>
-                  <p style={{ maxWidth: '400px', color: '#64748b', fontSize: '14px', marginBottom: '24px' }}>
-                    Deep-dive pattern analysis for <strong>{selectedModule}</strong> requires manual deployment. This saves your daily AI credits and ensures data is synced.
-                  </p>
-                  <button 
-                    onClick={handleDeployAI}
-                    disabled={isAiGenerating}
-                    style={{ 
-                      padding: '12px 32px', 
-                      background: 'var(--primary)', 
-                      color: 'white', 
-                      borderRadius: '12px', 
-                      border: 'none', 
-                      fontWeight: '800',
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
-                    }}>
-                    {isAiGenerating ? 'Deploying Trace Analysis...' : 'Deploy AI Intelligence now'}
+                  <p style={{ maxWidth: '400px', color: '#64748b', fontSize: '14px', marginBottom: '24px' }}>Deep-dive analysis for <strong>{selectedModule}</strong> requires manual deployment.</p>
+                  <button onClick={handleDeployAI} disabled={isAiGenerating} style={{ padding: '12px 32px', background: 'var(--primary)', color: 'white', borderRadius: '12px', border: 'none', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)' }}>
+                    {isAiGenerating ? 'Deploying...' : 'Deploy AI Intelligence now'}
                   </button>
                </div>
              )}
 
              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 className="overview-card-header" style={{ marginBottom: 0 }}>
-                  {selectedModule === 'Overall' ? 'Overall Weekly Learning Report' : `Weekly Learning Report: ${selectedModule}`}
+                  {selectedModule === 'Overall' ? 'Academic GPS & Recovery Map' : `Problem-Solving Hub: ${selectedModule}`}
                 </h3>
-                <div className="ai-badge"><IconBrain size={14}/> AI Clustered Data</div>
+                <div className="ai-badge"><IconBrain size={14}/> Active Strategic Data</div>
              </div>
 
              <div className="deep-analysis-section">
-                <div className="analysis-grid">
-                   {/* Hardest Questions */}
-                   <div className="analysis-box">
-                      <div className="box-header"><IconAlertTriangle size={18} color="#ef4444" /> <span>Critical: Logic Bottlenecks</span></div>
-                      <p className="box-desc">These specific questions have the highest failure rates in your latest quizzes.</p>
-                      <ul className="failing-questions-list">
-                         {deepDive?.hardestQuestions?.length > 0 ? (
-                           deepDive.hardestQuestions.map((q, i) => {
-                             const rateVal = q.failureRate !== undefined ? Math.round(q.failureRate) : q.rate;
-                             return (
-                             <li key={i}>
-                               <div className="q-head">
-                                  <span className="q-text">{q.text}</span>
-                                  <span className="fail-badge">{rateVal}% Failure</span>
+                <div className="analysis-grid" style={{ gridTemplateColumns: '1fr' }}>
+                   <div className="analysis-box" style={{ borderTop: '4px solid #ef4444', boxShadow: '0 4px 20px rgba(239, 68, 68, 0.05)', width: '100%' }}>
+                      <div className="box-header"><IconAlertTriangle size={18} color="#ef4444" /> <span>Critical Recovery Missions</span></div>
+                      <p className="box-desc" style={{ fontSize: '12px', color: '#64748b' }}>Foundational gaps identified through behavioral patterns that require immediate solution.</p>
+                      <ul className="failing-questions-list" style={{ marginTop: '16px' }}>
+                         {deepDive?.missions?.length > 0 ? (
+                           deepDive.missions.map((m, i) => (
+                             <li key={i} style={{ background: 'white', padding: '16px', borderRadius: '16px', border: '1px solid #fee2e2', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                               <div className="q-head" style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                  <span className="q-text" style={{ fontWeight: '800', color: '#991b1b', fontSize: '14px' }}>{m.topic}</span>
+                                  <span style={{ fontSize: '10px', background: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: '10px', fontWeight: '800' }}>BLOCKER: {m.blockerScore.toFixed(2)}</span>
                                </div>
-                               <div className="fail-bar"><div className="fail-fill" style={{ width: `${rateVal}%` }}></div></div>
+                               
+                               <div style={{ marginBottom: '16px' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#94a3b8', marginBottom: '4px', fontWeight: '700' }}>
+                                    <span>RECOVERY PROGRESS</span>
+                                    <span>{((100 - m.blockerScore) / 10).toFixed(0)}%</span>
+                                  </div>
+                                  <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '10px', overflow: 'hidden' }}>
+                                    <motion.div 
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${Math.max(10, 100 - m.blockerScore)}%` }}
+                                      style={{ height: '100%', background: 'linear-gradient(90deg, #ef4444, #f87171)', borderRadius: '10px' }}
+                                    />
+                                  </div>
+                               </div>
+
+                               <button 
+                                onClick={() => setActiveMission(activeMission === i ? null : i)}
+                                style={{ 
+                                  width: '100%', 
+                                  padding: '10px', 
+                                  background: 'linear-gradient(135deg, #991b1b, #7f1d1d)', 
+                                  color: 'white', 
+                                  border: 'none', 
+                                  borderRadius: '10px', 
+                                  fontSize: '12px', 
+                                  fontWeight: '800', 
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  boxShadow: '0 4px 12px rgba(153, 27, 27, 0.2)'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                               >
+                                 {activeMission === i ? "Hide Action Plan" : "Unlock Topic Action Plan"}
+                               </button>
+
+                                {activeMission === i && (
+                                 <motion.div
+                                   initial={{ opacity: 0, height: 0 }}
+                                   animate={{ opacity: 1, height: 'auto' }}
+                                   style={{ marginTop: '16px' }}
+                                 >
+                                   {/* Header */}
+                                   <div style={{ background: 'linear-gradient(135deg, #1e1b4b, #312e81)', padding: '14px 16px', borderRadius: '12px 12px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                     <div style={{ color: 'white', fontSize: '11px', fontWeight: '800', letterSpacing: '1.5px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                       <div className="pulse-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#818cf8' }}></div>
+                                       🧠 UniMate AI — Topic Diagnostic Protocol
+                                     </div>
+                                     <div style={{ background: 'rgba(239,68,68,0.2)', color: '#fca5a5', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '10px' }}>BLOCKER: {m.blockerScore.toFixed(2)}%</div>
+                                   </div>
+                                   {/* AI Pattern Insights */}
+                                   <div style={{ background: '#fef9ff', padding: '14px 16px', borderLeft: '4px solid #8b5cf6' }}>
+                                     <div style={{ fontSize: '10px', fontWeight: '900', color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>⚡ AI Detected Pattern</div>
+                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                       {(m.intel?.patternInsights || [`High failure rate on ${m.topic}`, 'Pattern: surface engagement without deep processing', "Bloom's gap: stored knowledge not applied under exam conditions"]).map((insight, pi) => (
+                                         <div key={pi} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                                           <span style={{ color: '#8b5cf6', fontWeight: '900', fontSize: '14px', lineHeight: '1.2' }}>·</span>
+                                           <span style={{ fontSize: '12px', color: '#4c1d95', lineHeight: '1.5', fontWeight: '500' }}>{insight}</span>
+                                         </div>
+                                       ))}
+                                     </div>
+                                   </div>
+                                   {/* Dependency Chain */}
+                                   <div style={{ background: '#f0f9ff', padding: '14px 16px', borderLeft: '4px solid #0ea5e9' }}>
+                                     <div style={{ fontSize: '10px', fontWeight: '900', color: '#0369a1', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>🔗 Concept Dependency Chain</div>
+                                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
+                                       {(m.intel?.dependencyChain || ['Foundation', 'Core Principles', 'Applied Logic']).map((node, ni, arr) => (
+                                         <span key={ni} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                           <span style={{
+                                             background: ni === Math.floor(arr.length / 2) ? '#fef2f2' : '#e0f2fe',
+                                             color: ni === Math.floor(arr.length / 2) ? '#dc2626' : '#0369a1',
+                                             border: `1px solid ${ni === Math.floor(arr.length / 2) ? '#fecaca' : '#bae6fd'}`,
+                                             fontSize: '11px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px'
+                                           }}>
+                                             {node}
+                                           </span>
+                                           {ni < arr.length - 1 && <span style={{ color: '#94a3b8', fontSize: '12px' }}>→</span>}
+                                         </span>
+                                       ))}
+                                     </div>
+                                     <div style={{ marginTop: '8px', fontSize: '11px', color: '#0369a1', fontStyle: 'italic', fontWeight: '600' }}>
+                                       ↑ Red node = where UniMate AI estimates your synthesis breaks.
+                                     </div>
+                                   </div>
+                                   {/* Pinpoint Question */}
+                                   <div style={{ background: '#fff7ed', padding: '14px 16px', borderLeft: '4px solid #f59e0b' }}>
+                                     <div style={{ fontSize: '10px', fontWeight: '900', color: '#b45309', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>🎯 Self-Diagnosis Question</div>
+                                     <div style={{ fontSize: '13px', color: '#78350f', fontWeight: '700', lineHeight: '1.6', fontStyle: 'italic' }}>
+                                       "{m.intel?.pinpointQuestion || `At which node in the ${m.topic} chain do you lose confidence?`}"
+                                     </div>
+                                     <div style={{ marginTop: '6px', fontSize: '11px', color: '#d97706', fontWeight: '600' }}>
+                                       ⚠ If you paused &gt; 5 seconds — that pause IS your gap.
+                                     </div>
+                                   </div>
+                                   {/* Fix + Validate */}
+                                   <div style={{ background: '#f0fdf4', padding: '14px 16px', borderLeft: '4px solid #10b981', borderRadius: '0 0 12px 12px' }}>
+                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                       <div>
+                                         <div style={{ fontSize: '10px', fontWeight: '900', color: '#065f46', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>🛠️ Targeted Fix</div>
+                                         <div style={{ fontSize: '13px', color: '#14532d', fontWeight: '600', lineHeight: '1.6' }}>{m.intel?.fix || `Rebuild the core logic of ${m.topic} from memory. Map cause-effect — not definitions.`}</div>
+                                       </div>
+                                       <div style={{ borderTop: '1px solid #bbf7d0', paddingTop: '10px' }}>
+                                         <div style={{ fontSize: '10px', fontWeight: '900', color: '#065f46', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>✅ Validation Threshold</div>
+                                         <div style={{ fontSize: '13px', color: '#14532d', fontWeight: '600', lineHeight: '1.6' }}>{m.intel?.validate || 'Re-attempt quiz questions. Target ≥70% to clear this blocker.'}</div>
+                                       </div>
+                                       <div style={{ background: 'white', padding: '8px 14px', borderRadius: '8px', border: '1px solid #dcfce7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                         <span style={{ fontSize: '11px', color: '#15803d', fontWeight: '700' }}>⚡ PREDICTED RECOVERY (48hr)</span>
+                                         <span style={{ fontSize: '15px', fontWeight: '900', color: '#15803d' }}>{Math.round(85 - m.blockerScore * 0.15)}%</span>
+                                       </div>
+                                     </div>
+                                   </div>
+                                 </motion.div>
+                               )}
                              </li>
-                           )})
+                           ))
                          ) : (
-                           <div style={{ padding: '20px', textAlign: 'center', opacity: 0.6 }}>
-                              <IconBrain size={32} style={{ marginBottom: '8px' }} />
-                              <p style={{ fontSize: '12px' }}>AI is currently identifying logic patterns for <strong>{selectedModule}</strong>. Complete more Week 5 quizzes to trigger deep analysis.</p>
+                           <div style={{ padding: '40px 20px', textAlign: 'center', opacity: 0.6 }}>
+                              <div style={{ background: '#f0fdf4', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                                <IconCheck size={24} color="#10b981" />
+                              </div>
+                              <p style={{ fontSize: '13px', fontWeight: '600' }}>All foundational concepts synced. No missions pending.</p>
                            </div>
                          )}
                       </ul>
                    </div>
-
-                   {/* Performance Clusters */}
-                   <div className="analysis-box">
-                      <div className="box-header"><IconCheck size={18} color="#10b981" /> <span>High Mastery Subtopics</span></div>
-                      <p className="box-desc">Modules and topics where you've demonstrated consistency above 90%.</p>
-                      <div className="mastery-chips">
-                         {deepDive?.bestSubtopic ? (
-                           <span className="chip green">{deepDive.bestSubtopic}</span>
-                         ) : (
-                           <div style={{ fontSize: '12px', opacity: 0.6 }}>No mastery clusters identified yet for {selectedModule}.</div>
-                         )}
-                      </div>
-                   </div>
                 </div>
+             </div>
 
                 <div className="actual-vs-target-summary" style={{ marginTop: '24px' }}>
-                   <div className="target-summary-header" style={{ marginBottom: '20px' }}>Target Comparison Analysis ({selectedModule})</div>
                    <div style={{ height: '300px', width: '100%' }}>
                      <ResponsiveContainer width="100%" height="100%">
-                       <BarChart
-                         data={[
-                           { name: 'Attendance', actual: currentWeek.att, target: activeAtt },
-                           { name: 'Quiz Score', actual: currentWeek.quiz, target: activeQuiz }
-                         ]}
-                         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                       >
+                       <BarChart data={[{ name: 'Attendance', actual: currentWeek.att, target: activeAtt }, { name: 'Quiz Score', actual: currentWeek.quiz, target: activeQuiz }]}>
                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
                          <XAxis dataKey="name" />
                          <YAxis unit="%" domain={[0, 100]} />
@@ -840,7 +828,6 @@ function StudentAnalytics() {
                    </div>
                 </div>
              </div>
-          </div>
 
           <motion.div 
             className="overview-card" style={{ marginBottom: '24px' }}
@@ -935,7 +922,7 @@ function StudentAnalytics() {
                       </div>
                       <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
                         <span style={{ fontSize: '22px', fontWeight: 'bold', color: week.attendance.actual >= week.attendance.target ? '#4f46e5' : '#f59e0b' }}>
-                          {week.attendance.actual.toFixed(0)}%
+                          {week.attendance.actual.toFixed(2)}%
                         </span>
                         <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>/ target {week.attendance.target}%</span>
                       </div>
@@ -949,7 +936,7 @@ function StudentAnalytics() {
                       </div>
                       <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
                         <span style={{ fontSize: '22px', fontWeight: 'bold', color: week.quiz.actual >= week.quiz.target ? '#10b981' : '#f59e0b' }}>
-                          {week.quiz.actual.toFixed(0)}%
+                          {week.quiz.actual.toFixed(2)}%
                         </span>
                         <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>/ target {week.quiz.target}%</span>
                       </div>
@@ -973,17 +960,50 @@ function StudentAnalytics() {
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       {getAiIndicator(week.aiInsight?.type)}
-                      AI Weekly Logic Trace Analysis
+                      Academic GPS & Strategic Trace
                     </div>
                     
                     {week.aiInsight?.weeklyAnalysis ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ opacity: 0.9 }}><strong>Issue:</strong> {week.aiInsight.weeklyAnalysis.problem}</div>
-                        <div style={{ opacity: 0.8, fontSize: '12px', background: 'rgba(255,255,255,0.4)', padding: '8px', borderRadius: '6px' }}>
-                          <strong>Reason:</strong> {week.aiInsight.weeklyAnalysis.reason}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                        {/* Fingerprint Header */}
+                        <div style={{ background: 'linear-gradient(135deg, #0f172a, #1e1b4b)', padding: '12px 16px', borderRadius: '10px 10px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ color: '#a5b4fc', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1.5px' }}>🧬 UniMate AI — Behavioral Fingerprint</div>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            {week.aiInsight.riskLevel && <span style={{ background: week.aiInsight.riskLevel === 'CRITICAL' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)', color: week.aiInsight.riskLevel === 'CRITICAL' ? '#fca5a5' : '#fcd34d', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '10px' }}>{week.aiInsight.riskLevel}</span>}
+                            {week.aiInsight.bloomsLayer && <span style={{ background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '10px' }}>Layer: {week.aiInsight.bloomsLayer}</span>}
+                          </div>
                         </div>
-                        <div style={{ color: '#10b981', fontWeight: '700' }}>
-                          <strong>AI Suggestion:</strong> {week.aiInsight.weeklyAnalysis.suggestion}
+                        {/* Gap Signal */}
+                        <div style={{ background: '#fef2f2', padding: '12px 16px', borderLeft: '4px solid #ef4444' }}>
+                          <div style={{ fontSize: '10px', fontWeight: '800', color: '#dc2626', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🚩 Detected Pattern</div>
+                          <div style={{ fontWeight: '800', fontSize: '14px', color: '#7f1d1d', lineHeight: '1.3' }}>{week.aiInsight.weeklyAnalysis.problem}</div>
+                        </div>
+                        {/* AI Reasoning */}
+                        <div style={{ background: '#eff6ff', padding: '12px 16px', borderLeft: '4px solid #3b82f6' }}>
+                          <div style={{ fontSize: '10px', fontWeight: '800', color: '#1d4ed8', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🤖 AI Reasoning</div>
+                          <div style={{ fontSize: '13px', color: '#1e3a8a', lineHeight: '1.5', fontWeight: '500' }}>{week.aiInsight.weeklyAnalysis.reason}</div>
+                          {week.aiInsight.projectedWeek6 && <div style={{ marginTop: '8px', fontSize: '12px', fontWeight: '700', color: '#dc2626' }}>📉 Projected next week if unresolved: <strong>{week.aiInsight.projectedWeek6}%</strong></div>}
+                        </div>
+                        {/* Action Protocol */}
+                        <div style={{ background: '#f0fdf4', padding: '16px 20px', borderLeft: '4px solid #10b981', borderRadius: '0 0 10px 10px' }}>
+                          <div style={{ fontSize: '10px', fontWeight: '800', color: '#059669', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div className="pulse-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></div>
+                            ⚡ AI Recovery Protocol
+                          </div>
+                          
+                          <div style={{ 
+                            fontSize: '13px', 
+                            color: '#14532d', 
+                            lineHeight: '1.7', 
+                            fontWeight: '500', 
+                            whiteSpace: 'pre-line',
+                            background: 'rgba(255,255,255,0.4)',
+                            padding: '12px',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(16,185,129,0.1)'
+                          }}>
+                            {week.aiInsight.weeklyAnalysis.suggestion}
+                          </div>
                         </div>
                       </div>
                     ) : (
@@ -1057,11 +1077,19 @@ function StudentAnalytics() {
         </div>
       )}
       
-      {/* Dynamic Keyframes for Toast Animation */}
+      {/* Dynamic Keyframes for Toast and Pulse Animations */}
       <style>{`
         @keyframes slideDown {
           from { top: -50px; opacity: 0; }
           to { top: 24px; opacity: 1; }
+        }
+        @keyframes pulse {
+          0% { transform: scale(0.95); opacity: 0.5; }
+          50% { transform: scale(1.05); opacity: 1; }
+          100% { transform: scale(0.95); opacity: 0.5; }
+        }
+        .pulse-dot {
+          animation: pulse 2s infinite ease-in-out;
         }
       `}</style>
 

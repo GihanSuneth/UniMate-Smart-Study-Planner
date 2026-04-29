@@ -361,8 +361,8 @@ function StudentNotesAI() {
       </div>
 
       <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', justifyContent: 'center' }}>
-        <div className="main-content" style={{ flex: 1, maxWidth: '1200px', minWidth: 0 }}>
-          <div className="upload-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '48px', padding: '40px', backgroundColor: 'var(--bg-card)', borderRadius: '16px', boxShadow: 'var(--shadow-card)', marginBottom: '24px' }}>
+        <div className="notes-container" style={{ flex: 1, maxWidth: '1200px', minWidth: 0 }}>
+          <div className="upload-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '32px', padding: '24px', backgroundColor: 'var(--bg-card)', borderRadius: '20px', boxShadow: 'var(--shadow-card)', marginBottom: '24px' }}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '16px', color: 'var(--text-dark)' }}>Reference Materials</h3>
 
@@ -438,7 +438,7 @@ function StudentNotesAI() {
                 placeholder={generationMode === 'exam_prep'
                   ? 'Paste long lecture notes, documents, or revision content here to compress into a minimal exam pack...'
                   : 'Paste your rough notes here...'}
-                style={{ flex: 1, padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', resize: 'none', backgroundColor: '#ffffff', minHeight: '280px' }}
+                style={{ flex: 1, padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', resize: 'none', backgroundColor: '#ffffff', minHeight: '240px' }}
               />
             </div>
           </div>

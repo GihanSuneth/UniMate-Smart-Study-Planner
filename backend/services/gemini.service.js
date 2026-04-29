@@ -3,7 +3,7 @@ const NodeCache = require("node-cache");
 const crypto = require("crypto");
 
 // Cache implementation with 1-hour TTL
-const aiCache = new NodeCache({ stdTTL: 3600 });
+const aiCache = new NodeCache({ stdTTL: 900 });
 
 class GeminiService {
   constructor() {
@@ -175,13 +175,13 @@ class GeminiService {
       console.log(`[GeminiService] Calling Gemini API for ${type}...`);
       const result = await this.model.generateContent(prompt);
       const responseText = result.response.text();
-      
+
       // Robust JSON extraction
       let cleanText = responseText;
       const startArray = responseText.indexOf('[');
       const startObject = responseText.indexOf('{');
       const startIndex = (startArray !== -1 && (startObject === -1 || startArray < startObject)) ? startArray : startObject;
-      
+
       const lastArray = responseText.lastIndexOf(']');
       const lastObject = responseText.lastIndexOf('}');
       const endIndex = (lastArray !== -1 && lastArray > lastObject) ? lastArray : lastObject;

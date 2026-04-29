@@ -274,7 +274,7 @@ function LecturerNotesAI() {
       </div>
 
       <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', justifyContent: 'center' }}>
-        <div className="main-content" style={{ flex: 1, maxWidth: '1200px', minWidth: 0 }}>
+        <div className="notes-container" style={{ flex: 1, maxWidth: '1200px', minWidth: 0 }}>
           <div className="upload-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '48px', padding: '40px', backgroundColor: 'var(--bg-card)', borderRadius: '16px', boxShadow: 'var(--shadow-card)', marginBottom: '24px' }}>
           
           <div style={{ display: 'flex', flexDirection: 'column' }}>

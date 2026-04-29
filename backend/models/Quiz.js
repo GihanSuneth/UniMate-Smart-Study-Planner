@@ -53,6 +53,11 @@ const quizSchema = new mongoose.Schema({
   },
   deadline: {
     type: Date,
+  },
+  concept: {
+    type: String,
+    default: null,
+    trim: true
   }
 }, {
   timestamps: true,
