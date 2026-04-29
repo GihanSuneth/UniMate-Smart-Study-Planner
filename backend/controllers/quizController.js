@@ -8,7 +8,7 @@ const mongoose = require('mongoose');
 // @route   POST /api/quizzes
 // @access  Private/Lecturer
 exports.createQuiz = async (req, res) => {
-  const { title, module, academicYear, week, questions, questionCount } = req.body;
+  const { title, module, academicYear, week, questions, questionCount, concept } = req.body;
 
   try {
     if (questionCount < 5) {
@@ -23,6 +23,7 @@ exports.createQuiz = async (req, res) => {
       lecturer: req.user._id,
       questions,
       questionCount,
+      concept: concept || null,
       isPublished: false,
       deadline: req.body.deadline
     });

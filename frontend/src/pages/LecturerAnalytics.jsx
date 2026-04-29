@@ -325,7 +325,7 @@ function LecturerAnalytics() {
                   <span>Proportion (Class Size: {deepDive?.classStats?.totalEnrolled || 25})</span>
                 </div>
                 <div className="stat-box-value">
-                  <h2>{attendanceList.length > 0 ? ((attendanceList.length / (deepDive?.classStats?.totalEnrolled || 25)) * 100).toFixed(1) : 0}%</h2>
+                  <h2>{attendanceList.length > 0 ? ((attendanceList.length / (deepDive?.classStats?.totalEnrolled || 25)) * 100).toFixed(2) : (0).toFixed(2)}%</h2>
                 </div>
                 <div className="mini-progress-track">
                   <div className="mini-progress-fill orange" style={{width: `${Math.min((attendanceList.length / (deepDive?.classStats?.totalEnrolled || 25)) * 100, 100)}%`}}></div>
@@ -401,183 +401,229 @@ function LecturerAnalytics() {
 
         {activeTab === 'performance' && (
           <div className="details-row" style={{ animation: 'fadeIn 0.3s ease-out' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h3 className="overview-card-header" style={{ marginBottom: 0 }}>
-                Class Weekly Learning Report: {getFullModuleName(selectedModule)} (Week {selectedWeek})
-              </h3>
-              <div className="ai-badge"><IconBrain size={14}/> Clustered Class Data</div>
-            </div>
 
-            <div className="deep-analysis-section">
-               <div className="analysis-grid">
-                   {/* Question Failure Analysis */}
-                  <div className="analysis-box">
-                     <div className="box-header"><IconAlertTriangle size={18} color="#ef4444" /> <span>Critical: Highest Failure Questions</span></div>
-                     <p className="box-desc">These specific questions have the lowest pass rate across all student attempts in {selectedModule}.</p>
-                     <ul className="failing-questions-list">
-                        {deepDive?.hardestQuestions?.length > 0 ? deepDive.hardestQuestions.map((q, i) => (
-                          <li key={i}>
-                            <div className="q-head">
-                               <span className="q-text">{q.text}</span>
-                               <span className="fail-badge">{q.failureRate.toFixed(1)}% Failure</span>
-                            </div>
-                            <div className="fail-bar"><div className="fail-fill" style={{ width: `${q.failureRate}%` }}></div></div>
-                          </li>
-                        )) : (
-                          <p style={{ fontSize: '13px', color: '#94a3b8' }}>Not enough quiz data to determine failure spots.</p>
-                        )}
-                     </ul>
+            {/* ── Unified Class Academic Intelligence Card ─────────────────── */}
+            <div style={{ background: 'white', borderRadius: '20px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.04)' }}>
+
+              {/* Card Header — always visible */}
+              <div style={{ background: 'linear-gradient(135deg, #1e1b4b, #312e81)', padding: '20px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ color: 'white', fontSize: '16px', fontWeight: '800', letterSpacing: '0.3px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div className="pulse-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: classInsight ? '#4ade80' : '#818cf8', flexShrink: 0 }}></div>
+                    🧠 Class Academic Intelligence
+                  </div>
+                  <div style={{ color: '#a5b4fc', fontSize: '13px', marginTop: '4px', fontWeight: '500' }}>
+                    {getFullModuleName(selectedModule)} · Week {selectedWeek}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {classInsight && (
+                    <div style={{ background: 'rgba(74,222,128,0.2)', color: '#4ade80', fontSize: '10px', fontWeight: '800', padding: '3px 10px', borderRadius: '10px', letterSpacing: '1px' }}>AI LIVE</div>
+                  )}
+                  <div style={{ background: 'rgba(255,255,255,0.1)', color: '#c7d2fe', fontSize: '10px', fontWeight: '700', padding: '3px 10px', borderRadius: '10px' }}>CLUSTERED DATA</div>
+                </div>
+              </div>
+
+              {/* ── PRE-DEPLOY: Teaser + Deploy Button ─────────────────────── */}
+              {!classInsight && (
+                <div style={{ padding: '28px' }}>
+                  {/* 3 live metric tiles (from deepDive — no AI needed) */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '28px' }}>
+                    {[
+                      { label: 'Class Avg Score', value: `${(deepDive?.averageScore || 0).toFixed(1)}%`, color: '#6366f1', icon: '📊', sub: 'This week' },
+                      { label: 'Attendance', value: `${(deepDive?.classStats?.attendance || 0).toFixed(1)}%`, color: '#10b981', icon: '✅', sub: `of ${deepDive?.classStats?.totalEnrolled || 25} students` },
+                      { label: 'Notes Generated', value: deepDive?.classStats?.notesFrequency || 0, color: '#f59e0b', icon: '📝', sub: `${deepDive?.classStats?.activeNoteTakers || 0} active takers` }
+                    ].map((tile, i) => (
+                      <div key={i} style={{ background: '#f8fafc', borderRadius: '14px', padding: '20px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                        <div style={{ fontSize: '24px', marginBottom: '8px' }}>{tile.icon}</div>
+                        <div style={{ fontSize: '26px', fontWeight: '900', color: tile.color }}>{tile.value}</div>
+                        <div style={{ fontSize: '12px', fontWeight: '700', color: '#334155', marginTop: '4px' }}>{tile.label}</div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>{tile.sub}</div>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* High Score Clusters */}
-                  <div className="analysis-box">
-                     <div className="box-header"><IconCheck size={18} color="#10b981" /> <span>High Mastery Topics</span></div>
-                     <p className="box-desc">Overall topic performance based on average scores.</p>
-                     <div className="mastery-chips">
-                        {deepDive?.quizPerformance?.map((qp, i) => (
-                           <span key={i} className={`chip ${qp.avgScore >= 80 ? 'green' : qp.avgScore >= 50 ? 'orange' : 'red'}`}>
-                             {qp.title} ({(qp.avgScore || 0).toFixed(0)}%)
-                           </span>
-                        ))}
-                        {!deepDive?.quizPerformance?.length && <span className="chip" style={{ background: '#f1f5f9', color: '#64748b' }}>No quizzes taken yet</span>}
-                     </div>
+                  {/* Deploy prompt */}
+                  <div style={{ background: '#f0f4ff', borderRadius: '16px', padding: '32px', textAlign: 'center', border: '2px dashed #c7d2fe' }}>
+                    <div style={{ fontSize: '32px', marginBottom: '12px' }}>🧠</div>
+                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#1e293b', marginBottom: '8px' }}>AI Intelligence Offline</div>
+                    <p style={{ fontSize: '13px', color: '#64748b', maxWidth: '420px', margin: '0 auto 24px', lineHeight: '1.6' }}>
+                      Deploy AI to identify class-wide topic gaps, the hardest questions, mastery patterns, and a targeted lecturer action protocol for Week {selectedWeek}.
+                    </p>
+                    <button
+                      onClick={() => fetchClassInsight()}
+                      disabled={insightLoading || !deepDive}
+                      style={{
+                        background: insightLoading ? '#94a3b8' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                        color: 'white', border: 'none', padding: '14px 40px', borderRadius: '12px',
+                        fontWeight: '800', fontSize: '14px', cursor: insightLoading ? 'not-allowed' : 'pointer',
+                        boxShadow: insightLoading ? 'none' : '0 8px 24px rgba(99,102,241,0.4)',
+                        transition: 'all 0.3s', display: 'inline-flex', alignItems: 'center', gap: '10px'
+                      }}
+                    >
+                      {insightLoading ? (
+                        <><div className="spinner" style={{ width: '16px', height: '16px', border: '3px solid rgba(255,255,255,0.3)', borderTop: '3px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>Deploying Intelligence...</>
+                      ) : (
+                        <><IconBrain size={18} /> Deploy AI Analytics</>
+                      )}
+                    </button>
                   </div>
-               </div>
+                </div>
+              )}
 
-               {/* AI Gaps Suggestion */}
-               <div className="actual-vs-target-summary" style={{ 
-                 marginTop: '24px', 
-                 backgroundColor: '#f8fafc', 
-                 borderColor: '#e2e8f0', 
-                 padding: '24px', 
-                 borderRadius: '16px',
-                 border: '1px solid #e2e8f0',
-                 boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-               }}>
-                  <div className="target-summary-header" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1e293b', fontWeight: '800', textTransform: 'uppercase', fontSize: '13px', letterSpacing: '0.5px' }}>
-                     <IconBrain size={20} color="#6366f1" /> 
-                     <span>Class Weekly Academic Intelligence</span>
-                  </div>
-                  
-                  {insightLoading ? (
-                    <div style={{ marginTop: '20px', padding: '20px', textAlign: 'center', color: '#64748b' }}>Analyzing class patterns...</div>
-                  ) : classInsight && classInsight.weeklyAnalysis ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '20px' }}>
-                       <div style={{ borderLeft: '4px solid #ef4444', paddingLeft: '16px' }}>
-                          <div style={{ fontSize: '11px', fontWeight: '700', color: '#ef4444', textTransform: 'uppercase', marginBottom: '4px' }}>Detected Problem</div>
-                          <div style={{ fontSize: '15px', color: '#1e293b', fontWeight: '600' }}>{classInsight.weeklyAnalysis.problem}</div>
-                       </div>
-                       
-                       <div style={{ borderLeft: '4px solid #6366f1', paddingLeft: '16px' }}>
-                          <div style={{ fontSize: '11px', fontWeight: '700', color: '#6366f1', textTransform: 'uppercase', marginBottom: '4px' }}>Pattern Reason</div>
-                          <div style={{ fontSize: '14px', color: '#475569', lineHeight: '1.6' }}>{classInsight.weeklyAnalysis.reason}</div>
-                       </div>
+              {/* ── POST-DEPLOY: Full Intelligence ─────────────────────────── */}
+              {classInsight && (
+                <div style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-                       <div style={{ borderLeft: '4px solid #10b981', paddingLeft: '16px', backgroundColor: '#f0fdf4', padding: '12px', borderRadius: '8px' }}>
-                          <div style={{ fontSize: '11px', fontWeight: '700', color: '#10b981', textTransform: 'uppercase', marginBottom: '4px' }}>AI Suggestion for Faculty</div>
-                          <div style={{ fontSize: '14px', color: '#065f46', fontWeight: '500', lineHeight: '1.6' }}>{classInsight.weeklyAnalysis.suggestion}</div>
-                       </div>
+                  {/* Section 1 — Topic Gap Map */}
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: '900', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      🔴 Class Topic Gap Map
                     </div>
-                  ) : (
-                    <div style={{ marginTop: '20px', padding: '40px', textAlign: 'center', backgroundColor: 'white', borderRadius: '12px', border: '2px dashed #e2e8f0' }}>
-                       <IconBrain size={32} color="#94a3b8" style={{ marginBottom: '12px' }} />
-                       <div style={{ fontSize: '14px', fontWeight: '600', color: '#64748b' }}>Class Intelligence Offline</div>
-                       <p style={{ fontSize: '12px', color: '#94a3b8', margin: '8px 0 20px' }}>Deploy AI Analytics manually to generate deep pedagogical insights for this module.</p>
-                       <button 
-                        onClick={() => fetchClassInsight()}
-                        disabled={insightLoading || !deepDive}
-                        style={{ 
-                          backgroundColor: insightLoading ? '#94a3b8' : '#6366f1', 
-                          color: 'white', 
-                          border: 'none', 
-                          padding: '12px 32px', 
-                          borderRadius: '12px', 
-                          fontWeight: '800', 
-                          fontSize: '14px', 
-                          cursor: insightLoading ? 'not-allowed' : 'pointer',
-                          boxShadow: insightLoading ? 'none' : '0 10px 25px rgba(99, 102, 241, 0.4)',
-                          transition: 'all 0.3s ease',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          margin: '0 auto'
-                        }}
-                       >
-                         {insightLoading ? (
-                           <>
-                             <div className="spinner" style={{ width: '16px', height: '16px', border: '3px solid rgba(255,255,255,0.3)', borderTop: '3px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                             Deploying Intelligence...
-                           </>
-                         ) : (
-                           <>
-                             <IconRobot size={18} /> Deploy AI Analytics
-                           </>
-                         )}
-                       </button>
+                    {deepDive?.topicFailureSummary?.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {deepDive.topicFailureSummary.map((t, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '14px', background: '#f8fafc', borderRadius: '10px', padding: '12px 16px', border: '1px solid #e2e8f0' }}>
+                            <div style={{ flex: '0 0 160px', fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>{t.topic}</div>
+                            <div style={{ flex: 1, height: '8px', background: '#e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${t.failureRate}%`, background: t.severity === 'Critical' ? '#ef4444' : t.severity === 'Warning' ? '#f97316' : '#eab308', borderRadius: '10px', transition: 'width 0.8s ease' }}></div>
+                            </div>
+                            <div style={{ flex: '0 0 60px', textAlign: 'right', fontSize: '13px', fontWeight: '800', color: t.severity === 'Critical' ? '#dc2626' : t.severity === 'Warning' ? '#ea580c' : '#ca8a04' }}>{t.failureRate.toFixed(1)}%</div>
+                            <div style={{ flex: '0 0 100px', textAlign: 'right', fontSize: '11px', color: '#64748b', fontWeight: '600' }}>{t.studentsAffected} students</div>
+                            <div style={{ background: t.severity === 'Critical' ? '#fee2e2' : t.severity === 'Warning' ? '#ffedd5' : '#fef9c3', color: t.severity === 'Critical' ? '#dc2626' : t.severity === 'Warning' ? '#ea580c' : '#ca8a04', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '8px' }}>{t.severity}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px', background: '#f8fafc', borderRadius: '10px' }}>No topic gaps detected for this week.</div>
+                    )}
+                  </div>
+
+                  {/* Section 2 — Mastery Confirmed */}
+                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '20px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: '900', color: '#10b981', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>🟢 Mastery Confirmed This Week</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {deepDive?.topicFailureSummary?.filter(t => t.failureRate < 35).length > 0
+                        ? deepDive.topicFailureSummary.filter(t => t.failureRate < 35).map((t, i) => (
+                            <span key={i} style={{ background: '#dcfce7', color: '#15803d', fontSize: '12px', fontWeight: '700', padding: '5px 14px', borderRadius: '20px', border: '1px solid #bbf7d0' }}>✅ {t.topic}</span>
+                          ))
+                        : deepDive?.quizPerformance?.filter(q => q.avgScore >= 75).map((q, i) => (
+                            <span key={i} style={{ background: '#dcfce7', color: '#15803d', fontSize: '12px', fontWeight: '700', padding: '5px 14px', borderRadius: '20px', border: '1px solid #bbf7d0' }}>✅ {q.title} ({q.avgScore.toFixed(0)}%)</span>
+                          ))
+                      }
+                      {(!deepDive?.topicFailureSummary?.some(t => t.failureRate < 35) && !deepDive?.quizPerformance?.some(q => q.avgScore >= 75)) && (
+                        <span style={{ fontSize: '13px', color: '#94a3b8', fontStyle: 'italic' }}>No topics have reached mastery threshold this week.</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Section 3 — Hardest Questions */}
+                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '20px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: '900', color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '14px' }}>❗ Top Hardest Questions</div>
+                    {deepDive?.hardestQuestions?.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {deepDive.hardestQuestions.map((q, i) => (
+                          <div key={i} style={{ background: '#fffbeb', borderRadius: '10px', border: '1px solid #fde68a', overflow: 'hidden' }}>
+                            {/* Question text */}
+                            <div style={{ padding: '12px 16px 8px' }}>
+                              <div style={{ fontSize: '13px', color: '#78350f', fontWeight: '600', marginBottom: '10px', lineHeight: '1.5' }}>
+                                Q{i + 1}: {q.text.length > 140 ? q.text.substring(0, 140) + '…' : q.text}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ flex: 1, height: '6px', background: '#fde68a', borderRadius: '10px', overflow: 'hidden' }}>
+                                  <div style={{ height: '100%', width: `${q.failureRate}%`, background: q.failureRate === 100 ? '#ef4444' : '#f59e0b', borderRadius: '10px' }}></div>
+                                </div>
+                                <span style={{ fontSize: '12px', fontWeight: '800', color: q.failureRate === 100 ? '#dc2626' : '#b45309', whiteSpace: 'nowrap' }}>{q.failureRate.toFixed(0)}% failed</span>
+                              </div>
+                            </div>
+                            {/* Quiz source metadata */}
+                            <div style={{ background: '#fef3c7', padding: '6px 16px', display: 'flex', alignItems: 'center', gap: '16px', borderTop: '1px solid #fde68a' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#92400e', fontWeight: '600' }}>
+                                <span>📋</span>
+                                <span>{q.quizTitle || 'Unknown Quiz'}</span>
+                              </div>
+                              {q.quizDate && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#a16207', fontWeight: '500' }}>
+                                  <span>🗓</span>
+                                  <span>{new Date(q.quizDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '13px', background: '#f8fafc', borderRadius: '10px' }}>No question failure data available yet.</div>
+                    )}
+                  </div>
+
+                  {/* Section 4 — AI Pattern Protocol */}
+                  {classInsight?.weeklyAnalysis && (
+                    <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '20px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: '900', color: '#6366f1', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div className="pulse-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#818cf8' }}></div>
+                        🧠 AI Pattern Protocol
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                        <div style={{ background: '#fef2f2', padding: '14px 18px', borderLeft: '4px solid #ef4444', borderRadius: '12px 12px 0 0' }}>
+                          <div style={{ fontSize: '10px', fontWeight: '900', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>🚩 Detected Class Pattern</div>
+                          <div style={{ fontSize: '14px', color: '#1e293b', fontWeight: '700', lineHeight: '1.6' }}>{classInsight.weeklyAnalysis.problem}</div>
+                        </div>
+                        <div style={{ background: '#faf5ff', padding: '14px 18px', borderLeft: '4px solid #8b5cf6' }}>
+                          <div style={{ fontSize: '10px', fontWeight: '900', color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>🤖 Why This Is Happening</div>
+                          <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.7', fontWeight: '500' }}>{classInsight.weeklyAnalysis.reason}</div>
+                        </div>
+                        <div style={{ background: '#f0fdf4', padding: '14px 18px', borderLeft: '4px solid #10b981', borderRadius: '0 0 12px 12px' }}>
+                          <div style={{ fontSize: '10px', fontWeight: '900', color: '#065f46', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>📋 Lecturer Action Protocol</div>
+                          <div style={{ fontSize: '13px', color: '#14532d', fontWeight: '600', lineHeight: '1.7', whiteSpace: 'pre-line' }}>{classInsight.weeklyAnalysis.suggestion}</div>
+                        </div>
+                      </div>
                     </div>
                   )}
-                  
 
-               </div>
-
-               <div className="actual-vs-target-summary" style={{ marginTop: '24px' }}>
-                  <div className="target-summary-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>Class Performance Summary (Current Week)</span>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <IconBulb size={14} color="#f59e0b" /> **Bench:** Standard target/benchmark for this module
+                  {/* Section 5 — Baseline Metrics */}
+                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '20px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: '900', color: '#334155', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>📊 Baseline Metrics</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '20px' }}>
+                      {[
+                        { label: 'Average Attendance', value: deepDive?.classStats?.attendance || 0, bench: 75, color: '#6366f1' },
+                        { label: 'Average Quiz Score', value: deepDive?.averageScore || 0, bench: 80, color: '#10b981' }
+                      ].map((row, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                          <div style={{ flex: '0 0 140px', fontSize: '13px', fontWeight: '600', color: '#475569' }}>{row.label}</div>
+                          <div style={{ flex: 1, position: 'relative', height: '28px', background: '#f1f5f9', borderRadius: '8px', overflow: 'hidden' }}>
+                            <div style={{ position: 'absolute', left: `${row.bench}%`, top: 0, bottom: 0, width: '2px', background: '#94a3b8', zIndex: 2 }}></div>
+                            <div style={{ height: '100%', width: `${row.value}%`, background: row.color, borderRadius: '8px', transition: 'width 0.8s ease', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: '8px' }}>
+                              <span style={{ fontSize: '11px', fontWeight: '800', color: 'white' }}>{row.value.toFixed(1)}%</span>
+                            </div>
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', flex: '0 0 60px' }}>Bench {row.bench}%</div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Notes strip */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                      {[
+                        { label: 'Notes Generated', value: deepDive?.classStats?.notesFrequency || 0, sub: 'Class records' },
+                        { label: 'Active Note Takers', value: `${deepDive?.classStats?.activeNoteTakers || 0}/${deepDive?.classStats?.totalEnrolled || 25}`, sub: 'Students using AI Notes' },
+                        { label: 'Best Topic (AI Notes)', value: deepDive?.bestSubtopic || 'N/A', sub: 'Most summarised' }
+                      ].map((tile, i) => (
+                        <div key={i} style={{ background: '#f8fafc', borderRadius: '10px', padding: '14px', border: '1px solid #e2e8f0' }}>
+                          <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', marginBottom: '6px' }}>{tile.label}</div>
+                          <div style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b' }}>{tile.value}</div>
+                          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>{tile.sub}</div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <div className="summary-bars">
-                     <div className="summary-row">
-                        <span>Average Attendance</span>
-                        <div className="bar-set">
-                           <div className="target-marker" style={{ left: '75%' }}>Bench</div>
-                           <div className="actual-bar" style={{ width: `${deepDive?.classStats?.attendance || 0}%` }}>{deepDive?.classStats?.attendance || 0}%</div>
-                        </div>
-                     </div>
-                     <div className="summary-row">
-                        <span>Average Quiz Score</span>
-                        <div className="bar-set">
-                           <div className="target-marker" style={{ left: '80%' }}>Bench</div>
-                           <div className="actual-bar quiz" style={{ width: `${deepDive?.averageScore || 0}%` }}>{deepDive?.averageScore || 0}%</div>
-                        </div>
-                     </div>
-                  </div>
-               </div>
-               
-               {/* Note Taking Patterns Analysis */}
-               <div className="actual-vs-target-summary" style={{ marginTop: '24px', borderTop: '1px solid #e2e8f0', paddingTop: '24px' }}>
-                  <div className="target-summary-header" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                     <IconNotes size={18} color="#6366f1" /> 
-                     <span>Note Taking Patterns Analysis</span>
-                  </div>
-                  <p style={{ fontSize: '13px', color: '#64748b', marginTop: '4px', marginBottom: '16px' }}>Student engagement with AI-generated notes for {selectedModule} in Week {selectedWeek}.</p>
-                  
-                  <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                     <div style={{ flex: 1, minWidth: '200px', padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 600, marginBottom: '8px' }}>Total Notes Generated</div>
-                        <div style={{ fontSize: '28px', fontWeight: 800, color: '#1e293b' }}>{deepDive?.classStats?.notesFrequency || 0}</div>
-                        <div style={{ fontSize: '12px', color: '#10b981', fontWeight: 600, marginTop: '4px' }}>Active Class Records</div>
-                     </div>
-                     <div style={{ flex: 1, minWidth: '200px', padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 600, marginBottom: '8px' }}>Active Note Takers</div>
-                        <div style={{ fontSize: '28px', fontWeight: 800, color: '#1e293b' }}>
-                          {deepDive?.classStats?.activeNoteTakers || 0}
-                          <span style={{ fontSize: '16px', color: '#94a3b8' }}>/{deepDive?.classStats?.totalEnrolled || 64}</span>
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginTop: '4px' }}>Students utilizing AI Notes</div>
-                     </div>
-                     <div style={{ flex: 1, minWidth: '200px', padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 600, marginBottom: '8px' }}>Top Summarized Topic</div>
-                        <div style={{ fontSize: '18px', fontWeight: 700, color: '#1e293b', marginTop: '6px' }}>{deepDive?.bestSubtopic || 'General Concepts'}</div>
-                        <div style={{ fontSize: '12px', color: '#f59e0b', fontWeight: 600, marginTop: '4px' }}>Recent AI engagement hub</div>
-                     </div>
-                  </div>
-               </div>
-               
+
+                </div>
+              )}
             </div>
+
           </div>
         )}
+
       </div>
     </div>
   );

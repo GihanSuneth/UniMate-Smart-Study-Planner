@@ -11,6 +11,10 @@ const activitySchema = new mongoose.Schema({
     enum: ['notes_generated', 'pdf_downloaded'],
     required: true,
   },
+  generatorMode: {
+    type: String,
+    enum: ['smart_notes', 'exam_prep'],
+  },
   module: {
     type: String,
     required: true,
