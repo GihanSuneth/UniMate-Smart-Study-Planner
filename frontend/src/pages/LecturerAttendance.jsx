@@ -9,7 +9,10 @@ import 'react-toastify/dist/ReactToastify.css';
 import { BASE_URL } from '../api';
 import './Attendance.css';
 
+// Lecturer Attendance Page
+
 function LecturerAttendance() {
+  // Page state
   const [selectedModule, setSelectedModule] = useState('Network Design and Modeling');
   const [selectedWeek, setSelectedWeek] = useState(5);
   const [loading, setLoading] = useState(false);
@@ -36,6 +39,7 @@ function LecturerAttendance() {
   const [timeLeft, setTimeLeft] = useState('');
   const [expiresAt, setExpiresAt] = useState(null);
 
+  // Data loading
   useEffect(() => {
     fetchUserProfile();
   }, []);
@@ -117,6 +121,7 @@ function LecturerAttendance() {
     }
   };
 
+  // Attendance actions
   const handleManualOverride = async (studentId, status) => {
     try {
       const response = await fetch(`${BASE_URL}/attendance/override`, {
@@ -251,6 +256,7 @@ function LecturerAttendance() {
   };
 
   // Timer logic
+  // Session timers
   useEffect(() => {
     if (!expiresAt) return;
     const timer = setInterval(() => {
@@ -278,6 +284,7 @@ function LecturerAttendance() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedModule, selectedWeek, sessionToken]);
 
+  // Render
   return (
     <div className="attendance-page">
       <ToastContainer position="top-right" autoClose={3000} />
@@ -617,4 +624,3 @@ function LecturerAttendance() {
 }
 
 export default LecturerAttendance;
-

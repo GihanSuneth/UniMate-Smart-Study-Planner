@@ -9,7 +9,10 @@ import 'react-toastify/dist/ReactToastify.css';
 import { BASE_URL } from '../api';
 import './Analytics.css';
 
+// Lecturer Analytics Page
+
 function LecturerAnalytics() {
+  // Page state
   const [activeTab, setActiveTab] = useState('attendance');
   const [selectedModule, setSelectedModule] = useState('Network Design and Modeling');
   const [selectedWeek, setSelectedWeek] = useState(5);
@@ -32,6 +35,7 @@ function LecturerAnalytics() {
     'Data Science and Analytics': 'IT3014 - Data Science and Analytics'
   };
 
+  // Data loading
   useEffect(() => {
     fetchUserProfile();
   }, []);
@@ -83,6 +87,7 @@ function LecturerAnalytics() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedModule, selectedWeek]);
 
+  // Insight actions
   const fetchClassInsight = async (deepDiveData = null) => {
     const dataToUse = deepDiveData || deepDive;
     if (!dataToUse) return;
@@ -153,6 +158,7 @@ function LecturerAnalytics() {
     }
   };
 
+  // Lecturer actions
   const handleDeployResource = async () => {
     if (!classInsight?.weeklyAnalysis) {
       toast.error("No intelligence insight available to deploy.");
@@ -238,6 +244,7 @@ function LecturerAnalytics() {
     toast.success('CSV Downloaded!');
   };
 
+  // Render
   return (
     <div className="analytics-page" style={{ paddingBottom: '40px' }}>
       <ToastContainer position="top-right" autoClose={3000} />

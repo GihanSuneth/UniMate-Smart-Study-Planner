@@ -5,13 +5,17 @@ import mascot2 from '../images/action-figure-2.png';
 import mascot3 from '../images/action-figure-3.png';
 import './LandingPage.css';
 
+// Landing Page
+
 function LandingPage() {
   const navigate = useNavigate();
 
+  // Route the user to the matching role-based login page.
   const handleRoleSelect = (role) => {
     navigate(`/login/${role}`);
   };
 
+  // Render
   return (
     <div className="landing-page">
       <div className="landing-header">

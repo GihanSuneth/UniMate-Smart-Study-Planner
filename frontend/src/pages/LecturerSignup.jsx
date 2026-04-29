@@ -7,8 +7,12 @@ import mascot2 from '../images/action-figure-2.png';
 import { BASE_URL } from '../api';
 import './StudentSignup.css';
 
+// Lecturer Signup Page
+
 function LecturerSignup() {
   const navigate = useNavigate();
+
+  // Form state
   const [formData, setFormData] = useState({
     username: '',
     lecturerId: '',
@@ -19,6 +23,7 @@ function LecturerSignup() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Validation and form handlers
   const validateForm = () => {
     let newErrors = {};
     if (!formData.username.trim()) newErrors.username = "Name is required";
@@ -96,6 +101,7 @@ function LecturerSignup() {
     navigate('/login/Lecturer');
   };
 
+  // Render
   return (
     <div className="signup-page">
       <ToastContainer position="top-right" autoClose={3500} />

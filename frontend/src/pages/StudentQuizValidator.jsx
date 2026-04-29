@@ -18,8 +18,11 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './QuizValidator.css';
 
+// Student Quiz Validator Page
+
 function StudentQuizValidator() {
   const navigate = useNavigate();
+  // Page state
   const [selectedModule, setSelectedModule] = useState('');
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -36,6 +39,7 @@ function StudentQuizValidator() {
   const [selectedWeek, setSelectedWeek] = useState('All');
   const [selectedYear, setSelectedYear] = useState('All');
 
+  // Data loading
   useEffect(() => {
     if (selectedModule) {
       fetchQuizzes();
@@ -74,6 +78,7 @@ function StudentQuizValidator() {
     } catch (err) { console.error(err); }
   };
 
+  // Quiz flow handlers
   const startQuiz = (quiz) => {
     setActiveQuiz(quiz);
     setResult(null);
@@ -148,6 +153,7 @@ function StudentQuizValidator() {
     setExplanations({});
   };
 
+  // AI explanation helpers
   const handleGetExplanation = async (qIdx) => {
     const q = activeQuiz.questions[qIdx];
     const userChoiceIdx = currentAnswers[qIdx];
@@ -222,6 +228,7 @@ function StudentQuizValidator() {
   };
 
   // --- RENDER CONTENT ---
+  // Render states
   if (!activeQuiz) {
     return (
       <motion.div className="quiz-validator-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -362,6 +369,7 @@ function StudentQuizValidator() {
     );
   }
 
+  // Render quiz attempt view
   return (
     <motion.div className="quiz-validator-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between' }}>

@@ -9,13 +9,18 @@ import actionFigureImg from '../images/action-figure-1.png';
 import WeeklyReportCard from '../components/WeeklyReportCard';
 import { BASE_URL } from '../api';
 
+// Student Dashboard Page
+
 function StudentDashboard() {
   const navigate = useNavigate();
+
+  // Page state
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const [summaryData, setSummaryData] = useState(null);
 
+  // Initial dashboard load
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -50,6 +55,7 @@ function StudentDashboard() {
 
   if (loading) return <div className="loading-container">Loading Dashboard...</div>;
 
+  // Render
   return (
     <>
       <div className="welcome-banner">

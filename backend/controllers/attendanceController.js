@@ -2,6 +2,8 @@ const Attendance = require('../models/Attendance');
 const AttendanceSession = require('../models/AttendanceSession');
 const User = require('../models/User');
 
+// Attendance Controller
+
 // @desc    Add attendance record
 // @route   POST /api/attendance
 // @access  Private
@@ -31,13 +33,15 @@ exports.getStudentAttendance = async (req, res) => {
   try {
     const studentId = req.params.studentId;
 
-    // 1. Get student to find assigned modules (dynamic denominator)
+    // Use assigned modules as the denominator so percentages reflect the
+    // student's actual study load instead of a hard-coded class count.
     const student = await User.findById(studentId);
     const assignedModules = student?.assignedModules?.length > 0 
       ? student.assignedModules 
       : ['Programming Applications', 'Database Systems', 'Operating Systems', 'Software Engineering'];
 
-    // 2. Optimized DB Lookup
+    // Pull the raw attendance records once, then derive overview, weekly, and
+    // module-level summaries from the same dataset.
     const attendance = await Attendance.find({ student: studentId });
     
     // Calculate overall stats
@@ -82,7 +86,9 @@ exports.getStudentAttendance = async (req, res) => {
 exports.createSession = async (req, res) => {
   const { module, week } = req.body;
   const lecturerId = req.user._id;
-  // Generate random 6 character code
+
+  // The short session code is what students enter manually if they do not scan
+  // the QR image.
   const uniqueCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
   try {
@@ -113,7 +119,7 @@ exports.markAttendance = async (req, res) => {
       return res.status(404).json({ message: 'Invalid or expired attendance code' });
     }
 
-    // Check if already marked
+    // Prevent duplicate attendance for the same module/week pair.
     const existing = await Attendance.findOne({
       student: studentId,
       module: session.module,
@@ -145,11 +151,11 @@ exports.getModuleAttendance = async (req, res) => {
   const { moduleName } = req.params;
 
   try {
-    // Note: To get student details, we populate the student reference including portalId and role
+    // Populate student fields so lecturers can see who submitted each record.
     const records = await Attendance.find({ module: moduleName })
       .populate('student', 'username email portalId role');
     
-    // Filter to only include student attendance records (exclude lecturers/admins)
+    // Exclude non-student records if a lecturer/admin happens to be attached.
     const studentRecords = records.filter(r => r.student && r.student.role === 'student');
     
     res.json(studentRecords);
@@ -180,13 +186,16 @@ exports.endSession = async (req, res) => {
 exports.getActiveSessions = async (req, res) => {
   try {
     const activeSessions = await AttendanceSession.find({ isActive: true })
-      .select('-uniqueCode') // 🛡️ Security: Enforce QR scan / manual entry for demo
+      // The raw code is hidden here so the UI encourages QR/manual workflow
+      // instead of exposing active session tokens in plain text.
+      .select('-uniqueCode')
       .populate('lecturer', 'username email');
     res.json(activeSessions);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 // @desc    Get total enrollment count for a module/semester
 // @route   GET /api/attendance/enrollment-count
 // @access  Private (Lecturer)
@@ -204,6 +213,7 @@ exports.getEnrollmentCount = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 // @desc    Manually override attendance status
 // @route   PUT /api/attendance/override
 // @access  Private (Lecturer)

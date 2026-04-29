@@ -1,11 +1,15 @@
 const qrService = require('../services/qr.service');
 const AttendanceSession = require('../models/AttendanceSession');
 
+// QR Controller
+
 exports.generateQR = async (req, res) => {
   const { module, week, duration, baseUrl } = req.body;
   const lecturerId = req.user._id;
 
   try {
+    // Restrict QR creation to current/future academic weeks so old attendance
+    // sessions cannot be reopened casually.
     if (week < 5) {
       throw new Error("Attendance sessions cannot be created for past academic weeks.");
     }
@@ -58,7 +62,7 @@ exports.getQRImage = async (req, res) => {
     const session = await AttendanceSession.findById(req.params.id);
     if (!session) return res.status(404).json({ message: "Session not found" });
     
-    // Regenerate QR on the fly to ensure security (don't store large blobs in DB)
+    // Regenerate the QR image on demand instead of storing the full base64 blob.
     const QRCode = require('qrcode');
     const baseUrl = req.query.baseUrl || '';
     const qrDataStr = baseUrl ? `${baseUrl}/mark-attendance?code=${session.uniqueCode}` : session.uniqueCode;

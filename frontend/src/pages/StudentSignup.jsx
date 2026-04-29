@@ -7,8 +7,11 @@ import mascot1 from '../images/action-figure-1.png';
 import { BASE_URL } from '../api';
 import './StudentSignup.css';
 
+// Student Signup Page
+
 function StudentSignup() {
   const navigate = useNavigate();
+  // Form state
   const [formData, setFormData] = useState({
     username: '',
     itNumber: '',
@@ -21,6 +24,7 @@ function StudentSignup() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Validation and form handlers
   const validateForm = () => {
     let newErrors = {};
     if (!formData.username.trim()) newErrors.username = "Username is required";
@@ -104,6 +108,7 @@ function StudentSignup() {
     navigate('/login/student');
   };
 
+  // Render
   return (
     <div className="signup-page">
       <ToastContainer position="top-right" autoClose={3500} />

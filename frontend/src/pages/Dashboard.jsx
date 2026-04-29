@@ -6,7 +6,10 @@ import {
 
 import actionFigureImg from '../images/action-figure-1.png';
 
+// Dashboard Demo Page
+
 function Dashboard() {
+  // Render
   return (
     <>
        <div className="welcome-banner">

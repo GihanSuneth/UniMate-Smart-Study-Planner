@@ -6,12 +6,17 @@ import 'react-toastify/dist/ReactToastify.css';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { BASE_URL } from '../api';
 
+// Mark Attendance Page
+
 function MarkAttendance() {
   const navigate = useNavigate();
+
+  // Page state
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
 
+  // Scanner lifecycle
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const codeParam = urlParams.get('code');
@@ -45,6 +50,7 @@ function MarkAttendance() {
     };
   }, [showScanner]);
 
+  // Submission handler
   const handleMarkAttendance = async (e) => {
     e.preventDefault();
     if (!code || code.length !== 6) {
@@ -88,6 +94,7 @@ function MarkAttendance() {
     }
   };
 
+  // Render
   return (
     <div style={{ padding: '40px', maxWidth: '600px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
       <ToastContainer position="top-right" autoClose={3000} />

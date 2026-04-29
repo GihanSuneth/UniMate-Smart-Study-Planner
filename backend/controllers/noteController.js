@@ -1,5 +1,7 @@
 const Note = require('../models/Note');
 
+// Notes Controller
+
 // @desc    Create/Save a note
 // @route   POST /api/notes
 // @access  Private
@@ -25,10 +27,10 @@ exports.saveNote = async (req, res) => {
 exports.getNotes = async (req, res) => {
   const { module, type } = req.query;
   
-  // Logical OR: either it belongs to the user OR it is shared for this specific module
+  // Users can see their own notes plus any shared notes made available through
+  // the wider module space.
   const orConditions = [{ user: req.user._id }];
   
-  // Only students should see shared notes? For now, anyone allowed in module can see shared
   orConditions.push({ isShared: true });
 
   const filter = { $or: orConditions };

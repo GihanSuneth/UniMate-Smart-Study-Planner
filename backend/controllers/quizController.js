@@ -4,6 +4,11 @@ const User = require('../models/User');
 const geminiService = require('../services/gemini.service');
 const mongoose = require('mongoose');
 
+// Quiz Controller
+
+// Escape user search text before turning it into a regex filter.
+const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // @desc    Create a new quiz (Draft)
 // @route   POST /api/quizzes
 // @access  Private/Lecturer
@@ -43,8 +48,8 @@ exports.getQuizzes = async (req, res) => {
 
   if (module && module !== 'All') filter.module = module;
   if (academicYear && academicYear !== 'All') {
-    // If it contains "All", we might want to just filter by the part that isn't "All"
-    // e.g. "Year 1 All" -> regex "Year 1"
+    // Some UI values combine year/semester text, so trim the generic "All"
+    // token before building the regex.
     const cleanYear = academicYear.replace(/All/g, '').trim();
     if (cleanYear) {
       filter.academicYear = { $regex: cleanYear, $options: 'i' };
@@ -57,12 +62,12 @@ exports.getQuizzes = async (req, res) => {
 
   try {
     if (req.user.role === 'Lecturer' || req.user.role === 'admin') {
-      // Lecturers see their own quizzes
+      // Lecturers see their own quizzes, while admins can see the full set.
       if (req.user.role === 'Lecturer') filter.lecturer = req.user._id;
       const quizzes = await Quiz.find(filter).sort({ dateCreated: -1 });
       res.json(quizzes);
     } else {
-      // Students see only published quizzes for their modules
+      // Students should never receive draft quizzes.
       filter.isPublished = true;
       const quizzes = await Quiz.find(filter).sort({ dateCreated: -1 });
       res.json(quizzes);
@@ -147,7 +152,7 @@ exports.submitAttempt = async (req, res) => {
     const quiz = await Quiz.findById(req.params.id);
     if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
 
-    // Check deadline
+    // Attempts are blocked once the configured deadline has passed.
     if (quiz.deadline && new Date() > new Date(quiz.deadline)) {
       return res.status(400).json({ message: 'Quiz deadline has passed. You can no longer submit attempts.' });
     }
@@ -155,7 +160,8 @@ exports.submitAttempt = async (req, res) => {
     let correctCount = 0;
     const questionResults = [];
     quiz.questions.forEach((q, idx) => {
-      const studentAnswer = answers[idx]; // { questionIndex: x, selectedOptionIndex: y }
+      // Each answer points to an option index from the submitted payload.
+      const studentAnswer = answers[idx];
       const selectedOpt = studentAnswer && q.options[studentAnswer.selectedOptionIndex];
       const isCorrect = selectedOpt && selectedOpt.isCorrect;
       if (isCorrect) correctCount++;
@@ -173,7 +179,9 @@ exports.submitAttempt = async (req, res) => {
       student: req.user._id,
       quiz: quiz._id,
       module: quiz.module,
-      week: week || quiz.week || 1, // Use attempt week, then quiz week, then default 1
+      // Keep a week value on the attempt itself so history and analytics do not
+      // depend on the quiz document alone.
+      week: week || quiz.week || 1,
       score,
       correctAnswers: correctCount,
       totalQuestions: quiz.questions.length,
@@ -181,7 +189,7 @@ exports.submitAttempt = async (req, res) => {
     });
 
     const responseData = attempt.toObject();
-    responseData.correctCount = correctCount; // Alias for frontend compatibility
+    responseData.correctCount = correctCount; // Alias kept for existing UI code
     res.status(201).json(responseData);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -231,8 +239,50 @@ exports.getStudentAttempts = async (req, res) => {
 // @access  Private/Lecturer
 exports.getModuleAttempts = async (req, res) => {
   const { moduleCode } = req.params;
+  const { studentId, quizTitle, module, week } = req.query;
+
   try {
-    const attempts = await QuizAttempt.find({ module: moduleCode })
+    const filter = {};
+    const selectedModule = module && module !== 'All' ? module : moduleCode;
+
+    // Module remains optional so the same route can power exact-module views and
+    // broader search behaviour.
+    if (selectedModule && selectedModule !== 'All') {
+      filter.module = selectedModule;
+    }
+
+    // Week lives on the attempt, so it can be filtered directly here.
+    if (week && week !== 'All') {
+      const weekNum = Number(week);
+      if (!Number.isNaN(weekNum)) filter.week = weekNum;
+    }
+
+    // Student ID search accepts portal ID, username, email, or raw ObjectId so
+    // lecturers can find records using whichever identifier they know.
+    if (studentId && studentId.trim()) {
+      const search = studentId.trim();
+      const regex = new RegExp(escapeRegex(search), 'i');
+      const studentMatch = [{ portalId: regex }, { username: regex }, { email: regex }];
+
+      if (mongoose.Types.ObjectId.isValid(search)) {
+        studentMatch.push({ _id: new mongoose.Types.ObjectId(search) });
+      }
+
+      const students = await User.find({ $or: studentMatch }).select('_id').lean();
+      if (!students.length) return res.json([]);
+      filter.student = { $in: students.map(student => student._id) };
+    }
+
+    // Quiz title belongs to the quiz document, so map title matches to quiz ids
+    // before querying attempts.
+    if (quizTitle && quizTitle.trim()) {
+      const titleRegex = new RegExp(escapeRegex(quizTitle.trim()), 'i');
+      const quizzes = await Quiz.find({ title: titleRegex }).select('_id').lean();
+      if (!quizzes.length) return res.json([]);
+      filter.quiz = { $in: quizzes.map(quiz => quiz._id) };
+    }
+
+    const attempts = await QuizAttempt.find(filter)
       .populate('student', 'username email portalId')
       .populate('quiz', 'title')
       .sort({ date: -1 });
@@ -261,7 +311,8 @@ exports.generateAiQuiz = async (req, res) => {
 
     console.log("DEBUG: AI Data for Quiz:", JSON.stringify(generatedData).substring(0, 500));
 
-    // Flexible extraction logic
+    // Accept a few likely response shapes so the frontend is resilient to small
+    // AI formatting differences.
     let questionsRaw = [];
     if (Array.isArray(generatedData)) {
       questionsRaw = generatedData;
@@ -277,8 +328,8 @@ exports.generateAiQuiz = async (req, res) => {
       return res.status(500).json({ message: 'AI returned an invalid data structure. Please try again.' });
     }
 
-    // Format for frontend: Gemini returns [{question, options, correctAnswer}]
-    // Scavenge for varied keys (question/text/qText and options/choices/answers)
+    // Normalize the AI output into the quiz schema expected by the frontend and
+    // database model.
     const formattedQuestions = questionsRaw
       .map(q => {
         const questionText = q.question || q.text || q.title || q.qText;
@@ -306,5 +357,47 @@ exports.generateAiQuiz = async (req, res) => {
     console.error("AI Quiz Gen Error:", error);
     const status = error.message.includes('429') ? 429 : 500;
     res.status(status).json({ message: error.message });
+  }
+};
+
+// @desc    Get AI explanation for one quiz answer
+// @route   POST /api/quizzes/justify
+// @access  Private
+exports.getJustification = async (req, res) => {
+  const { questionText, selectedAnswer, correctAnswer } = req.body;
+
+  try {
+    const aiInsightData = await geminiService.generateContent('explanation', {
+      question: questionText,
+      selectedAnswer,
+      correctAnswer
+    });
+
+    res.json({
+      explanation: aiInsightData.explanation || 'No explanation available.',
+      isSimulated: aiInsightData.isSimulated || false
+    });
+  } catch (error) {
+    console.error('[getJustification] Error:', error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get AI explanations for multiple quiz answers
+// @route   POST /api/quizzes/justify-batch
+// @access  Private
+exports.getBatchJustification = async (req, res) => {
+  const { questions } = req.body;
+
+  try {
+    const aiInsightData = await geminiService.generateContent('batch_explanation', { questions });
+
+    res.json({
+      explanations: aiInsightData.explanations || [],
+      isSimulated: aiInsightData.isSimulated || false
+    });
+  } catch (error) {
+    console.error('[getBatchJustification] Error:', error.message);
+    res.status(500).json({ message: error.message });
   }
 };

@@ -6,6 +6,9 @@ import { API_ENDPOINTS } from '../api';
 import './Settings.css';
 import actionFigure4Img from '../images/action-figure-4.png';
 
+// Settings Page
+
+// Small reusable switch used across the settings forms.
 function ToggleSwitch({ checked, onChange }) {
   return (
     <label className="switch">
@@ -16,6 +19,7 @@ function ToggleSwitch({ checked, onChange }) {
 }
 
 function Settings() {
+  // Page state
   const [userData, setUserData] = useState({
     fullName: '',
     email: '',
@@ -39,6 +43,7 @@ function Settings() {
     weekly: true
   });
 
+  // Data loading
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -82,6 +87,7 @@ function Settings() {
     }
   };
 
+  // Form actions
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     const name = e.target.fullName.value;
@@ -210,6 +216,7 @@ function Settings() {
 
   if (loading) return <div className="loading-spinner" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', fontSize: '18px', color: 'var(--text-secondary)' }}>Loading your profile...</div>;
 
+  // Render
   return (
     <div className="settings-page">
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />

@@ -1,5 +1,7 @@
 const Activity = require('../models/Activity');
 
+// Activity Controller
+
 // @desc    Log a new activity (notes generated, pdf downloaded)
 // @route   POST /api/activity
 // @access  Private
@@ -24,6 +26,8 @@ exports.logActivity = async (req, res) => {
 // @route   GET /api/activity
 // @access  Private
 exports.getUserActivity = async (req, res) => {
+  // Module filtering is optional so the same endpoint can power full history
+  // views and module-specific timelines.
   const { module } = req.query;
   const filter = { user: req.user._id };
   if (module && module !== 'All') filter.module = module;

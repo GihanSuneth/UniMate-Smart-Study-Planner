@@ -9,9 +9,13 @@ import 'react-toastify/dist/ReactToastify.css';
 import { BASE_URL } from '../api';
 import './Login.css';
 
+// Login Page
+
 function Login() {
   const { role } = useParams();
   const navigate = useNavigate();
+
+  // Page state
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -22,13 +26,14 @@ function Login() {
   const [lookupLoading, setLookupLoading] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Determine configuration based on URL param
+  // Role-based configuration changes the mascot and helper text.
   const config = {
     student: { title: 'Student Login', mascot: mascot1, bg: 'bg-student', credUsername: 'student' },
     Lecturer: { title: 'Lecturer Login', mascot: mascot2, bg: 'bg-Lecturer', credUsername: 'Lecturer' },
     admin: { title: 'Admin Login', mascot: mascot3, bg: 'bg-admin', credUsername: 'admin' },
   };
 
+  // Form actions
   const handleLookup = async (e) => {
     e.preventDefault();
     if (!lookupEmail) return;
@@ -104,6 +109,7 @@ function Login() {
     navigate('/');
   };
 
+  // Render
   return (
     <div className="login-page">
       <ToastContainer position="top-right" autoClose={3000} />

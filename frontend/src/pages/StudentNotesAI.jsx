@@ -11,6 +11,8 @@ import { BASE_URL } from '../api';
 import './NotesAI.css';
 import actionFigureImg from '../images/action-figure-1.png';
 
+// Student Notes AI Page
+
 const MODE_CONFIG = {
   smart_notes: {
     title: 'Smart Notes Generator',
@@ -46,6 +48,7 @@ const MODE_CONFIG = {
   }
 };
 
+// Infer which note layout to reopen when loading saved history.
 function inferModeFromItem(item) {
   if (item?.generatorMode) return item.generatorMode;
   if (item?.content?.['Exam Snapshot']) return 'exam_prep';
@@ -53,6 +56,7 @@ function inferModeFromItem(item) {
 }
 
 function StudentNotesAI() {
+  // Page state
   const [file, setFile] = useState(null);
   const [textNotes, setTextNotes] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -71,6 +75,7 @@ function StudentNotesAI() {
 
   const currentConfig = MODE_CONFIG[generationMode];
 
+  // History and profile loading
   const fetchHistory = async () => {
     try {
       const response = await fetch(`${BASE_URL}/activity?module=${filterModule}`, {
@@ -114,6 +119,7 @@ function StudentNotesAI() {
     fetchHistory();
   }, [filterModule, generationMode]);
 
+  // Input and generation handlers
   const switchMode = (mode) => {
     setGenerationMode(mode);
     setActiveTab(MODE_CONFIG[mode].defaultTabs[0]);
@@ -308,6 +314,7 @@ function StudentNotesAI() {
   const previewConfig = MODE_CONFIG[previewMode];
   const activeContent = generatedNotes?.[activeTab];
 
+  // Render
   return (
     <div className="notes-ai-page">
       <AnimatePresence>
