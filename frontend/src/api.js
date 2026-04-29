@@ -4,7 +4,19 @@
  * without editing multiple files.
  */
 
-export const BASE_URL = "http://localhost:5000/api";
+const rawApiUrl = import.meta.env.VITE_API_URL;
+const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+
+function normalizeBaseUrl(url) {
+  if (!url) return null;
+  const trimmedUrl = url.replace(/\/+$/, "");
+  return trimmedUrl.endsWith("/api") ? trimmedUrl : `${trimmedUrl}/api`;
+}
+
+export const BASE_URL =
+  normalizeBaseUrl(rawApiUrl) ||
+  normalizeBaseUrl(rawApiBaseUrl) ||
+  "http://localhost:5001/api";
 
 export const API_ENDPOINTS = {
   AUTH: `${BASE_URL}/auth`,
