@@ -13,7 +13,6 @@ const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split('
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
     // Allow requests with no origin (like mobile apps or curl) or if origin is in allowedOrigins or any localhost
     if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:')) {
       callback(null, true);
@@ -72,7 +71,9 @@ async function connectDB() {
       console.error("❌ Both Primary and Local DB Failed. Launching MongoDB Memory Server... 🚀");
       try {
         const { MongoMemoryServer } = require('mongodb-memory-server');
-        const mongoServer = await MongoMemoryServer.create();
+        const mongoServer = await MongoMemoryServer.create({
+          instance: { ip: '127.0.0.1' }
+        });
         const mongoUri = mongoServer.getUri();
         await mongoose.connect(mongoUri, options);
         console.log("✅ In-Memory Fallback MongoDB Connected at:", mongoUri);
