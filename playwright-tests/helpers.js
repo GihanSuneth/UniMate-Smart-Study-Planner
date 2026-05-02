@@ -1,4 +1,4 @@
-export async function seedStudentSession(page, overrides = {}) {
+export async function seedSession(page, overrides = {}) {
   const session = {
     userRole: 'student',
     userName: 'Test Student',
@@ -14,4 +14,17 @@ export async function seedStudentSession(page, overrides = {}) {
     });
     window.dispatchEvent(new Event('auth-change'));
   }, session);
+}
+
+export async function seedStudentSession(page, overrides = {}) {
+  await seedSession(page, overrides);
+}
+
+export async function seedLecturerSession(page, overrides = {}) {
+  await seedSession(page, {
+    userRole: 'lecturer',
+    userName: 'Test Lecturer',
+    userId: 'mock-lecturer-id',
+    ...overrides,
+  });
 }
