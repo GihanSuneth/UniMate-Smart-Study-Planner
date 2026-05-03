@@ -1,3 +1,9 @@
+const DEFAULT_APP_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
+
+export function resolveAppUrl(path = '/') {
+  return new URL(path, DEFAULT_APP_URL).toString();
+}
+
 export async function seedSession(page, overrides = {}) {
   const session = {
     userRole: 'student',
@@ -7,7 +13,7 @@ export async function seedSession(page, overrides = {}) {
     ...overrides,
   };
 
-  await page.goto('/');
+  await page.goto(resolveAppUrl('/'));
   await page.evaluate((authState) => {
     Object.entries(authState).forEach(([key, value]) => {
       localStorage.setItem(key, value);

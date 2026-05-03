@@ -81,7 +81,7 @@ test.describe('Notes AI Module Interactions', () => {
       await page.getByRole('button', { name: /Show Previous Record/i }).click();
 
       await expect(page.getByText('Old Notes')).toBeVisible();
-      await expect(page.getByText(/SMART NOTES/i)).toBeVisible();
+      await expect(page.getByText('SMART NOTES', { exact: true })).toBeVisible();
 
       await page.getByText('Old Notes').click();
       await expect(page.getByText('Point 1')).toBeVisible();

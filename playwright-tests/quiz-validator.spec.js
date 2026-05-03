@@ -185,7 +185,7 @@ test.describe('Quiz Validator Module Interactions', () => {
 
     test('should view a published quiz', async ({ page }) => {
       await expect(page.getByRole('heading', { name: /Lecturer Quiz Dashboard/i })).toBeVisible();
-      await expect(page.getByText('Network Fundamentals')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Network Fundamentals' })).toBeVisible();
 
       await page.getByRole('button', { name: /View Quiz/i }).click();
 

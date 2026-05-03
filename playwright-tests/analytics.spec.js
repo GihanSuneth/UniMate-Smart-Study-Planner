@@ -218,7 +218,7 @@ test.describe('Analytics Module Interactions', () => {
 
     test('should deploy attendance pattern analysis', async ({ page }) => {
       await expect(page.getByRole('heading', { name: /Lecturer Analytics & Attendance/i })).toBeVisible();
-      await expect(page.getByText(/Attendance Records/i)).toBeVisible();
+      await expect(page.getByRole('heading', { name: /Attendance Records/i })).toBeVisible();
 
       await page.getByRole('button', { name: /Deploy Pattern AI/i }).click();
 

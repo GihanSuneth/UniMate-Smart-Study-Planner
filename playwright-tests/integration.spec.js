@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { resolveAppUrl } from './helpers.js';
 
 /**
  * FULL STACK INTEGRATION TEST
@@ -8,7 +9,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Full-Stack Integration Tests', () => {
   
   test('should login with real credentials and access modules', async ({ page }) => {
-    await page.goto('/');
+    await page.goto(resolveAppUrl('/'));
     
     await page.getByRole('button', { name: /Login as Student/i }).click();
 
@@ -24,15 +25,15 @@ test.describe('Full-Stack Integration Tests', () => {
     await expect(page.getByText(/Welcome Back, student1/i)).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/Academic Week 5/i)).toBeVisible({ timeout: 10000 });
 
-    await page.goto('/attendance');
+    await page.goto(resolveAppUrl('/attendance'));
     await expect(page.getByRole('heading', { name: /Digital Check-in/i })).toBeVisible();
     const moduleSelect = page.locator('select').first();
     await expect(moduleSelect).not.toBeDisabled();
 
-    await page.goto('/analytics');
+    await page.goto(resolveAppUrl('/analytics'));
     await expect(page.getByRole('heading', { name: /Performance Intelligence/i })).toBeVisible();
 
-    await page.goto('/quiz-validator');
+    await page.goto(resolveAppUrl('/quiz-validator'));
     await expect(page.getByRole('heading', { name: /Student Quiz Portal/i })).toBeVisible();
   });
 });

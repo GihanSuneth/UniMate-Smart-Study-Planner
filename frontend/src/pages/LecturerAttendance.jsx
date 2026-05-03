@@ -91,6 +91,12 @@ function LecturerAttendance() {
     fetchHistory();
   }, [historyFilterModule, historyFilterWeek]);
 
+  useEffect(() => {
+    if (!selectedModule) return;
+    fetchAttendance();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedModule, selectedWeek]);
+
 
   // 1. Fetch live attendance for the active session or selected criteria
   const fetchAttendance = async () => {

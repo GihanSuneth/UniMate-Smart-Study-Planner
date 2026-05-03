@@ -184,7 +184,7 @@ test.describe('Attendance Module Interactions', () => {
       await expect(page.getByRole('button', { name: /Start Attendance Session/i })).toBeVisible();
       await page.getByRole('button', { name: /Start Attendance Session/i }).click();
 
-      await expect(page.getByText('ABC123')).toBeVisible();
+      await expect(page.getByText('ABC123', { exact: true })).toBeVisible();
       await expect(page.getByRole('button', { name: /End Session Now/i })).toBeVisible();
 
       await page.getByRole('button', { name: /End Session Now/i }).click();
@@ -196,11 +196,11 @@ test.describe('Attendance Module Interactions', () => {
       await expect(page.getByText('Bob Smith')).toBeVisible();
 
       await page.getByTitle('Mark Present').last().click();
-      await expect(page.getByText(/Marked as Present/i)).toBeVisible();
+      await expect(page.getByRole('alert').filter({ hasText: /Marked as Present/i }).first()).toBeVisible();
 
       await expect(page.getByText(/Past Attendance Details/i)).toBeVisible();
       await expect(page.getByText('Alice Johnson')).toBeVisible();
-      await expect(page.getByText('PRESENT')).toBeVisible();
+      await expect(page.getByRole('cell', { name: 'PRESENT' })).toBeVisible();
     });
   });
 });
